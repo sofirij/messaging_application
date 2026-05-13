@@ -1,0 +1,2 @@
+DROP INDEX idx_message_attachments_message_id;
+DROP TABLE message_attachments;

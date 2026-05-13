@@ -1,7 +1,11 @@
+include .env
+export
+
 # variables
 BINARY_NAME=app.exe
-BUILD_DIR=./bin
+BUILD_DIR=bin
 MAIN_PATH=./cmd/server/main.go
+MIGRATE=migrate -path migrations -database "$(DB_URL)"
 
 # default target — runs when you just type "make"
 all: format tidy build run
@@ -30,12 +34,28 @@ tidy:
 clean:
 	rd /s /q $(BUILD_DIR)
 
+migrate-up:
+	$(MIGRATE) up
+
+migrate-down:
+	$(MIGRATE) down 1
+
+migrate-version:
+	$(MIGRATE) version
+
+migrate-create:
+	migrate create -ext sql -dir migrations -seq $(name)
+
 # show available commands
 help:
 	@echo Available commands:
-	@echo   make            - format all code, build binary and run
-	@echo   make format     - format all code
-	@echo   make build      - build binary
-	@echo   make tidy       - tidy go modules
-	@echo   make clean      - remove build artifacts
-	@echo   make run        - run the compiled executable
+	@echo   make            			- format all code, build binary and run
+	@echo   make format     			- format all code
+	@echo   make build      			- build binary
+	@echo   make tidy       			- tidy go modules
+	@echo   make clean      			- remove build artifacts
+	@echo   make run        			- run the compiled executable
+	@echo   make migrate-up             - apply all pending migrations
+	@echo   make migrate-down           - roll back the most recent migration
+	@echo   make migrate-version        - show current migration version
+	@echo   make migrate-create name=x  - create a new migration pair

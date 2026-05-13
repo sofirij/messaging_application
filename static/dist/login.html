@@ -1,0 +1,42 @@
+<!--
+    todo
+    use a bundler to obfuscate code
+-->
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>My Page</title>
+        <link rel="stylesheet" href="https://192.168.0.11:3000/dist/css/login.css">
+    </head>
+
+    <body>
+        <div class="card">
+            <div class="tabs">
+                <button class="tab active" onclick="showSection('login')">Log in</button>
+                <button class="tab" onclick="showSection('register')">Register</button>
+            </div>
+
+            <div id="login" class="section active">
+                <h2>Welcome back</h2>
+                <label for="login-username">Username</label>
+                <input type="text" id="login-username" placeholder="Enter your username">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" placeholder="Enter your password">
+                <button class="submit" id="login-submit">Log in</button>
+            </div>
+
+            <div id="register" class="section">
+                <h2>Create an account</h2>
+                <label for="reg-username">Username</label>
+                <input type="text" id="reg-username" placeholder="Choose a username">
+                <label for="reg-password">Password</label>
+                <input type="password" id="reg-password" placeholder="Choose a password">
+                <button class="submit" id="register-submit">Register</button>
+            </div>
+        </div>
+
+        <script src="https://192.168.0.11:3000/dist/js/login.js"></script>
+    </body>
+</html>

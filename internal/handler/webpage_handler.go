@@ -12,8 +12,8 @@ func NewWebpageHandler() *WebpageHandler {
 	return &WebpageHandler{}
 }
 
-func (h *WebpageHandler) ServeHomepage(c fiber.Ctx) error {
-	return c.SendFile("dist/index.html", fiber.SendFile{
+func (h *WebpageHandler) ServeLoginpage(c fiber.Ctx) error {
+	return c.SendFile("dist/login.html", fiber.SendFile{
 		FS:       staticAssets.DistFS,
 		Compress: true,
 	})

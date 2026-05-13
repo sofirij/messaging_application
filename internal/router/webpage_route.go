@@ -10,12 +10,12 @@ import (
 
 func registerWebpageRoutes(r fiber.Router, h *handler.WebpageHandler) {
 
-	r.Get("/", static.New("", static.Config{
+	r.Use("/", static.New("", static.Config{
 		FS:         staticAssets.DistFS,
 		IndexNames: []string{},
 		Browse:     false,
 		Compress:   true,
 	}))
 
-	r.Get("/*", h.ServeHomepage)
+	r.Get("/*", h.ServeLoginpage)
 }

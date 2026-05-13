@@ -20,16 +20,20 @@ func main() {
 	log.Printf("starting in %s mode\n", cfg.AppEnv)
 
 	app := fiber.New(fiber.Config{
-		AppName:            "MyApp",
-		EnableIPValidation: true,
-		IdleTimeout:        1 * time.Minute,
-		ReadTimeout:        1 * time.Minute,
-		WriteTimeout:       1 * time.Minute,
+		AppName:                 "MyApp",
+		EnableIPValidation:      true,
+		IdleTimeout:             1 * time.Minute,
+		ReadTimeout:             1 * time.Minute,
+		WriteTimeout:            1 * time.Minute,
+		DisableHeadAutoRegister: true,
 	})
 
 	middleware.Setup(app, cfg.AppHost)
 
 	router.Setup(app)
+
+	// todo
+	// prevent csrf when setting the jwt token
 
 	// app listen
 	go func() {

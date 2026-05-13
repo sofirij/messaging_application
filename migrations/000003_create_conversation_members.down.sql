@@ -1,0 +1,2 @@
+DROP INDEX idx_conversation_members_user_id;
+DROP TABLE conversation_members;
