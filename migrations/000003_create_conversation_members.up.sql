@@ -3,6 +3,7 @@ CREATE TABLE conversation_members (
     user_id                     INT NOT NULL REFERENCES users(id),
     role                        VARCHAR(10) NOT NULL DEFAULT 'member',
     joined_at                   TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at                  TIMESTAMPTZ,
     PRIMARY KEY (conversation_id, user_id)         
 );
 

@@ -11,7 +11,7 @@ type User struct {
 	AvatarURL  *string    `db:"avatar_url"`
 	LastSeenAt *time.Time `db:"last_seen_at"`
 	CreatedAt  time.Time  `db:"created_at"`
-	DeletedAt  time.Time  `db:"deleted_at"`
+	DeletedAt  *time.Time `db:"deleted_at"`
 }
 
 type RefreshToken struct {

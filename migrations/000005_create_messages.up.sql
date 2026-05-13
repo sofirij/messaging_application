@@ -5,6 +5,7 @@ CREATE TABLE messages (
     reply_to_id         INT REFERENCES messages(id),
     body                TEXT,
     deleted_at          TIMESTAMPTZ,
+    edited_at           TIMESTAMPTZ,
     created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 

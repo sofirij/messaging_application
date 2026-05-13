@@ -11,16 +11,17 @@ type Message struct {
 	ReplyToID      *int       `db:"reply_to_id"`
 	Body           *string    `db:"body"`
 	DeletedAt      *time.Time `db:"deleted_at"`
+	EditedAt       *time.Time `db:"edited_at"`
 	CreatedAt      time.Time  `db:"created_at"`
 }
 
 type MessageAttachment struct {
-	ID        int     `db:"id"`
-	MessageID int     `db:"message_id"`
-	Type      string  `db:"type"`
-	URL       string  `db:"url"`
-	Filename  *string `db:"filename"`
-	Size      *int64  `db:"size"`
+	ID        int    `db:"id"`
+	MessageID int    `db:"message_id"`
+	Type      string `db:"type"`
+	URL       string `db:"url"`
+	Filename  string `db:"filename"`
+	Size      int64  `db:"size"`
 }
 
 type MessageHide struct {
