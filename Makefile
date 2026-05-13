@@ -34,6 +34,9 @@ tidy:
 clean:
 	rd /s /q $(BUILD_DIR)
 
+migrate-force:
+	$(MIGRATE) force $(version)
+
 migrate-up:
 	$(MIGRATE) up
 
@@ -55,6 +58,7 @@ help:
 	@echo   make tidy       			- tidy go modules
 	@echo   make clean      			- remove build artifacts
 	@echo   make run        			- run the compiled executable
+	@echo   make migrate-force          - clear dirty database version
 	@echo   make migrate-up             - apply all pending migrations
 	@echo   make migrate-down           - roll back the most recent migration
 	@echo   make migrate-version        - show current migration version
