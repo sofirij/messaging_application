@@ -1,6 +1,6 @@
 CREATE TABLE message_attachments (
     id                  SERIAL PRIMARY KEY,
-    message_id          INT NOT NULL REFERENCES messages(id),
+    message_id          INT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
     type                VARCHAR(10) NOT NULL,
     url                 TEXT NOT NULL,
     filename            TEXT NOT NULL,

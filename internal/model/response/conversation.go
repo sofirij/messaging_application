@@ -10,8 +10,9 @@ type ConversationResponse struct {
 	AvatarURL     *string          `json:"avatar_url"`
 	Type          string           `json:"type"`
 	LastMessageAt *time.Time       `json:"last_message_at"`
+	CreatedAt     time.Time        `json:"created_at"`
 	CreatedBy     int              `json:"created_by"`
-	Members       []MemberResponse `json:"members"`
+	Members       []MemberResponse `json:"members,omitempty"`
 }
 
 type MemberResponse struct {

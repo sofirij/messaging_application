@@ -15,6 +15,12 @@ type MessageResponse struct {
 	Attachments    []MessageAttachment `json:"attachments"`
 }
 
+type PaginatedMessageResponse struct {
+	Data       []MessageResponse `json:"data"`
+	NextCursor *int              `json:"next_cursor"`
+	HasMore    bool              `json:"has_more"`
+}
+
 type MessageAttachment struct {
 	ID       int    `json:"id"`
 	Type     string `json:"type"`

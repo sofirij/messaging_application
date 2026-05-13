@@ -5,7 +5,9 @@ CREATE TABLE conversations (
     avatar_url          TEXT,
     created_by          INT NOT NULL REFERENCES users(id),
     created_at          TIMESTAMPTZ DEFAULT NOW(),
-    last_message_at     TIMESTAMPTZ
+    last_message_at     TIMESTAMPTZ,
+    edited_at           TIMESTAMPTZ,
+    deleted_at          TIMESTAMPTZ
 );
 
 CREATE INDEX idx_conversations_last_message_at ON conversations (last_message_at DESC NULLS LAST);
