@@ -16,7 +16,7 @@ format:
 
 # format and fix imports
 imports:
-	goimports -w .
+	go mod tidy
 
 # build the binary
 build:
