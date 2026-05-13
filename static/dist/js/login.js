@@ -16,6 +16,3 @@ function login() {
 function main() {
     document.getElementById("login-submit").addEventListener("on-click")
 }
-
-// todo
-// figure out format for html templates

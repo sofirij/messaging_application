@@ -32,9 +32,6 @@ func main() {
 
 	router.Setup(app)
 
-	// todo
-	// prevent csrf when setting the jwt token
-
 	// app listen
 	go func() {
 		log.Printf("running on port %s\n", cfg.AppPort)

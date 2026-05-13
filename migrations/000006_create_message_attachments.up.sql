@@ -3,8 +3,8 @@ CREATE TABLE message_attachments (
     message_id          INT NOT NULL REFERENCES messages(id),
     type                VARCHAR(10) NOT NULL,
     url                 TEXT NOT NULL,
-    filename            TEXT,
-    size                BIGINT
+    filename            TEXT NOT NULL,
+    size                BIGINT NOT NULL
 );
 
 CREATE INDEX idx_message_attachments_message_id ON message_attachments (message_id);

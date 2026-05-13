@@ -38,7 +38,7 @@ migrate-up:
 	$(MIGRATE) up
 
 migrate-down:
-	$(MIGRATE) down 1
+	$(MIGRATE) down -all
 
 migrate-version:
 	$(MIGRATE) version

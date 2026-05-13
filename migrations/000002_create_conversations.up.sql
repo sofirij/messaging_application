@@ -3,7 +3,7 @@ CREATE TABLE conversations (
     type                VARCHAR(10) NOT NULL,
     name                TEXT,
     avatar_url          TEXT,
-    created_by          INT REFERENCES users(id),
+    created_by          INT NOT NULL REFERENCES users(id),
     created_at          TIMESTAMPTZ DEFAULT NOW(),
     last_message_at     TIMESTAMPTZ
 );

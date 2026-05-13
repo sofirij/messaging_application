@@ -4,7 +4,8 @@ CREATE TABLE users (
     password            TEXT NOT NULL,
     avatar_url          TEXT,
     last_seen_at        TIMESTAMPTZ,
-    created_at          TIMESTAMPTZ DEFAULT NOW()
+    created_at          TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at          TIMESTAMPTZ
 );
 
 CREATE UNIQUE INDEX idx_users_username_lower ON USERS (LOWER(username));
