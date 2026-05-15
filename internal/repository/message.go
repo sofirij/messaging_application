@@ -6,13 +6,13 @@ import (
 	"app/internal/model/db"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/georgysavva/scany/v2/pgxscan"
 )
 
 type MessageRepository interface {
-	Create(ctx context.Context, conversationID, sernderID int, replyToID *int, body *string) (*db.Message, error)
-	CreateAttachments(ctx context.Context, messageID int, attachments []db.MessageAttachment) error
+	CreateWithAttachments(ctx context.Context, conversationID, senderID int, replyToID *int, body *string, attachments []db.MessageAttachment) (*db.Message, []db.MessageAttachment, error)
 	GetByID(ctx context.Context, messageID int) (*db.Message, error)
-	GetByConversationID(ctx context.Context, conversationID, before *int, limit int) ([]db.Message, error)
+	GetByConversationID(ctx context.Context, conversationID int, before *int, limit int) ([]db.Message, error)
 	GetAttachmentsByMessageIDs(ctx context.Context, messageIDs []int) ([]db.MessageAttachment, error)
 	UpdateBody(ctx context.Context, messageID int, body string) (*db.Message, error)
 	Delete(ctx context.Context, messageID int) error
@@ -22,39 +22,125 @@ type messageRepository struct {
 	db *pgxpool.Pool
 }
 
-// Create implements [MessageRepository].
-func (m *messageRepository) Create(ctx context.Context, conversationID int, sernderID int, replyToID *int, body *string) (*db.Message, error) {
-	panic("unimplemented")
+func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversationID int, senderID int, replyToID *int, body *string, attachments []db.MessageAttachment) (*db.Message, []db.MessageAttachment, error) {
+	tx, err := m.db.Begin(ctx)
+
+	if err != nil {
+		return nil, nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	var message db.Message
+	messageAttachments := make([]db.MessageAttachment, 0)
+
+	query := `
+		INSERT INTO messages
+		(conversation_id, sender_id, reply_to_id, body)
+		VALUES ($1, $2, $3, $4)
+		RETURNING *
+	`
+
+	err = pgxscan.Get(ctx, tx, &message, query, conversationID, senderID, replyToID, body)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	query = `
+		INSERT INTO message_attachments
+		(message_id, type, url, filename, size)
+		RETURNING *
+	`
+
+	for _, a := range attachments {
+		var attachment db.MessageAttachment
+
+		err := pgxscan.Get(ctx, tx, &attachment, query, message.ID, a.Type, a.URL, a.Filename, a.Size)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+		messageAttachments = append(messageAttachments, attachment)
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return nil, nil, err
+	}
+	
+	return &message, messageAttachments, nil
 }
 
-// CreateAttachments implements [MessageRepository].
-func (m *messageRepository) CreateAttachments(ctx context.Context, messageID int, attachments []db.MessageAttachment) error {
-	panic("unimplemented")
-}
-
-// Delete implements [MessageRepository].
 func (m *messageRepository) Delete(ctx context.Context, messageID int) error {
-	panic("unimplemented")
+	query := `
+		UPDATE messages
+		SET deleted_at = NOW()
+		WHERE message_id = $1
+		AND deleted_at IS NULL
+	`
+
+	_, err := m.db.Exec(ctx, query, messageID)
+
+	return err
 }
 
-// GetAttachmentsByMessageIDs implements [MessageRepository].
 func (m *messageRepository) GetAttachmentsByMessageIDs(ctx context.Context, messageIDs []int) ([]db.MessageAttachment, error) {
-	panic("unimplemented")
+	query := `
+		SELECT * FROM message_attachments
+		WHERE message_id = ANY($1)
+	`
+
+	attachments := make([]db.MessageAttachment, 0)
+
+	err := pgxscan.Select(ctx, m.db, &attachments, query, messageIDs)
+
+	return attachments, err
 }
 
-// GetByConversationID implements [MessageRepository].
-func (m *messageRepository) GetByConversationID(ctx context.Context, conversationID *int, before *int, limit int) ([]db.Message, error) {
-	panic("unimplemented")
+func (m *messageRepository) GetByConversationID(ctx context.Context, conversationID int, before *int, limit int) ([]db.Message, error) {
+	query := `
+		SELECT * FROM messages
+		WHERE conversation_id = $1
+		AND ($2::int is NULL OR id < $2)
+		AND deleted_at IS NULL
+		ORDER BY id DESC
+		LIMIT $3
+	`
+
+	messages := make([]db.Message, 0)
+
+	err := pgxscan.Select(ctx, m.db, &messages, query, conversationID, before)
+
+	return messages, err
 }
 
-// GetByID implements [MessageRepository].
 func (m *messageRepository) GetByID(ctx context.Context, messageID int) (*db.Message, error) {
-	panic("unimplemented")
+	query := `
+		SELECT * FROM messages
+		WHERE id = $1
+		AND deleted_at IS NULL
+	`
+
+	var message db.Message
+
+	err := pgxscan.Get(ctx, m.db, &message, query, messageID)
+
+	return &message, err
 }
 
-// UpdateBody implements [MessageRepository].
 func (m *messageRepository) UpdateBody(ctx context.Context, messageID int, body string) (*db.Message, error) {
-	panic("unimplemented")
+	query := `
+		UPDATE messages
+		SET body = $1
+		WHERE deleted_at IS NULL
+		AND id = $2
+	`
+
+	var message db.Message
+
+	err := pgxscan.Get(ctx, m.db, &message, query, body, messageID)
+
+	return &message, err
 }
 
 func NewMessageRepository(db *pgxpool.Pool) MessageRepository {

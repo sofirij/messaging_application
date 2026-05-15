@@ -6,27 +6,27 @@ import (
 	"app/internal/model/db"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	_"github.com/georgysavva/scany/v2/pgxscan"
 )
 
 type ConversationRepository interface {
-	Create(ctx context.Context, createdBy int, convType string, name *string) (*db.Conversation, error)
+	Create(ctx context.Context, createdBy int, conversationType string, name *string) (*db.Conversation, error)
 	GetByUserID(ctx context.Context, userID int) ([]db.Conversation, error)
-	GetByID(ctx context.Context, convID int) (*db.Conversation, error)
-	GetMembers(ctx context.Context, convID int) ([]db.ConversationMember, error)
-	GetMember(ctx context.Context, convID int) (*db.ConversationMember, error)
-	Delete(ctx context.Context, convID int) error
+	GetByID(ctx context.Context, conversationID int) (*db.Conversation, error)
+	GetMembers(ctx context.Context, conversationID int) ([]db.ConversationMember, error)
+	GetMember(ctx context.Context, conversationID int) (*db.ConversationMember, error)
+	Delete(ctx context.Context, conversationID int) error
 	UpdateName(ctx context.Context, name string) (*db.Conversation, error)
 	UpdateAvatarURL(ctx context.Context, avatarURL *string) (*db.Conversation, error)
-	AddMembers(ctx context.Context, convID int, userIDs []int) error
-	RemoveMember(ctx context.Context, convID, userID int) error
+	AddMembers(ctx context.Context, conversationID int, userIDs []int) error
+	RemoveMember(ctx context.Context, conversationID, userID int) error
 }
 
 type conversationRepository struct {
 	db *pgxpool.Pool
 }
 
-// AddMembers implements [ConversationRepository].
-func (c *conversationRepository) AddMembers(ctx context.Context, convID int, userIDs []int) error {
+func (c *conversationRepository) AddMembers(ctx context.Context, conversationID int, userIDs []int) error {
 	panic("unimplemented")
 }
 
