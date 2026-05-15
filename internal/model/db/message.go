@@ -23,9 +23,3 @@ type MessageAttachment struct {
 	Filename  string `db:"filename"`
 	Size      int64  `db:"size"`
 }
-
-type MessageHide struct {
-	MessageID int       `db:"message_id"`
-	UserID    int       `db:"user_id"`
-	HiddenAt  time.Time `db:"hidden_at"`
-}

@@ -3,9 +3,9 @@ package request
 import ()
 
 type ConversationCreateRequest struct {
-	Type      string  `json:"type"`
-	Name      *string `json:"name"`
-	MemberIDs []int   `json:"member_ids"`
+	Type    string  `json:"type"`
+	Name    *string `json:"name"`
+	UserIDs []int   `json:"user_ids"`
 }
 
 type ConversationRenameRequest struct {
@@ -17,5 +17,5 @@ type ConversationAvatarRequest struct {
 }
 
 type ConversationAddMemberRequest struct {
-	MemberIDs []int `json:"member_ids"`
+	UserIDs []int `json:"user_ids"`
 }
