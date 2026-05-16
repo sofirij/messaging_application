@@ -15,7 +15,7 @@ type MessageRepository interface {
 	GetByConversationID(ctx context.Context, conversationID int, before *int, limit int) ([]db.Message, error)
 	GetAttachmentsByMessageIDs(ctx context.Context, messageIDs []int) ([]db.MessageAttachment, error)
 	UpdateBody(ctx context.Context, messageID int, body string) (*db.Message, error)
-	Delete(ctx context.Context, messageID int) error
+	SoftDelete(ctx context.Context, messageID int) error
 }
 
 type messageRepository struct {
@@ -49,6 +49,7 @@ func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversat
 	query = `
 		INSERT INTO message_attachments
 		(message_id, type, url, filename, size)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING *
 	`
 
@@ -71,11 +72,11 @@ func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversat
 	return &message, messageAttachments, nil
 }
 
-func (m *messageRepository) Delete(ctx context.Context, messageID int) error {
+func (m *messageRepository) SoftDelete(ctx context.Context, messageID int) error {
 	query := `
 		UPDATE messages
 		SET deleted_at = NOW()
-		WHERE message_id = $1
+		WHERE id = $1
 		AND deleted_at IS NULL
 	`
 
@@ -109,7 +110,7 @@ func (m *messageRepository) GetByConversationID(ctx context.Context, conversatio
 
 	messages := make([]db.Message, 0)
 
-	err := pgxscan.Select(ctx, m.db, &messages, query, conversationID, before)
+	err := pgxscan.Select(ctx, m.db, &messages, query, conversationID, before, limit)
 
 	return messages, err
 }
@@ -125,22 +126,31 @@ func (m *messageRepository) GetByID(ctx context.Context, messageID int) (*db.Mes
 
 	err := pgxscan.Get(ctx, m.db, &message, query, messageID)
 
-	return &message, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &message, nil
 }
 
 func (m *messageRepository) UpdateBody(ctx context.Context, messageID int, body string) (*db.Message, error) {
 	query := `
 		UPDATE messages
-		SET body = $1
+		SET body = $1, edited_at = NOW()
 		WHERE deleted_at IS NULL
 		AND id = $2
+		RETURNING *
 	`
 
 	var message db.Message
 
 	err := pgxscan.Get(ctx, m.db, &message, query, body, messageID)
 
-	return &message, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &message, nil
 }
 
 func NewMessageRepository(db *pgxpool.Pool) MessageRepository {

@@ -41,7 +41,11 @@ func (u *userRepository) Create(ctx context.Context, username string, passwordHa
 
 	err := pgxscan.Get(ctx, u.db, &user, query, username, passwordHash)
 
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (u *userRepository) CreateRefreshToken(ctx context.Context, userID int, tokenHash string, expiresAt time.Time) (*db.RefreshToken, error) {
@@ -55,14 +59,19 @@ func (u *userRepository) CreateRefreshToken(ctx context.Context, userID int, tok
 
 	err := pgxscan.Get(ctx, u.db, &refreshToken, query, userID, tokenHash, expiresAt)
 
-	return &refreshToken, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &refreshToken, nil
 }
 
 func (u *userRepository) SoftDelete(ctx context.Context, userID int) error {
 	query := `
 		UPDATE users 
-		SET deleted_at = NOW() 
+		SET deleted_at = NOW()
 		WHERE id = $1
+		AND deleted_at IS NULL
 	`
 
 	_, err := u.db.Exec(ctx, query, userID)
@@ -92,7 +101,11 @@ func (u *userRepository) GetByID(ctx context.Context, userID int) (*db.User, err
 
 	err := pgxscan.Get(ctx, u.db, &user, query, userID)
 
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (u *userRepository) GetByUsername(ctx context.Context, username string) (*db.User, error) {
@@ -106,7 +119,11 @@ func (u *userRepository) GetByUsername(ctx context.Context, username string) (*d
 
 	err := pgxscan.Get(ctx, u.db, &user, query, username)
 
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (u *userRepository) GetRefreshToken(ctx context.Context, tokenHash string) (*db.RefreshToken, error) {
@@ -120,14 +137,19 @@ func (u *userRepository) GetRefreshToken(ctx context.Context, tokenHash string) 
 
 	err := pgxscan.Get(ctx, u.db, &refreshToken, query, tokenHash)
 
-	return &refreshToken, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &refreshToken, nil
 }
 
 func (u *userRepository) SearchByUsername(ctx context.Context, q string, limit int) ([]db.User, error) {
 	query := `
 		SELECT * FROM users
 		WHERE LOWER(username) LIKE '%' || LOWER($1) || '%'
-		AND deleted_at IS NULL LIMIT $2
+		AND deleted_at IS NULL 
+		LIMIT $2
 	`
 
 	users := make([]db.User, 0)
@@ -150,7 +172,11 @@ func (u *userRepository) UpdateAvatarURL(ctx context.Context, userID int, avatar
 
 	err := pgxscan.Get(ctx, u.db, &user, query, avatarURL, userID)
 
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (u *userRepository) UpdateLastSeenAt(ctx context.Context, userID int) error {
@@ -192,7 +218,11 @@ func (u *userRepository) UpdateUsername(ctx context.Context, userID int, usernam
 
 	err := pgxscan.Get(ctx, u.db, &user, query, username, userID)
 
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func NewUserRepository(db *pgxpool.Pool) UserRepository {
