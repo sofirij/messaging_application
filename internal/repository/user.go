@@ -24,6 +24,7 @@ type UserRepository interface {
 	CreateRefreshToken(ctx context.Context, userID int, tokenHash string, expiresAt time.Time) (*db.RefreshToken, error)
 	GetRefreshToken(ctx context.Context, tokenHash string) (*db.RefreshToken, error)
 	DeleteRefreshToken(ctx context.Context, tokenHash string) error
+	DeleteAllRefreshTokens(ctx context.Context, userID int) error
 }
 
 type userRepository struct {
@@ -223,6 +224,17 @@ func (u *userRepository) UpdateUsername(ctx context.Context, userID int, usernam
 	}
 
 	return &user, nil
+}
+
+func (u *userRepository) DeleteAllRefreshTokens(ctx context.Context, userID int) error {
+	query := `
+		DELETE FROM refresh_tokens
+		WHERE user_id = $1
+	`
+
+	_, err := u.db.Exec(ctx, query, userID)
+
+	return err
 }
 
 func NewUserRepository(db *pgxpool.Pool) UserRepository {

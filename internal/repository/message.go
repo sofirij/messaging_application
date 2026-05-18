@@ -5,8 +5,8 @@ import (
 
 	"app/internal/model/db"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type MessageRepository interface {
@@ -68,7 +68,7 @@ func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversat
 	if err = tx.Commit(ctx); err != nil {
 		return nil, nil, err
 	}
-	
+
 	return &message, messageAttachments, nil
 }
 

@@ -10,15 +10,19 @@ type Event struct {
 }
 
 const (
-	EventMessageSend     = "message.send"
-	EventMessageDelete   = "message.delete"
-	EventTypingStart     = "typing.start"
-	EventTypingStop      = "typing.stop"
+	// inbound
+	EventMessageSend   = "message.send"
+	EventMessageDelete = "message.delete"
+	EventTypingStart   = "typing.start"
+	EventTypingStop    = "typing.stop"
+
+	// outbound
 	EventMessageNew      = "message.new"
 	EventMessageDeleted  = "message.deleted"
 	EventUserOnline      = "user.online"
 	EventUserOffline     = "user.offline"
-	EventUserTypingStart = "user.typing.start" // outbound
-	EventUserTypingStop  = "user.typing.stop"  // outbound
-	EventError           = "error"
+	EventUserTypingStart = "user.typing.start"
+	EventUserTypingStop  = "user.typing.stop"
+
+	EventError = "error"
 )
