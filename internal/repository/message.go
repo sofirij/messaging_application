@@ -4,25 +4,26 @@ import (
 	"context"
 
 	"app/internal/model/db"
+	"app/internal/model/request"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type MessageRepository interface {
-	CreateWithAttachments(ctx context.Context, conversationID, senderID int, replyToID *int, body *string, attachments []db.MessageAttachment) (*db.Message, []db.MessageAttachment, error)
+	CreateWithAttachments(ctx context.Context, conversationID, senderID int, replyToID *int, body *string, attachments []request.MessageAttachment) (*db.Message, []db.MessageAttachment, error)
 	GetByID(ctx context.Context, messageID int) (*db.Message, error)
 	GetByConversationID(ctx context.Context, conversationID int, before *int, limit int) ([]db.Message, error)
 	GetAttachmentsByMessageIDs(ctx context.Context, messageIDs []int) ([]db.MessageAttachment, error)
 	UpdateBody(ctx context.Context, messageID int, body string) (*db.Message, error)
-	SoftDelete(ctx context.Context, messageID int) error
+	SoftDelete(ctx context.Context, messageID int) (*db.Message, error)
 }
 
 type messageRepository struct {
 	db *pgxpool.Pool
 }
 
-func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversationID int, senderID int, replyToID *int, body *string, attachments []db.MessageAttachment) (*db.Message, []db.MessageAttachment, error) {
+func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversationID int, senderID int, replyToID *int, body *string, attachments []request.MessageAttachment) (*db.Message, []db.MessageAttachment, error) {
 	tx, err := m.db.Begin(ctx)
 
 	if err != nil {
@@ -72,17 +73,45 @@ func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversat
 	return &message, messageAttachments, nil
 }
 
-func (m *messageRepository) SoftDelete(ctx context.Context, messageID int) error {
+func (m *messageRepository) SoftDelete(ctx context.Context, messageID int) (*db.Message, error) {
+	tx, err := m.db.Begin(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
 	query := `
 		UPDATE messages
-		SET deleted_at = NOW()
+		SET deleted_at = NOW(), body = NULL
 		WHERE id = $1
 		AND deleted_at IS NULL
+		RETURNING *
+	`
+	var message db.Message
+
+	err = pgxscan.Get(ctx, tx, &message, query, messageID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	query = `
+		DELETE FROM message_attachments
+		WHERE message_id = $1
 	`
 
-	_, err := m.db.Exec(ctx, query, messageID)
+	_, err = tx.Exec(ctx, query, messageID)
 
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return &message, nil
 }
 
 func (m *messageRepository) GetAttachmentsByMessageIDs(ctx context.Context, messageIDs []int) ([]db.MessageAttachment, error) {
@@ -103,7 +132,6 @@ func (m *messageRepository) GetByConversationID(ctx context.Context, conversatio
 		SELECT * FROM messages
 		WHERE conversation_id = $1
 		AND ($2::int is NULL OR id < $2)
-		AND deleted_at IS NULL
 		ORDER BY id DESC
 		LIMIT $3
 	`

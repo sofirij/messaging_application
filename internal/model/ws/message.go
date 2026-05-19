@@ -2,14 +2,9 @@ package ws
 
 import (
 	"app/internal/model/request"
-	"app/internal/model/response"
 )
 
 // outbound
-type MessageNewPayload struct {
-	Message response.MessageResponse `json:"message"`
-}
-
 type MessageDeletedPayload struct {
 	MessageID int `json:"message_id"`
 }

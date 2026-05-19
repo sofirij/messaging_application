@@ -11,7 +11,7 @@ import (
 	"app/internal/config"
 	"app/internal/model/request"
 	"app/internal/model/response"
-	"app/internal/model/serviceerror"
+	"app/internal/model/service"
 	"app/internal/repository"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -25,8 +25,8 @@ type UserService interface {
 	Logout(ctx context.Context, token string) error
 	RefreshToken(ctx context.Context, token string) (string, string, error)
 	SoftDelete(ctx context.Context, userID int) error
-	UpdateAvatarURL(ctx context.Context, userID int, req request.UserAvatarRequest) (*response.UserResponse, error)
-	UpdateUsername(ctx context.Context, userID int, req request.UserUsernameRequest) (*response.UserResponse, error)
+	UpdateAvatarURL(ctx context.Context, userID int, req request.UserAvatarRequest) error
+	UpdateUsername(ctx context.Context, userID int, req request.UserUsernameRequest) error
 	GetByID(ctx context.Context, userID int) (*response.UserResponse, error)
 	SearchByUsername(ctx context.Context, query string) ([]response.UserResponse, error)
 }
@@ -37,6 +37,7 @@ type userService struct {
 	accessTokenDuration  time.Duration
 	refreshTokenDuration time.Duration
 	bcryptCost           int
+	hub                  HubService
 }
 
 var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
@@ -46,7 +47,7 @@ const (
 	maxPasswordLength = 72
 	minUsernameLength = 3
 	maxUsernameLength = 15
-	queryLimit = 100
+	queryLimit        = 100
 )
 
 func (u *userService) Register(ctx context.Context, req request.UserAuthRequest) error {
@@ -71,7 +72,7 @@ func (u *userService) Register(ctx context.Context, req request.UserAuthRequest)
 
 	// duplicate username
 	if existingUser != nil {
-		return &serviceerror.Error{
+		return &service.Error{
 			Code:    "",
 			Message: "",
 			Fields:  map[string]string{},
@@ -99,7 +100,7 @@ func (u *userService) Login(ctx context.Context, req request.UserAuthRequest) (*
 
 	// user doesn't exist
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, "", "", &serviceerror.Error{
+		return nil, "", "", &service.Error{
 			Code:    "",
 			Message: "",
 			Fields:  map[string]string{},
@@ -114,7 +115,7 @@ func (u *userService) Login(ctx context.Context, req request.UserAuthRequest) (*
 
 	// invalid password
 	if err != nil {
-		return nil, "", "", &serviceerror.Error{
+		return nil, "", "", &service.Error{
 			Code:    "",
 			Message: "",
 			Fields:  map[string]string{},
@@ -151,7 +152,7 @@ func (u *userService) Login(ctx context.Context, req request.UserAuthRequest) (*
 		ID:         user.ID,
 		Username:   user.Username,
 		AvatarURL:  user.AvatarURL,
-		IsOnline:   true,
+		IsOnline:   u.hub.IsOnline(user.ID),
 		LastSeenAt: user.LastSeenAt,
 		CreatedAt:  user.CreatedAt,
 	}
@@ -177,7 +178,7 @@ func (u *userService) RefreshToken(ctx context.Context, token string) (string, s
 
 	// refresh token is expired
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", "", &serviceerror.Error{
+		return "", "", &service.Error{
 			Code:    "",
 			Message: "",
 		}
@@ -229,43 +230,24 @@ func (u *userService) SoftDelete(ctx context.Context, userID int) error {
 	return u.userRepo.SoftDelete(ctx, userID)
 }
 
-func (u *userService) UpdateAvatarURL(ctx context.Context, userID int, req request.UserAvatarRequest) (*response.UserResponse, error) {
-	user, err := u.userRepo.UpdateAvatarURL(ctx, userID, req.AvatarURL)
+func (u *userService) UpdateAvatarURL(ctx context.Context, userID int, req request.UserAvatarRequest) error {
+	_, err := u.userRepo.UpdateAvatarURL(ctx, userID, req.AvatarURL)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	resp := response.UserResponse{
-		ID:         user.ID,
-		Username:   user.Username,
-		AvatarURL:  user.AvatarURL,
-		IsOnline:   true,
-		LastSeenAt: user.LastSeenAt,
-		CreatedAt:  user.CreatedAt,
-	}
-
-	return &resp, nil
+	return nil
 }
 
-
-func (u *userService) UpdateUsername(ctx context.Context, userID int, req request.UserUsernameRequest) (*response.UserResponse, error) {
-	user, err := u.userRepo.UpdateUsername(ctx, userID, req.Username)
+func (u *userService) UpdateUsername(ctx context.Context, userID int, req request.UserUsernameRequest) error {
+	_, err := u.userRepo.UpdateUsername(ctx, userID, req.Username)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	resp := response.UserResponse{
-		ID:         user.ID,
-		Username:   user.Username,
-		AvatarURL:  user.AvatarURL,
-		IsOnline:   true,
-		LastSeenAt: user.LastSeenAt,
-		CreatedAt:  user.CreatedAt,
-	}
-
-	return &resp, nil
+	return nil
 }
 
 func (u *userService) GetByID(ctx context.Context, userID int) (*response.UserResponse, error) {
@@ -279,7 +261,7 @@ func (u *userService) GetByID(ctx context.Context, userID int) (*response.UserRe
 		ID:         user.ID,
 		Username:   user.Username,
 		AvatarURL:  user.AvatarURL,
-		IsOnline:   true,
+		IsOnline:   u.hub.IsOnline(user.ID),
 		LastSeenAt: user.LastSeenAt,
 		CreatedAt:  user.CreatedAt,
 	}
@@ -301,7 +283,7 @@ func (u *userService) SearchByUsername(ctx context.Context, query string) ([]res
 			ID:         user.ID,
 			Username:   user.Username,
 			AvatarURL:  user.AvatarURL,
-			IsOnline:   true,
+			IsOnline:   u.hub.IsOnline(user.ID),
 			LastSeenAt: user.LastSeenAt,
 			CreatedAt:  user.CreatedAt,
 		})
@@ -310,7 +292,7 @@ func (u *userService) SearchByUsername(ctx context.Context, query string) ([]res
 	return resp, nil
 }
 
-func NewUserService(userRepo repository.UserRepository, cfg *config.Config) UserService {
+func NewUserService(userRepo repository.UserRepository, hub HubService, cfg *config.Config) UserService {
 	return &userService{
 		userRepo:             userRepo,
 		jwtSecret:            cfg.JWTSecret,
@@ -322,7 +304,7 @@ func NewUserService(userRepo repository.UserRepository, cfg *config.Config) User
 
 func validateUsername(username string) error {
 	if len(username) < minUsernameLength {
-		return &serviceerror.Error{
+		return &service.Error{
 			Code:    "",
 			Message: "",
 			Fields:  map[string]string{},
@@ -330,7 +312,7 @@ func validateUsername(username string) error {
 	}
 
 	if len(username) > maxUsernameLength {
-		return &serviceerror.Error{
+		return &service.Error{
 			Code:    "",
 			Message: "",
 			Fields:  map[string]string{},
@@ -341,7 +323,7 @@ func validateUsername(username string) error {
 
 	// invalid username
 	if !matched {
-		return &serviceerror.Error{
+		return &service.Error{
 			Code:    "",
 			Message: "",
 			Fields:  map[string]string{},
@@ -353,7 +335,7 @@ func validateUsername(username string) error {
 
 func validatePassword(password string) error {
 	if len(password) < minPasswordLength {
-		return &serviceerror.Error{
+		return &service.Error{
 			Code:    "",
 			Message: "",
 			Fields:  map[string]string{},
@@ -361,7 +343,7 @@ func validatePassword(password string) error {
 	}
 
 	if len(password) > maxPasswordLength {
-		return &serviceerror.Error{
+		return &service.Error{
 			Code:    "",
 			Message: "",
 			Fields:  map[string]string{},

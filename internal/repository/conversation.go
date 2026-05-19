@@ -88,7 +88,9 @@ func (c *conversationRepository) Create(ctx context.Context, createdBy int, conv
 		return nil, err
 	}
 
-	tx.Commit(ctx)
+	if err = tx.Commit(ctx); err != nil {
+		return nil, err
+	}
 
 	return &conversation, nil
 }

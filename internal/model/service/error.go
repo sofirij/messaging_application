@@ -1,4 +1,4 @@
-package serviceerror
+package service
 
 type Error struct {
 	Code    string
