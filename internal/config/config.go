@@ -21,7 +21,6 @@ type Config struct {
 	RefreshTokenDuration time.Duration
 	BcryptCost           int
 	UploadDir            string
-	UploadBaseURLPath    string
 }
 
 func Load() *Config {
@@ -34,7 +33,7 @@ func Load() *Config {
 
 	return &Config{
 		AppEnv:               env,
-		AppHost:              getEnv("APP_HOST", "192.168.0.11"),
+		AppHost:              getEnv("APP_HOST", "localhost"),
 		AppPort:              getEnv("APP_PORT", ":3000"),
 		DbURL:                getEnv("DB_URL", ""),
 		IsDevelopment:        env != "production",
@@ -44,7 +43,6 @@ func Load() *Config {
 		RefreshTokenDuration: getDurationEnv("REFRESH_TOKEN_DURATION", time.Hour*24*7),
 		BcryptCost:           getIntEnv("BCRYPT_COST", 12),
 		UploadDir:            getEnv("UPLOAD_DIR", "./uploads"),
-		UploadBaseURLPath:    getEnv("UPLOAD_BASE_URL_PATH", "/uploads"),
 	}
 }
 

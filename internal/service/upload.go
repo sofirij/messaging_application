@@ -18,16 +18,16 @@ import (
 const maxUploadSize = 100 * 1024 * 1024 // 100MB
 
 var allowedMIMETypes = map[string]bool{
-    "image/jpeg":      true,
-    "image/png":       true,
-    "image/gif":       true,
-    "image/webp":      true,
-    "video/mp4":       true,
-    "video/webm":      true,
-    "audio/mpeg":      true,
-    "audio/ogg":       true,
-    "audio/wav":       true,
-    "application/pdf": true,
+	"image/jpeg":      true,
+	"image/png":       true,
+	"image/gif":       true,
+	"image/webp":      true,
+	"video/mp4":       true,
+	"video/webm":      true,
+	"audio/mpeg":      true,
+	"audio/ogg":       true,
+	"audio/wav":       true,
+	"application/pdf": true,
 }
 
 type uploadService struct {
@@ -89,10 +89,10 @@ func (u *uploadService) Upload(ctx context.Context, file *multipart.FileHeader) 
 	}
 
 	return &response.UploadResponse{
-		URL: url,
+		URL:      url,
 		Filename: file.Filename,
-		Size: file.Size,
-		Type: mimeType,
+		Size:     file.Size,
+		Type:     mimeType,
 	}, nil
 }
 

@@ -45,7 +45,7 @@ type HubService interface {
 	HandleMessageRead(ctx context.Context, client *Client, payload ws.MessageReadPayload)
 }
 
-func (h *hub) NewHubService(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, messageService MessageService) HubService {
+func NewHubService(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, messageService MessageService) HubService {
 	return &hub{
 		clients:          make(map[int]map[*Client]bool),
 		register:         make(chan *Client),
@@ -445,5 +445,3 @@ func (h *hub) broadcastUserStatus(ctx context.Context, userID int, online bool) 
 		}
 	}
 }
-
-func (h *hub) NewHub()

@@ -9,9 +9,15 @@ import (
 
 	"app/internal/config"
 	"app/internal/middleware"
-	"app/internal/router"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/static"
+)
+
+const (
+	assetMaxAge        = 365 * 24 * time.Hour
+	assetCacheDuration = 1 * time.Minute
+	uploadURLPath      = "/uploads"
 )
 
 func main() {
@@ -32,16 +38,18 @@ func main() {
 	app.Use(middleware.CORS(cfg.AppHost))
 	app.Use(middleware.Compress())
 	app.Use(middleware.Logger())
-
-	router.Setup(app)
+	app.Use(uploadURLPath, static.New(cfg.UploadDir, static.Config{
+		Browse:        false,
+		Compress:      true,
+		MaxAge:        int(assetMaxAge.Seconds()),
+		CacheDuration: assetCacheDuration,
+	}))
 
 	// app listen
 	go func() {
 		log.Printf("running on port %s\n", cfg.AppPort)
 
 		if err := app.Listen(cfg.AppHost+cfg.AppPort, fiber.ListenConfig{
-			CertFile:        "./cert.pem",
-			CertKeyFile:     "./key.pem",
 			ShutdownTimeout: 1 * time.Minute,
 		}); err != nil {
 			log.Fatalf("server error, %v", err)
