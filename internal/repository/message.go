@@ -13,7 +13,7 @@ import (
 type MessageRepository interface {
 	CreateWithAttachments(ctx context.Context, conversationID, senderID int, replyToID *int, body *string, attachments []request.MessageAttachment) (*db.Message, []db.MessageAttachment, error)
 	GetByID(ctx context.Context, messageID int) (*db.Message, error)
-	GetByConversationID(ctx context.Context, conversationID int, before *int, limit int) ([]db.Message, error)
+	GetByConversationID(ctx context.Context, conversationID int, after, before *int, limit int) ([]db.Message, error)
 	GetAttachmentsByMessageIDs(ctx context.Context, messageIDs []int) ([]db.MessageAttachment, error)
 	UpdateBody(ctx context.Context, messageID int, body string) (*db.Message, error)
 	SoftDelete(ctx context.Context, messageID int) (*db.Message, error)
@@ -69,11 +69,11 @@ func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversat
 
 	query = `
 		UPDATE conversations
-		SET last_message_at = NOW()
-		WHERE conversation_id = $1
+		SET last_message_id = $1
+		WHERE conversation_id = $2
 	`
 
-	_, err = tx.Exec(ctx, query, conversationID)
+	_, err = tx.Exec(ctx, query, message.ID, conversationID)
 
 	if err != nil {
 		return nil, nil, err
@@ -140,18 +140,19 @@ func (m *messageRepository) GetAttachmentsByMessageIDs(ctx context.Context, mess
 	return attachments, err
 }
 
-func (m *messageRepository) GetByConversationID(ctx context.Context, conversationID int, before *int, limit int) ([]db.Message, error) {
+func (m *messageRepository) GetByConversationID(ctx context.Context, conversationID int, after, before *int, limit int) ([]db.Message, error) {
 	query := `
 		SELECT * FROM messages
 		WHERE conversation_id = $1
 		AND ($2::int is NULL OR id < $2)
+		AND ($3::int is NULL OR id > $3)
 		ORDER BY id DESC
-		LIMIT $3
+		LIMIT $4
 	`
 
 	var messages []db.Message
 
-	err := pgxscan.Select(ctx, m.db, &messages, query, conversationID, before, limit)
+	err := pgxscan.Select(ctx, m.db, &messages, query, conversationID, before, after, limit)
 
 	return messages, err
 }

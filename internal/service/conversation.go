@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
+	"app/internal/config"
+	"app/internal/model/db"
 	"app/internal/model/request"
 	"app/internal/model/response"
 	"app/internal/model/service"
 	"app/internal/repository"
-	"app/internal/model/db"
-	"app/internal/config"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -33,12 +33,22 @@ type ConversationService interface {
 
 type conversationService struct {
 	conversationRepo repository.ConversationRepository
-	userRepo repository.UserRepository
+	userRepo         repository.UserRepository
 }
 
 func (c *conversationService) Create(ctx context.Context, userID int, req request.ConversationCreateRequest) (*response.ConversationResponse, error) {
 	// invalid conversation type
 	if req.Type != direct && req.Type != group {
+		return nil, &service.Error{}
+	}
+
+	// missing user ids to add
+	if len(req.UserIDs) == 0 {
+		return nil, &service.Error{}
+	}
+
+	// missing group name
+	if req.Name == nil && req.Type == group {
 		return nil, &service.Error{}
 	}
 
@@ -84,13 +94,14 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 	}
 
 	resp := response.ConversationResponse{
-		ID:            conversation.ID,
-		Name:          conversation.Name,
-		AvatarURL:     conversation.AvatarURL,
-		Type:          conversation.Type,
-		LastMessageAt: conversation.LastMessageAt,
-		CreatedAt:     conversation.CreatedAt,
-		CreatedBy:     conversation.CreatedBy,
+		ID:              conversation.ID,
+		Name:            conversation.Name,
+		AvatarURL:       conversation.AvatarURL,
+		Type:            conversation.Type,
+		LastMessageID:   conversation.LastMessageID,
+		CreatedAt:       conversation.CreatedAt,
+		CreatedBy:       conversation.CreatedBy,
+		LastMessageRead: conversation.LastMessageRead,
 	}
 
 	return &resp, nil
@@ -145,7 +156,7 @@ func (c *conversationService) RemoveMember(ctx context.Context, userID, conversa
 		return err
 	}
 
-	return c.conversationRepo.RemoveMember(ctx, conversationID, userID)
+	return c.conversationRepo.RemoveMember(ctx, conversationID, memberID)
 }
 
 func (c *conversationService) GetByUserID(ctx context.Context, userID int) ([]response.ConversationResponse, error) {
@@ -159,13 +170,14 @@ func (c *conversationService) GetByUserID(ctx context.Context, userID int) ([]re
 
 	for i, conversation := range conversations {
 		resp[i] = response.ConversationResponse{
-			ID: conversation.ID,
-			Name: conversation.Name,
-			AvatarURL: conversation.AvatarURL,
-			Type: conversation.Type,
-			LastMessageAt: conversation.LastMessageAt,
-			CreatedAt: conversation.CreatedAt,
-			CreatedBy: conversation.CreatedBy,
+			ID:              conversation.ID,
+			Name:            conversation.Name,
+			AvatarURL:       conversation.AvatarURL,
+			Type:            conversation.Type,
+			LastMessageID:   conversation.LastMessageID,
+			CreatedAt:       conversation.CreatedAt,
+			CreatedBy:       conversation.CreatedBy,
+			LastMessageRead: conversation.LastMessageRead,
 		}
 	}
 
@@ -187,6 +199,10 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 
 	members, err := c.conversationRepo.GetMembers(ctx, conversationID)
 
+	if err != nil {
+		return nil, err
+	}
+
 	userIDs := make([]int, len(members))
 
 	for i, member := range members {
@@ -198,7 +214,7 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 	if err != nil {
 		return nil, err
 	}
-	
+
 	userMap := make(map[int]db.User, len(members))
 
 	for _, user := range users {
@@ -209,22 +225,23 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 
 	for i, member := range members {
 		memberResp[i] = response.MemberResponse{
-			ID: member.UserID,
-			Username: userMap[member.UserID].Username,
+			ID:        member.UserID,
+			Username:  userMap[member.UserID].Username,
 			AvatarURL: userMap[member.UserID].AvatarURL,
-			JoinedAt: member.JoinedAt,
+			JoinedAt:  member.JoinedAt,
 		}
 	}
 
 	resp := response.ConversationResponse{
-		ID: conversation.ID,
-		Name: conversation.Name,
-		AvatarURL: conversation.AvatarURL,
-		Type: conversation.Type,
-		LastMessageAt: conversation.LastMessageAt,
-		CreatedAt: conversation.CreatedAt,
-		CreatedBy: conversation.CreatedBy,
-		Members: memberResp,
+		ID:              conversation.ID,
+		Name:            conversation.Name,
+		AvatarURL:       conversation.AvatarURL,
+		Type:            conversation.Type,
+		LastMessageID:   conversation.LastMessageID,
+		CreatedAt:       conversation.CreatedAt,
+		CreatedBy:       conversation.CreatedBy,
+		LastMessageRead: conversation.LastMessageRead,
+		Members:         memberResp,
 	}
 
 	return &resp, nil
@@ -254,13 +271,12 @@ func (c *conversationService) UpdateAvatarURL(ctx context.Context, userID, conve
 	return err
 }
 
-func NewConversationRepository(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, cfg *config.Config) ConversationService {
+func NewConversationService(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, cfg *config.Config) ConversationService {
 	return &conversationService{
 		conversationRepo: conversationRepo,
-		userRepo: userRepo,
+		userRepo:         userRepo,
 	}
 }
-
 
 func userInConversation(ctx context.Context, repo repository.ConversationRepository, conversationID, userID int) error {
 	_, err := repo.GetMember(ctx, conversationID, userID)
@@ -270,5 +286,5 @@ func userInConversation(ctx context.Context, repo repository.ConversationReposit
 		return &service.Error{}
 	}
 
-	return nil
+	return err
 }

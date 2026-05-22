@@ -42,6 +42,7 @@ type HubService interface {
 	HandleMessageDelete(ctx context.Context, client *Client, payload ws.MessageDeletePayload)
 	HandleTypingStart(ctx context.Context, client *Client, payload ws.TypingPayloadInbound)
 	HandleTypingStop(ctx context.Context, client *Client, payload ws.TypingPayloadInbound)
+	HandleMessageRead(ctx context.Context, client *Client, payload ws.MessageReadPayload)
 }
 
 func (h *Hub) Run() {
@@ -174,7 +175,8 @@ func (h *Hub) HandleMessageDelete(ctx context.Context, client *Client, payload w
 	}
 
 	payloadResp := ws.MessageDeletedPayload{
-		MessageID: payload.MessageID,
+		MessageID:      payload.MessageID,
+		ConversationID: message.ConversationID,
 	}
 
 	payloadBytes, err := json.Marshal(payloadResp)
@@ -266,6 +268,47 @@ func (h *Hub) HandleTypingStop(ctx context.Context, client *Client, payload ws.T
 
 	if err != nil {
 		h.broadcastError(client.UserID, ws.EventUserTypingStop, err)
+		return
+	}
+}
+
+func (h *Hub) HandleMessageRead(ctx context.Context, client *Client, payload ws.MessageReadPayload) {
+	err := h.messageService.MarkAsRead(ctx, client.UserID, payload.ConversationID, payload.MessageID)
+
+	if err != nil {
+		h.broadcastError(client.UserID, ws.EventMessageRead, err)
+		return
+	}
+
+	payloadResp := ws.MessageSeenPayload{
+		UserID:         client.UserID,
+		MessageID:      payload.MessageID,
+		ConversationID: payload.ConversationID,
+	}
+
+	payloadBytes, err := json.Marshal(payloadResp)
+
+	if err != nil {
+		h.broadcastError(client.UserID, ws.EventMessageRead, err)
+		return
+	}
+
+	resp := ws.Event{
+		Type:    ws.EventMessageSeen,
+		Payload: payloadBytes,
+	}
+
+	respBytes, err := json.Marshal(resp)
+
+	if err != nil {
+		h.broadcastError(client.UserID, ws.EventMessageRead, err)
+		return
+	}
+
+	err = h.BroadcastToConversation(ctx, client.UserID, payloadResp.ConversationID, respBytes)
+
+	if err != nil {
+		h.broadcastError(client.UserID, ws.EventMessageRead, err)
 		return
 	}
 }

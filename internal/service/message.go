@@ -2,21 +2,30 @@ package service
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"app/internal/model/db"
 	"app/internal/model/request"
 	"app/internal/model/response"
 	"app/internal/model/service"
 	"app/internal/repository"
+
+	"github.com/jackc/pgx/v5"
 )
 
-const attachmentLimit = 10
+const (
+	attachmentLimit   = 10
+	messageLimit      = 20
+	editMessageWindow = 15 * time.Minute
+)
 
 type MessageService interface {
 	Create(ctx context.Context, senderID, conversationID int, req request.MessageCreateRequest) (*response.MessageResponse, error)
 	UpdateBody(ctx context.Context, senderID, messageID int, req request.MessageEditRequest) error
 	GetByConversationID(ctx context.Context, userID, conversationID int, before *int, limit int) (*response.PaginatedMessageResponse, error)
 	SoftDelete(ctx context.Context, senderID, messageID int) (*response.MessageResponse, error)
+	MarkAsRead(ctx context.Context, userID, conversationID, messageID int) error
 }
 
 type messageService struct {
@@ -27,6 +36,11 @@ type messageService struct {
 func (m *messageService) Create(ctx context.Context, senderID, conversationID int, req request.MessageCreateRequest) (*response.MessageResponse, error) {
 	// too many attachments
 	if len(req.Attachments) > attachmentLimit {
+		return nil, &service.Error{}
+	}
+
+	// missing body and attachments
+	if req.Body == nil && req.Attachments == nil {
 		return nil, &service.Error{}
 	}
 
@@ -73,6 +87,11 @@ func (m *messageService) UpdateBody(ctx context.Context, senderID int, messageID
 
 	if err != nil {
 		return err
+	}
+
+	// message past edit window
+	if time.Since(message.CreatedAt) > editMessageWindow {
+		return &service.Error{}
 	}
 
 	// cannot edit deleted message
@@ -125,16 +144,31 @@ func (m *messageService) SoftDelete(ctx context.Context, senderID, messageID int
 ensure user is in conversation, get messages, get message attachments, generate paginated response
 */
 func (m *messageService) GetByConversationID(ctx context.Context, userID, conversationID int, before *int, limit int) (*response.PaginatedMessageResponse, error) {
+	if limit > messageLimit {
+		limit = messageLimit
+	}
+
 	err := userInConversation(ctx, m.conversationRepo, conversationID, userID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	messages, err := m.messageRepo.GetByConversationID(ctx, conversationID, before, limit)
+	member, err := m.conversationRepo.GetMember(ctx, conversationID, userID)
 
 	if err != nil {
 		return nil, err
+	}
+
+	messages, err := m.messageRepo.GetByConversationID(ctx, conversationID, member.AfterCursor, before, limit+1)
+
+	if err != nil {
+		return nil, err
+	}
+
+	hasMore := len(messages) > limit
+	if hasMore {
+		messages = messages[:limit]
 	}
 
 	messageIDs := make([]int, len(messages))
@@ -189,15 +223,36 @@ func (m *messageService) GetByConversationID(ctx context.Context, userID, conver
 	resp := response.PaginatedMessageResponse{
 		Data:       messageResp,
 		NextCursor: nextCursor,
-		HasMore:    false,
+		HasMore:    hasMore,
 	}
 
 	return &resp, nil
 }
 
-func NewMessageRepository(messageRepo repository.MessageRepository, conversationRepo repository.ConversationRepository) MessageService {
+func (m *messageService) MarkAsRead(ctx context.Context, userID, conversationID, messageID int) error {
+	err := userInConversation(ctx, m.conversationRepo, conversationID, userID)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = m.conversationRepo.UpdateLastMessageRead(ctx, conversationID, messageID)
+
+	// message is not in conversation
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return &service.Error{}
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewMessageService(messageRepo repository.MessageRepository, conversationRepo repository.ConversationRepository) MessageService {
 	return &messageService{
-		messageRepo: messageRepo,
+		messageRepo:      messageRepo,
 		conversationRepo: conversationRepo,
 	}
 }

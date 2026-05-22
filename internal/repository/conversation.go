@@ -19,6 +19,7 @@ type ConversationRepository interface {
 	GetMember(ctx context.Context, conversationID int, userID int) (*db.ConversationMember, error)
 	UpdateName(ctx context.Context, conversationID int, name string) (*db.Conversation, error)
 	UpdateAvatarURL(ctx context.Context, conversationID int, avatarURL *string) (*db.Conversation, error)
+	UpdateLastMessageRead(ctx context.Context, conversationID, messageID int) (*db.Conversation, error)
 	AddMembers(ctx context.Context, conversationID int, userIDs []int) error
 	RemoveMember(ctx context.Context, conversationID, userID int) error
 	SoftDeleteMember(ctx context.Context, conversationID, userID int) error
@@ -148,8 +149,8 @@ func (c *conversationRepository) GetByUserID(ctx context.Context, userID int) ([
 		SELECT c.* FROM conversations AS c
 		JOIN conversation_members AS cm ON c.id = cm.conversation_id
 		WHERE cm.user_id = $1
-		AND (cm.deleted_at IS NULL OR c.last_message_at > cm.deleted_at)
-		ORDER BY c.last_message_at DESC NULLS LAST
+		AND (cm.deleted_at IS NULL OR c.last_message_id > cm.after_cursor)
+		ORDER BY c.last_message_id DESC NULLS LAST
 	`
 
 	var conversations []db.Conversation
@@ -255,6 +256,31 @@ func (c *conversationRepository) UpdateName(ctx context.Context, conversationID 
 	}
 
 	return &conversation, err
+}
+
+func (c *conversationRepository) UpdateLastMessageRead(ctx context.Context, conversationID, messageID int) (*db.Conversation, error) {
+	query := `
+		UPDATE conversations
+		SET last_message_read = $1
+		WHERE id = $2
+		AND last_message_read < $1 -- safeguard for concurrent requests
+		AND EXISTS (
+			SELECT 1 FROM messages
+			WHERE id = $1
+			AND conversation_id = $2
+		)
+		RETURNING *
+	`
+
+	var conversation db.Conversation
+
+	err := pgxscan.Get(ctx, c.db, &conversation, query, messageID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &conversation, nil
 }
 
 func NewConversationRepository(db *pgxpool.Pool) ConversationRepository {

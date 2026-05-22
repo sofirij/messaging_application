@@ -15,6 +15,7 @@ const (
 	EventMessageDelete = "message.delete"
 	EventTypingStart   = "typing.start"
 	EventTypingStop    = "typing.stop"
+	EventMessageRead   = "message.read"
 
 	// outbound
 	EventMessageNew      = "message.new"
@@ -23,6 +24,6 @@ const (
 	EventUserOffline     = "user.offline"
 	EventUserTypingStart = "user.typing.start"
 	EventUserTypingStop  = "user.typing.stop"
-
-	EventError = "error"
+	EventMessageSeen     = "message.seen"
+	EventError           = "error"
 )

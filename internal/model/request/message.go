@@ -5,7 +5,7 @@ import ()
 type MessageCreateRequest struct {
 	ReplyToID   *int                `json:"reply_to_id"`
 	Body        *string             `json:"body"`
-	Attachments []MessageAttachment `json:"attachments"`
+	Attachments []MessageAttachment `json:"attachments,omitempty"`
 }
 
 type MessageAttachment struct {

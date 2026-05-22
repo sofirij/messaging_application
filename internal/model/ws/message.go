@@ -6,7 +6,14 @@ import (
 
 // outbound
 type MessageDeletedPayload struct {
-	MessageID int `json:"message_id"`
+	ConversationID int `json:"conversation_id"`
+	MessageID      int `json:"message_id"`
+}
+
+type MessageSeenPayload struct {
+	UserID         int `json:"user_id"`
+	ConversationID int `json:"conversation_id"`
+	MessageID      int `json:"message_id"`
 }
 
 // inbound
@@ -19,4 +26,9 @@ type MessageSendPayload struct {
 
 type MessageDeletePayload struct {
 	MessageID int `json:"message_id"`
+}
+
+type MessageReadPayload struct {
+	ConversationID int `json:"conversation_id"`
+	MessageID      int `json:"message_id"`
 }
