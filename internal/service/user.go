@@ -319,6 +319,7 @@ func NewUserService(userRepo repository.UserRepository, hub HubService, cfg *con
 		accessTokenDuration:  cfg.AccessTokenDuration,
 		refreshTokenDuration: cfg.RefreshTokenDuration,
 		bcryptCost:           cfg.BcryptCost,
+		hub:                  hub,
 	}
 }
 

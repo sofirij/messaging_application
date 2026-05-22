@@ -5,14 +5,14 @@ import (
 )
 
 type Conversation struct {
-	ID              int        `db:"id"`
-	Type            string     `db:"type"`
-	Name            *string    `db:"name"`
-	AvatarURL       *string    `db:"avatar_url"`
-	CreatedBy       int        `db:"created_by"`
-	CreatedAt       time.Time  `db:"created_at"`
-	LastMessageID	*int		`db:"last_message_id"`
-	LastMessageRead *int       `db:"last_message_read"`
+	ID              int       `db:"id"`
+	Type            string    `db:"type"`
+	Name            *string   `db:"name"`
+	AvatarURL       *string   `db:"avatar_url"`
+	CreatedBy       int       `db:"created_by"`
+	CreatedAt       time.Time `db:"created_at"`
+	LastMessageID   *int      `db:"last_message_id"`
+	LastMessageRead *int      `db:"last_message_read"`
 }
 
 type ConversationMember struct {

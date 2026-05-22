@@ -9,7 +9,7 @@ type ConversationResponse struct {
 	Name            *string          `json:"name"`
 	AvatarURL       *string          `json:"avatar_url"`
 	Type            string           `json:"type"`
-	LastMessageID   *int       `json:"last_message_id"`
+	LastMessageID   *int             `json:"last_message_id"`
 	CreatedAt       time.Time        `json:"created_at"`
 	CreatedBy       int              `json:"created_by"`
 	LastMessageRead *int             `json:"last_message_read"`

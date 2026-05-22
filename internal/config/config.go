@@ -20,6 +20,8 @@ type Config struct {
 	AccessTokenDuration  time.Duration
 	RefreshTokenDuration time.Duration
 	BcryptCost           int
+	UploadDir            string
+	UploadBaseURLPath    string
 }
 
 func Load() *Config {
@@ -41,6 +43,8 @@ func Load() *Config {
 		AccessTokenDuration:  getDurationEnv("ACCESS_TOKEN_DURATION", time.Minute*15),
 		RefreshTokenDuration: getDurationEnv("REFRESH_TOKEN_DURATION", time.Hour*24*7),
 		BcryptCost:           getIntEnv("BCRYPT_COST", 12),
+		UploadDir:            getEnv("UPLOAD_DIR", "./uploads"),
+		UploadBaseURLPath:    getEnv("UPLOAD_BASE_URL_PATH", "/uploads"),
 	}
 }
 

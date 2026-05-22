@@ -21,14 +21,14 @@ type Client struct {
 	ctx    context.Context
 }
 
-type Hub struct {
+type hub struct {
 	clients          map[int]map[*Client]bool
 	register         chan *Client
 	unregister       chan *Client
 	mu               sync.RWMutex
-	messageService   messageService
+	messageService   MessageService
 	conversationRepo repository.ConversationRepository
-	userService      userService
+	userRepo         repository.UserRepository
 }
 
 type HubService interface {
@@ -36,7 +36,7 @@ type HubService interface {
 	Register(client *Client)
 	Unregister(client *Client)
 	IsOnline(userID int) bool
-	BroadcastToUser(userID int, event []byte) error
+	BroadcastToUser(userID int, event []byte)
 	BroadcastToConversation(ctx context.Context, conversationID int, event []byte) error
 	HandleMessageSend(ctx context.Context, client *Client, payload ws.MessageSendPayload)
 	HandleMessageDelete(ctx context.Context, client *Client, payload ws.MessageDeletePayload)
@@ -45,7 +45,19 @@ type HubService interface {
 	HandleMessageRead(ctx context.Context, client *Client, payload ws.MessageReadPayload)
 }
 
-func (h *Hub) Run() {
+func (h *hub) NewHubService(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, messageService MessageService) HubService {
+	return &hub{
+		clients:          make(map[int]map[*Client]bool),
+		register:         make(chan *Client),
+		unregister:       make(chan *Client),
+		mu:               sync.RWMutex{},
+		messageService:   messageService,
+		conversationRepo: conversationRepo,
+		userRepo:         userRepo,
+	}
+}
+
+func (h *hub) Run() {
 	for {
 		select {
 		case client := <-h.register:
@@ -67,27 +79,27 @@ func (h *Hub) Run() {
 				}
 			}
 			h.mu.Unlock()
-			h.broadcastUserStatus(client.ctx, client.UserID, true)
+			h.broadcastUserStatus(client.ctx, client.UserID, false)
 		}
 	}
 }
 
-func (h *Hub) Register(ctx context.Context, client *Client) {
+func (h *hub) Register(client *Client) {
 	h.register <- client
 }
 
-func (h *Hub) Unregister(ctx context.Context, client *Client) {
+func (h *hub) Unregister(client *Client) {
 	h.unregister <- client
 }
 
-func (h *Hub) IsOnline(userID int) bool {
+func (h *hub) IsOnline(userID int) bool {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	_, ok := h.clients[userID]
 	return ok
 }
 
-func (h *Hub) BroadcastToUser(userID int, event []byte) {
+func (h *hub) BroadcastToUser(userID int, event []byte) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	conns := h.clients[userID]
@@ -101,7 +113,7 @@ func (h *Hub) BroadcastToUser(userID int, event []byte) {
 	}
 }
 
-func (h *Hub) BroadcastToConversation(ctx context.Context, userID, conversationID int, event []byte) error {
+func (h *hub) BroadcastToConversation(ctx context.Context, conversationID int, event []byte) error {
 	members, err := h.conversationRepo.GetMembers(ctx, conversationID)
 	if err != nil {
 		return err
@@ -125,7 +137,7 @@ func (h *Hub) BroadcastToConversation(ctx context.Context, userID, conversationI
 	return nil
 }
 
-func (h *Hub) HandleMessageSend(ctx context.Context, client *Client, payload ws.MessageSendPayload) {
+func (h *hub) HandleMessageSend(ctx context.Context, client *Client, payload ws.MessageSendPayload) {
 	req := request.MessageCreateRequest{
 		ReplyToID:   payload.ReplyToID,
 		Body:        payload.Body,
@@ -158,7 +170,7 @@ func (h *Hub) HandleMessageSend(ctx context.Context, client *Client, payload ws.
 		return
 	}
 
-	err = h.BroadcastToConversation(ctx, client.UserID, payloadResp.ConversationID, respBytes)
+	err = h.BroadcastToConversation(ctx, payloadResp.ConversationID, respBytes)
 
 	if err != nil {
 		h.broadcastError(client.UserID, ws.EventMessageSend, err)
@@ -166,7 +178,7 @@ func (h *Hub) HandleMessageSend(ctx context.Context, client *Client, payload ws.
 	}
 }
 
-func (h *Hub) HandleMessageDelete(ctx context.Context, client *Client, payload ws.MessageDeletePayload) {
+func (h *hub) HandleMessageDelete(ctx context.Context, client *Client, payload ws.MessageDeletePayload) {
 	message, err := h.messageService.SoftDelete(ctx, client.UserID, payload.MessageID)
 
 	if err != nil {
@@ -198,7 +210,7 @@ func (h *Hub) HandleMessageDelete(ctx context.Context, client *Client, payload w
 		return
 	}
 
-	err = h.BroadcastToConversation(ctx, client.UserID, message.ConversationID, respBytes)
+	err = h.BroadcastToConversation(ctx, message.ConversationID, respBytes)
 
 	if err != nil {
 		h.broadcastError(client.UserID, ws.EventMessageDelete, err)
@@ -206,7 +218,7 @@ func (h *Hub) HandleMessageDelete(ctx context.Context, client *Client, payload w
 	}
 }
 
-func (h *Hub) HandleTypingStart(ctx context.Context, client *Client, payload ws.TypingPayloadInbound) {
+func (h *hub) HandleTypingStart(ctx context.Context, client *Client, payload ws.TypingPayloadInbound) {
 	payloadResp := ws.TypingPayloadOutbound{
 		ConversationID: payload.ConversationID,
 		UserID:         client.UserID,
@@ -231,7 +243,7 @@ func (h *Hub) HandleTypingStart(ctx context.Context, client *Client, payload ws.
 		return
 	}
 
-	err = h.BroadcastToConversation(ctx, client.UserID, payload.ConversationID, respBytes)
+	err = h.BroadcastToConversation(ctx, payload.ConversationID, respBytes)
 
 	if err != nil {
 		h.broadcastError(client.UserID, ws.EventUserTypingStart, err)
@@ -239,7 +251,7 @@ func (h *Hub) HandleTypingStart(ctx context.Context, client *Client, payload ws.
 	}
 }
 
-func (h *Hub) HandleTypingStop(ctx context.Context, client *Client, payload ws.TypingPayloadInbound) {
+func (h *hub) HandleTypingStop(ctx context.Context, client *Client, payload ws.TypingPayloadInbound) {
 	payloadResp := ws.TypingPayloadOutbound{
 		ConversationID: payload.ConversationID,
 		UserID:         client.UserID,
@@ -264,7 +276,7 @@ func (h *Hub) HandleTypingStop(ctx context.Context, client *Client, payload ws.T
 		return
 	}
 
-	err = h.BroadcastToConversation(ctx, client.UserID, payload.ConversationID, respBytes)
+	err = h.BroadcastToConversation(ctx, payload.ConversationID, respBytes)
 
 	if err != nil {
 		h.broadcastError(client.UserID, ws.EventUserTypingStop, err)
@@ -272,7 +284,7 @@ func (h *Hub) HandleTypingStop(ctx context.Context, client *Client, payload ws.T
 	}
 }
 
-func (h *Hub) HandleMessageRead(ctx context.Context, client *Client, payload ws.MessageReadPayload) {
+func (h *hub) HandleMessageRead(ctx context.Context, client *Client, payload ws.MessageReadPayload) {
 	err := h.messageService.MarkAsRead(ctx, client.UserID, payload.ConversationID, payload.MessageID)
 
 	if err != nil {
@@ -305,7 +317,7 @@ func (h *Hub) HandleMessageRead(ctx context.Context, client *Client, payload ws.
 		return
 	}
 
-	err = h.BroadcastToConversation(ctx, client.UserID, payloadResp.ConversationID, respBytes)
+	err = h.BroadcastToConversation(ctx, payloadResp.ConversationID, respBytes)
 
 	if err != nil {
 		h.broadcastError(client.UserID, ws.EventMessageRead, err)
@@ -313,7 +325,7 @@ func (h *Hub) HandleMessageRead(ctx context.Context, client *Client, payload ws.
 	}
 }
 
-func (h *Hub) broadcastError(userID int, ref string, err error) {
+func (h *hub) broadcastError(userID int, ref string, err error) {
 	payload := ws.ErrorPayload{Ref: &ref}
 
 	if serviceError, ok := errors.AsType[*service.Error](err); ok {
@@ -344,7 +356,7 @@ func (h *Hub) broadcastError(userID int, ref string, err error) {
 	h.BroadcastToUser(userID, respBytes)
 }
 
-func (h *Hub) broadcastUserStatus(ctx context.Context, userID int, online bool) {
+func (h *hub) broadcastUserStatus(ctx context.Context, userID int, online bool) {
 	conversations, err := h.conversationRepo.GetByUserID(ctx, userID)
 
 	if err != nil {
@@ -375,7 +387,7 @@ func (h *Hub) broadcastUserStatus(ctx context.Context, userID int, online bool) 
 			return
 		}
 	} else {
-		user, err := h.userService.UpdateLastSeenAt(ctx, userID)
+		user, err := h.userRepo.UpdateLastSeenAt(ctx, userID)
 
 		if err != nil {
 			return
@@ -433,3 +445,5 @@ func (h *Hub) broadcastUserStatus(ctx context.Context, userID int, online bool) 
 		}
 	}
 }
+
+func (h *hub) NewHub()

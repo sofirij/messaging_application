@@ -28,7 +28,10 @@ func main() {
 		DisableHeadAutoRegister: true,
 	})
 
-	middleware.Setup(app, cfg.AppHost)
+	// setup middleware
+	app.Use(middleware.CORS(cfg.AppHost))
+	app.Use(middleware.Compress())
+	app.Use(middleware.Logger())
 
 	router.Setup(app)
 

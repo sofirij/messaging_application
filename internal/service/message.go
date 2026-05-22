@@ -148,13 +148,12 @@ func (m *messageService) GetByConversationID(ctx context.Context, userID, conver
 		limit = messageLimit
 	}
 
-	err := userInConversation(ctx, m.conversationRepo, conversationID, userID)
-
-	if err != nil {
-		return nil, err
-	}
-
 	member, err := m.conversationRepo.GetMember(ctx, conversationID, userID)
+
+	// user not in conversation
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, &service.Error{}
+	}
 
 	if err != nil {
 		return nil, err
