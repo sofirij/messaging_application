@@ -1,2 +1,1 @@
-DROP INDEX idx_conversations_last_message_at;
 DROP TABLE conversations;
