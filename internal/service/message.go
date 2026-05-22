@@ -2,24 +2,21 @@ package service
 
 import (
 	"context"
-	"errors"
 
 	"app/internal/model/db"
 	"app/internal/model/request"
 	"app/internal/model/response"
 	"app/internal/model/service"
 	"app/internal/repository"
-
-	"github.com/jackc/pgx/v5"
 )
 
 const attachmentLimit = 10
 
 type MessageService interface {
-	Create(ctx context.Context, conversationID int, req request.MessageCreateRequest) (*response.MessageResponse, error)
-	UpdateBody(ctx context.Context, senderID, messageID, req request.MessageEditRequest) error
+	Create(ctx context.Context, senderID, conversationID int, req request.MessageCreateRequest) (*response.MessageResponse, error)
+	UpdateBody(ctx context.Context, senderID, messageID int, req request.MessageEditRequest) error
 	GetByConversationID(ctx context.Context, userID, conversationID int, before *int, limit int) (*response.PaginatedMessageResponse, error)
-	SoftDelete(ctx context.Context, senderID, messageID int) error
+	SoftDelete(ctx context.Context, senderID, messageID int) (*response.MessageResponse, error)
 }
 
 type messageService struct {
@@ -27,13 +24,13 @@ type messageService struct {
 	conversationRepo repository.ConversationRepository
 }
 
-func (m *messageService) Create(ctx context.Context, senderID int, conversationID int, req request.MessageCreateRequest) (*response.MessageResponse, error) {
+func (m *messageService) Create(ctx context.Context, senderID, conversationID int, req request.MessageCreateRequest) (*response.MessageResponse, error) {
 	// too many attachments
 	if len(req.Attachments) > attachmentLimit {
 		return nil, &service.Error{}
 	}
 
-	err := senderInConversation(ctx, m.conversationRepo, conversationID, senderID)
+	err := userInConversation(ctx, m.conversationRepo, conversationID, senderID)
 
 	if err != nil {
 		return nil, err
@@ -72,7 +69,7 @@ func (m *messageService) Create(ctx context.Context, senderID int, conversationI
 }
 
 func (m *messageService) UpdateBody(ctx context.Context, senderID int, messageID int, req request.MessageEditRequest) error {
-	message, err := senderOwnsMessage(ctx, m.messageRepo, messageID, senderID)
+	message, err := userOwnsMessage(ctx, m.messageRepo, messageID, senderID)
 
 	if err != nil {
 		return err
@@ -93,7 +90,7 @@ func (m *messageService) UpdateBody(ctx context.Context, senderID int, messageID
 }
 
 func (m *messageService) SoftDelete(ctx context.Context, senderID, messageID int) (*response.MessageResponse, error) {
-	message, err := senderOwnsMessage(ctx, m.messageRepo, messageID, senderID)
+	message, err := userOwnsMessage(ctx, m.messageRepo, messageID, senderID)
 
 	if err != nil {
 		return nil, err
@@ -128,7 +125,7 @@ func (m *messageService) SoftDelete(ctx context.Context, senderID, messageID int
 ensure user is in conversation, get messages, get message attachments, generate paginated response
 */
 func (m *messageService) GetByConversationID(ctx context.Context, userID, conversationID int, before *int, limit int) (*response.PaginatedMessageResponse, error) {
-	err := senderInConversation(ctx, m.conversationRepo, conversationID, userID)
+	err := userInConversation(ctx, m.conversationRepo, conversationID, userID)
 
 	if err != nil {
 		return nil, err
@@ -198,18 +195,14 @@ func (m *messageService) GetByConversationID(ctx context.Context, userID, conver
 	return &resp, nil
 }
 
-func senderInConversation(ctx context.Context, repo repository.ConversationRepository, conversationID, userID int) error {
-	_, err := repo.GetMember(ctx, conversationID, userID)
-
-	// sender doesn't belong in the conversation
-	if errors.Is(err, pgx.ErrNoRows) {
-		return &service.Error{}
+func NewMessageRepository(messageRepo repository.MessageRepository, conversationRepo repository.ConversationRepository) MessageService {
+	return &messageService{
+		messageRepo: messageRepo,
+		conversationRepo: conversationRepo,
 	}
-
-	return nil
 }
 
-func senderOwnsMessage(ctx context.Context, repo repository.MessageRepository, messageID, senderID int) (*db.Message, error) {
+func userOwnsMessage(ctx context.Context, repo repository.MessageRepository, messageID, userID int) (*db.Message, error) {
 	message, err := repo.GetByID(ctx, messageID)
 
 	if err != nil {
@@ -217,7 +210,7 @@ func senderOwnsMessage(ctx context.Context, repo repository.MessageRepository, m
 	}
 
 	// sender doesn't own message
-	if message.SenderID != senderID {
+	if message.SenderID != userID {
 		return nil, &service.Error{}
 	}
 

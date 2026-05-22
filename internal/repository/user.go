@@ -13,11 +13,12 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, username, passwordHash string) (*db.User, error)
 	GetByID(ctx context.Context, userID int) (*db.User, error)
+	GetByIDs(ctx context.Context, userIDs []int) ([]db.User, error)
 	GetByUsername(ctx context.Context, username string) (*db.User, error)
 	UpdateAvatarURL(ctx context.Context, userID int, avatarURL *string) (*db.User, error)
 	UpdateUsername(ctx context.Context, userID int, username string) (*db.User, error)
-	UpdatePassword(ctx context.Context, userID int, passwordHash string) error
-	UpdateLastSeenAt(ctx context.Context, userID int) error
+	UpdatePassword(ctx context.Context, userID int, passwordHash string) (*db.User, error)
+	UpdateLastSeenAt(ctx context.Context, userID int) (*db.User, error)
 	SoftDelete(ctx context.Context, userID int) error
 	SearchByUsername(ctx context.Context, query string, limit int) ([]db.User, error)
 
@@ -95,7 +96,6 @@ func (u *userRepository) GetByID(ctx context.Context, userID int) (*db.User, err
 	query := `
 		SELECT * FROM users
 		WHERE id = $1
-		AND deleted_at IS NULL
 	`
 
 	var user db.User
@@ -109,11 +109,27 @@ func (u *userRepository) GetByID(ctx context.Context, userID int) (*db.User, err
 	return &user, nil
 }
 
+func (u *userRepository) GetByIDs(ctx context.Context, userIDs []int) ([]db.User, error) {
+	query := `
+		SELECT * FROM users
+		WHERE id = ANY($1)
+	`
+
+	var users []db.User
+
+	err := pgxscan.Select(ctx, u.db, &users, query, userIDs)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users, err
+}
+
 func (u *userRepository) GetByUsername(ctx context.Context, username string) (*db.User, error) {
 	query := `
 		SELECT * FROM users
 		WHERE LOWER(username) = LOWER($1)
-		AND deleted_at IS NULL
 	`
 
 	var user db.User
@@ -153,7 +169,7 @@ func (u *userRepository) SearchByUsername(ctx context.Context, q string, limit i
 		LIMIT $2
 	`
 
-	users := make([]db.User, 0)
+	var users []db.User
 
 	err := pgxscan.Select(ctx, u.db, &users, query, q, limit)
 
@@ -180,30 +196,44 @@ func (u *userRepository) UpdateAvatarURL(ctx context.Context, userID int, avatar
 	return &user, nil
 }
 
-func (u *userRepository) UpdateLastSeenAt(ctx context.Context, userID int) error {
+func (u *userRepository) UpdateLastSeenAt(ctx context.Context, userID int) (*db.User, error) {
 	query := `
 		UPDATE users
 		SET last_seen_at = NOW()
 		AND deleted_at IS NULL
 		WHERE id = $1
+		RETURNING *
 	`
 
-	_, err := u.db.Exec(ctx, query, userID)
+	var user db.User
 
-	return err
+	err := pgxscan.Get(ctx, u.db, &user, query, userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
-func (u *userRepository) UpdatePassword(ctx context.Context, userID int, passwordHash string) error {
+func (u *userRepository) UpdatePassword(ctx context.Context, userID int, passwordHash string) (*db.User, error) {
 	query := `
 		UPDATE users
 		SET password = $1
 		WHERE id = $2
 		AND deleted_at IS NULL
+		RETURNING *
 	`
 
-	_, err := u.db.Exec(ctx, query, passwordHash, userID)
+	var user db.User
 
-	return err
+	err := pgxscan.Get(ctx, u.db, &user, query, passwordHash, userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (u *userRepository) UpdateUsername(ctx context.Context, userID int, username string) (*db.User, error) {

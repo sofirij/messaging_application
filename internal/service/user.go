@@ -27,6 +27,7 @@ type UserService interface {
 	SoftDelete(ctx context.Context, userID int) error
 	UpdateAvatarURL(ctx context.Context, userID int, req request.UserAvatarRequest) error
 	UpdateUsername(ctx context.Context, userID int, req request.UserUsernameRequest) error
+	UpdateLastSeenAt(ctx context.Context, userID int) (*response.UserResponse, error)
 	GetByID(ctx context.Context, userID int) (*response.UserResponse, error)
 	SearchByUsername(ctx context.Context, query string) ([]response.UserResponse, error)
 }
@@ -122,7 +123,7 @@ func (u *userService) Login(ctx context.Context, req request.UserAuthRequest) (*
 		}
 	}
 
-	err = u.userRepo.UpdateLastSeenAt(ctx, user.ID)
+	_, err = u.userRepo.UpdateLastSeenAt(ctx, user.ID)
 
 	if err != nil {
 		return nil, "", "", err
@@ -273,7 +274,7 @@ func (u *userService) SearchByUsername(ctx context.Context, query string) ([]res
 	users, err := u.userRepo.SearchByUsername(ctx, query, queryLimit)
 
 	if err != nil {
-		return make([]response.UserResponse, 0), err
+		return nil, err
 	}
 
 	resp := make([]response.UserResponse, 0)
@@ -290,6 +291,25 @@ func (u *userService) SearchByUsername(ctx context.Context, query string) ([]res
 	}
 
 	return resp, nil
+}
+
+func (u *userService) UpdateLastSeenAt(ctx context.Context, userID int) (*response.UserResponse, error) {
+	user, err := u.userRepo.UpdateLastSeenAt(ctx, userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	resp := response.UserResponse{
+		ID:         user.ID,
+		Username:   user.Username,
+		AvatarURL:  user.AvatarURL,
+		IsOnline:   u.hub.IsOnline(user.ID),
+		LastSeenAt: user.LastSeenAt,
+		CreatedAt:  user.CreatedAt,
+	}
+
+	return &resp, nil
 }
 
 func NewUserService(userRepo repository.UserRepository, hub HubService, cfg *config.Config) UserService {

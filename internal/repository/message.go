@@ -32,7 +32,6 @@ func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversat
 	defer tx.Rollback(ctx)
 
 	var message db.Message
-	messageAttachments := make([]db.MessageAttachment, 0)
 
 	query := `
 		INSERT INTO messages
@@ -54,7 +53,9 @@ func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversat
 		RETURNING *
 	`
 
-	for _, a := range attachments {
+	messageAttachments := make([]db.MessageAttachment, len(attachments))
+
+	for i, a := range attachments {
 		var attachment db.MessageAttachment
 
 		err := pgxscan.Get(ctx, tx, &attachment, query, message.ID, a.Type, a.URL, a.Filename, a.Size)
@@ -63,7 +64,19 @@ func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversat
 			return nil, nil, err
 		}
 
-		messageAttachments = append(messageAttachments, attachment)
+		messageAttachments[i] = attachment
+	}
+
+	query = `
+		UPDATE conversations
+		SET last_message_at = NOW()
+		WHERE conversation_id = $1
+	`
+
+	_, err = tx.Exec(ctx, query, conversationID)
+
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if err = tx.Commit(ctx); err != nil {
@@ -120,7 +133,7 @@ func (m *messageRepository) GetAttachmentsByMessageIDs(ctx context.Context, mess
 		WHERE message_id = ANY($1)
 	`
 
-	attachments := make([]db.MessageAttachment, 0)
+	var attachments []db.MessageAttachment
 
 	err := pgxscan.Select(ctx, m.db, &attachments, query, messageIDs)
 
@@ -136,7 +149,7 @@ func (m *messageRepository) GetByConversationID(ctx context.Context, conversatio
 		LIMIT $3
 	`
 
-	messages := make([]db.Message, 0)
+	var messages []db.Message
 
 	err := pgxscan.Select(ctx, m.db, &messages, query, conversationID, before, limit)
 
@@ -147,7 +160,6 @@ func (m *messageRepository) GetByID(ctx context.Context, messageID int) (*db.Mes
 	query := `
 		SELECT * FROM messages
 		WHERE id = $1
-		AND deleted_at IS NULL
 	`
 
 	var message db.Message

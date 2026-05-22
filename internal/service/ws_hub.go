@@ -18,6 +18,7 @@ type Client struct {
 	UserID int
 	conn   *websocket.Conn
 	send   chan []byte
+	ctx    context.Context
 }
 
 type Hub struct {
@@ -25,8 +26,9 @@ type Hub struct {
 	register         chan *Client
 	unregister       chan *Client
 	mu               sync.RWMutex
-	conversationRepo repository.ConversationRepository
 	messageService   messageService
+	conversationRepo repository.ConversationRepository
+	userService      userService
 }
 
 type HubService interface {
@@ -52,6 +54,7 @@ func (h *Hub) Run() {
 			}
 			h.clients[client.UserID][client] = true
 			h.mu.Unlock()
+			h.broadcastUserStatus(client.ctx, client.UserID, true)
 
 		case client := <-h.unregister:
 			h.mu.Lock()
@@ -63,15 +66,16 @@ func (h *Hub) Run() {
 				}
 			}
 			h.mu.Unlock()
+			h.broadcastUserStatus(client.ctx, client.UserID, true)
 		}
 	}
 }
 
-func (h *Hub) Register(client *Client) {
+func (h *Hub) Register(ctx context.Context, client *Client) {
 	h.register <- client
 }
 
-func (h *Hub) Unregister(client *Client) {
+func (h *Hub) Unregister(ctx context.Context, client *Client) {
 	h.unregister <- client
 }
 
@@ -96,8 +100,8 @@ func (h *Hub) BroadcastToUser(userID int, event []byte) {
 	}
 }
 
-func (h *Hub) BroadcastToConversation(ctx context.Context, conversationID int, event []byte) error {
-	conversationMembers, err := h.conversationRepo.GetMembers(ctx, conversationID)
+func (h *Hub) BroadcastToConversation(ctx context.Context, userID, conversationID int, event []byte) error {
+	members, err := h.conversationRepo.GetMembers(ctx, conversationID)
 	if err != nil {
 		return err
 	}
@@ -105,7 +109,7 @@ func (h *Hub) BroadcastToConversation(ctx context.Context, conversationID int, e
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	for _, member := range conversationMembers {
+	for _, member := range members {
 		conns := h.clients[member.UserID]
 
 		for client := range conns {
@@ -130,14 +134,14 @@ func (h *Hub) HandleMessageSend(ctx context.Context, client *Client, payload ws.
 	payloadResp, err := h.messageService.Create(ctx, client.UserID, payload.ConversationID, req)
 
 	if err != nil {
-		h.sendError(client, ws.EventMessageSend, err)
+		h.broadcastError(client.UserID, ws.EventMessageSend, err)
 		return
 	}
 
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.sendError(client, ws.EventMessageSend, err)
+		h.broadcastError(client.UserID, ws.EventMessageSend, err)
 		return
 	}
 
@@ -149,14 +153,14 @@ func (h *Hub) HandleMessageSend(ctx context.Context, client *Client, payload ws.
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.sendError(client, ws.EventMessageSend, err)
+		h.broadcastError(client.UserID, ws.EventMessageSend, err)
 		return
 	}
 
-	err = h.BroadcastToConversation(ctx, payloadResp.ConversationID, respBytes)
+	err = h.BroadcastToConversation(ctx, client.UserID, payloadResp.ConversationID, respBytes)
 
 	if err != nil {
-		h.sendError(client, ws.EventMessageSend, err)
+		h.broadcastError(client.UserID, ws.EventMessageSend, err)
 		return
 	}
 }
@@ -165,7 +169,7 @@ func (h *Hub) HandleMessageDelete(ctx context.Context, client *Client, payload w
 	message, err := h.messageService.SoftDelete(ctx, client.UserID, payload.MessageID)
 
 	if err != nil {
-		h.sendError(client, ws.EventMessageDelete, err)
+		h.broadcastError(client.UserID, ws.EventMessageDelete, err)
 		return
 	}
 
@@ -176,7 +180,7 @@ func (h *Hub) HandleMessageDelete(ctx context.Context, client *Client, payload w
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.sendError(client, ws.EventMessageDelete, err)
+		h.broadcastError(client.UserID, ws.EventMessageDelete, err)
 		return
 	}
 
@@ -188,14 +192,14 @@ func (h *Hub) HandleMessageDelete(ctx context.Context, client *Client, payload w
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.sendError(client, ws.EventMessageDelete, err)
+		h.broadcastError(client.UserID, ws.EventMessageDelete, err)
 		return
 	}
 
-	err = h.BroadcastToConversation(ctx, message.ConversationID, respBytes)
+	err = h.BroadcastToConversation(ctx, client.UserID, message.ConversationID, respBytes)
 
 	if err != nil {
-		h.sendError(client, ws.EventMessageDelete, err)
+		h.broadcastError(client.UserID, ws.EventMessageDelete, err)
 		return
 	}
 }
@@ -209,7 +213,7 @@ func (h *Hub) HandleTypingStart(ctx context.Context, client *Client, payload ws.
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.sendError(client, ws.EventUserTypingStart, err)
+		h.broadcastError(client.UserID, ws.EventUserTypingStart, err)
 		return
 	}
 
@@ -221,14 +225,14 @@ func (h *Hub) HandleTypingStart(ctx context.Context, client *Client, payload ws.
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.sendError(client, ws.EventUserTypingStart, err)
+		h.broadcastError(client.UserID, ws.EventUserTypingStart, err)
 		return
 	}
 
-	err = h.BroadcastToConversation(ctx, payload.ConversationID, respBytes)
+	err = h.BroadcastToConversation(ctx, client.UserID, payload.ConversationID, respBytes)
 
 	if err != nil {
-		h.sendError(client, ws.EventUserTypingStart, err)
+		h.broadcastError(client.UserID, ws.EventUserTypingStart, err)
 		return
 	}
 }
@@ -242,7 +246,7 @@ func (h *Hub) HandleTypingStop(ctx context.Context, client *Client, payload ws.T
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.sendError(client, ws.EventUserTypingStop, err)
+		h.broadcastError(client.UserID, ws.EventUserTypingStop, err)
 		return
 	}
 
@@ -254,19 +258,19 @@ func (h *Hub) HandleTypingStop(ctx context.Context, client *Client, payload ws.T
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.sendError(client, ws.EventUserTypingStop, err)
+		h.broadcastError(client.UserID, ws.EventUserTypingStop, err)
 		return
 	}
 
-	err = h.BroadcastToConversation(ctx, payload.ConversationID, respBytes)
+	err = h.BroadcastToConversation(ctx, client.UserID, payload.ConversationID, respBytes)
 
 	if err != nil {
-		h.sendError(client, ws.EventUserTypingStop, err)
+		h.broadcastError(client.UserID, ws.EventUserTypingStop, err)
 		return
 	}
 }
 
-func (h *Hub) sendError(client *Client, ref string, err error) {
+func (h *Hub) broadcastError(userID int, ref string, err error) {
 	payload := ws.ErrorPayload{Ref: &ref}
 
 	if serviceError, ok := errors.AsType[*service.Error](err); ok {
@@ -294,5 +298,95 @@ func (h *Hub) sendError(client *Client, ref string, err error) {
 		return
 	}
 
-	h.BroadcastToUser(client.UserID, respBytes)
+	h.BroadcastToUser(userID, respBytes)
+}
+
+func (h *Hub) broadcastUserStatus(ctx context.Context, userID int, online bool) {
+	conversations, err := h.conversationRepo.GetByUserID(ctx, userID)
+
+	if err != nil {
+		return
+	}
+
+	var respBytes json.RawMessage
+
+	if online {
+		payload := ws.UserOnlinePayload{
+			UserID: userID,
+		}
+
+		payloadBytes, err := json.Marshal(payload)
+
+		if err != nil {
+			return
+		}
+
+		resp := ws.Event{
+			Type:    ws.EventUserOnline,
+			Payload: payloadBytes,
+		}
+
+		respBytes, err = json.Marshal(resp)
+
+		if err != nil {
+			return
+		}
+	} else {
+		user, err := h.userService.UpdateLastSeenAt(ctx, userID)
+
+		if err != nil {
+			return
+		}
+
+		payload := ws.UserOfflinePayload{
+			UserID:     userID,
+			LastSeenAt: *user.LastSeenAt,
+		}
+
+		payloadBytes, err := json.Marshal(payload)
+
+		if err != nil {
+			return
+		}
+
+		resp := ws.Event{
+			Type:    ws.EventUserOffline,
+			Payload: payloadBytes,
+		}
+
+		respBytes, err = json.Marshal(resp)
+
+		if err != nil {
+			return
+		}
+	}
+
+	conversationIDs := make([]int, len(conversations))
+
+	for i, conversation := range conversations {
+		conversationIDs[i] = conversation.ID
+	}
+
+	members, err := h.conversationRepo.GetMembersByConversationIDs(ctx, conversationIDs)
+
+	if err != nil {
+		return
+	}
+
+	memberMap := make(map[int]bool)
+
+	for _, member := range members {
+		memberMap[member.UserID] = true
+	}
+
+	// verify user status hasn't changed before broadcasting
+	if (!online && h.IsOnline(userID)) || (online && !h.IsOnline(userID)) {
+		return
+	}
+
+	for memberID := range memberMap {
+		if memberID != userID {
+			h.BroadcastToUser(memberID, respBytes)
+		}
+	}
 }

@@ -11,37 +11,70 @@ import (
 )
 
 type ConversationRepository interface {
-	Create(ctx context.Context, createdBy int, conversationType string, name *string, rolesMap map[int]string) (*db.Conversation, error)
+	Create(ctx context.Context, createdBy int, conversationType string, name *string, userIDs []int) (*db.Conversation, error)
 	GetByUserID(ctx context.Context, userID int) ([]db.Conversation, error)
 	GetByID(ctx context.Context, conversationID int) (*db.Conversation, error)
 	GetMembers(ctx context.Context, conversationID int) ([]db.ConversationMember, error)
+	GetMembersByConversationIDs(ctx context.Context, conversationIDs []int) ([]db.ConversationMember, error)
 	GetMember(ctx context.Context, conversationID int, userID int) (*db.ConversationMember, error)
-	SoftDelete(ctx context.Context, conversationID int) error
 	UpdateName(ctx context.Context, conversationID int, name string) (*db.Conversation, error)
 	UpdateAvatarURL(ctx context.Context, conversationID int, avatarURL *string) (*db.Conversation, error)
-	AddMembers(ctx context.Context, conversationID int, role string, userIDs []int) error
+	AddMembers(ctx context.Context, conversationID int, userIDs []int) error
 	RemoveMember(ctx context.Context, conversationID, userID int) error
+	SoftDeleteMember(ctx context.Context, conversationID, userID int) error
+	ClearMessages(ctx context.Context, conversationID, userID int) error
 }
 
 type conversationRepository struct {
 	db *pgxpool.Pool
 }
 
-func (c *conversationRepository) AddMembers(ctx context.Context, conversationID int, role string, userIDs []int) error {
+func (c *conversationRepository) SoftDeleteMember(ctx context.Context, conversationID, userID int) error {
+	query := `
+		UPDATE conversation_members
+		SET deleted_at = NOW()
+		WHERE conversation_id = $1
+		AND user_id = $2
+	`
+
+	_, err := c.db.Exec(ctx, query, conversationID, userID)
+
+	return err
+}
+
+// set after_cursor to the last message_id in the conversation
+func (c *conversationRepository) ClearMessages(ctx context.Context, conversationID, userID int) error {
+	query := `
+		UPDATE conversation_members
+		SET after_cursor = (
+			SELECT id FROM messages
+			WHERE conversation_id = $1
+			ORDER BY id DESC LIMIT 1
+		)
+		WHERE user_id = $2
+		AND conversation_id = $1
+	`
+
+	_, err := c.db.Exec(ctx, query, conversationID, userID)
+
+	return err
+}
+
+func (c *conversationRepository) AddMembers(ctx context.Context, conversationID int, userIDs []int) error {
 	_, err := c.db.CopyFrom(
 		ctx,
 		pgx.Identifier{"conversation_members"},
-		[]string{"conversation_id", "user_id", "role"},
+		[]string{"conversation_id", "user_id"},
 		pgx.CopyFromSlice(len(userIDs), func(i int) ([]any, error) {
 			userID := userIDs[i]
-			return []any{conversationID, userID, role}, nil
+			return []any{conversationID, userID}, nil
 		}),
 	)
 
 	return err
 }
 
-func (c *conversationRepository) Create(ctx context.Context, createdBy int, conversationType string, conversationName *string, rolesMap map[int]string) (*db.Conversation, error) {
+func (c *conversationRepository) Create(ctx context.Context, createdBy int, conversationType string, conversationName *string, userIDs []int) (*db.Conversation, error) {
 	tx, err := c.db.Begin(ctx)
 
 	if err != nil {
@@ -72,16 +105,14 @@ func (c *conversationRepository) Create(ctx context.Context, createdBy int, conv
 		return nil, err
 	}
 
-	rows := make([][]any, 0)
-	for userID, userRole := range rolesMap {
-		rows = append(rows, []any{conversation.ID, userID, userRole})
-	}
-
 	_, err = tx.CopyFrom(
 		ctx,
 		pgx.Identifier{"conversation_members"},
-		[]string{"conversation_id", "user_id", "role"},
-		pgx.CopyFromRows(rows),
+		[]string{"conversation_id", "user_id"},
+		pgx.CopyFromSlice(len(userIDs), func(i int) ([]any, error) {
+			userID := userIDs[i]
+			return []any{conversation.ID, userID}, nil
+		}),
 	)
 
 	if err != nil {
@@ -95,24 +126,10 @@ func (c *conversationRepository) Create(ctx context.Context, createdBy int, conv
 	return &conversation, nil
 }
 
-func (c *conversationRepository) SoftDelete(ctx context.Context, conversationID int) error {
-	query := `
-		UPDATE conversations
-		SET deleted_at = NOW()
-		WHERE id = $1
-		AND deleted_at IS NULL
-	`
-
-	_, err := c.db.Exec(ctx, query, conversationID)
-
-	return err
-}
-
 func (c *conversationRepository) GetByID(ctx context.Context, conversationID int) (*db.Conversation, error) {
 	query := `
 		SELECT * FROM conversations
 		WHERE id = $1
-		AND deleted_at IS NULL
 	`
 
 	var conversation db.Conversation
@@ -131,11 +148,11 @@ func (c *conversationRepository) GetByUserID(ctx context.Context, userID int) ([
 		SELECT c.* FROM conversations AS c
 		JOIN conversation_members AS cm ON c.id = cm.conversation_id
 		WHERE cm.user_id = $1
-		AND c.deleted_at IS NULL
+		AND (cm.deleted_at IS NULL OR c.last_message_at > cm.deleted_at)
 		ORDER BY c.last_message_at DESC NULLS LAST
 	`
 
-	conversations := make([]db.Conversation, 0)
+	var conversations []db.Conversation
 
 	err := pgxscan.Select(ctx, c.db, &conversations, query, userID)
 
@@ -166,11 +183,28 @@ func (c *conversationRepository) GetMembers(ctx context.Context, conversationID 
 		WHERE conversation_id = $1
 	`
 
-	members := make([]db.ConversationMember, 0)
+	var members []db.ConversationMember
 
 	err := pgxscan.Select(ctx, c.db, &members, query, conversationID)
 
 	return members, err
+}
+
+func (c *conversationRepository) GetMembersByConversationIDs(ctx context.Context, conversationIDs []int) ([]db.ConversationMember, error) {
+	query := `
+		SELECT * FROM conversation_members
+		WHERE conversation_id = ANY($1)
+	`
+
+	var members []db.ConversationMember
+
+	err := pgxscan.Select(ctx, c.db, &members, query, conversationIDs)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return members, nil
 }
 
 func (c *conversationRepository) RemoveMember(ctx context.Context, conversationID int, userID int) error {
@@ -190,7 +224,6 @@ func (c *conversationRepository) UpdateAvatarURL(ctx context.Context, conversati
 		UPDATE conversations
 		SET avatar_url = $1
 		WHERE id = $2
-		AND deleted_at IS NULL
 		RETURNING *
 	`
 
@@ -210,7 +243,6 @@ func (c *conversationRepository) UpdateName(ctx context.Context, conversationID 
 		UPDATE conversations
 		SET name = $1
 		WHERE id = $2
-		AND deleted_at IS NULL
 		RETURNING *
 	`
 
