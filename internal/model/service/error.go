@@ -1,9 +1,16 @@
 package service
 
+const (
+	ErrCodeUnauthorized = "unauthorized"
+	ErrCodeForbidden    = "forbidden"
+	ErrCodeNotFound     = "not_found"
+	ErrCodeConflict     = "conflict"
+	ErrCodeBadRequest   = "bad_request"
+)
+
 type Error struct {
-	Code    string
 	Message string
-	Fields  map[string]string
+	Code    string
 }
 
 func (e *Error) Error() string {

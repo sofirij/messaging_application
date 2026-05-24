@@ -74,9 +74,8 @@ func (u *userService) Register(ctx context.Context, req request.UserAuthRequest)
 	// duplicate username
 	if existingUser != nil {
 		return &service.Error{
-			Code:    "",
-			Message: "",
-			Fields:  map[string]string{},
+			Code:    service.ErrCodeConflict,
+			Message: "username already taken",
 		}
 	}
 
@@ -102,9 +101,8 @@ func (u *userService) Login(ctx context.Context, req request.UserAuthRequest) (*
 	// user doesn't exist
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, "", "", &service.Error{
-			Code:    "",
-			Message: "",
-			Fields:  map[string]string{},
+			Code:    service.ErrCodeBadRequest,
+			Message: "invalid username or password",
 		}
 	}
 
@@ -117,9 +115,8 @@ func (u *userService) Login(ctx context.Context, req request.UserAuthRequest) (*
 	// invalid password
 	if err != nil {
 		return nil, "", "", &service.Error{
-			Code:    "",
-			Message: "",
-			Fields:  map[string]string{},
+			Code:    service.ErrCodeBadRequest,
+			Message: "incorrect username or password",
 		}
 	}
 
@@ -180,8 +177,8 @@ func (u *userService) RefreshToken(ctx context.Context, token string) (string, s
 	// refresh token is expired
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", "", &service.Error{
-			Code:    "",
-			Message: "",
+			Code:    service.ErrCodeUnauthorized,
+			Message: "expired token",
 		}
 	}
 
@@ -326,17 +323,15 @@ func NewUserService(userRepo repository.UserRepository, hub HubService, cfg *con
 func validateUsername(username string) error {
 	if len(username) < minUsernameLength {
 		return &service.Error{
-			Code:    "",
-			Message: "",
-			Fields:  map[string]string{},
+			Code:    service.ErrCodeBadRequest,
+			Message: "username too short",
 		}
 	}
 
 	if len(username) > maxUsernameLength {
 		return &service.Error{
-			Code:    "",
-			Message: "",
-			Fields:  map[string]string{},
+			Code:    service.ErrCodeBadRequest,
+			Message: "username too long",
 		}
 	}
 
@@ -345,9 +340,8 @@ func validateUsername(username string) error {
 	// invalid username
 	if !matched {
 		return &service.Error{
-			Code:    "",
-			Message: "",
-			Fields:  map[string]string{},
+			Code:    service.ErrCodeBadRequest,
+			Message: "invalid username",
 		}
 	}
 
@@ -357,17 +351,15 @@ func validateUsername(username string) error {
 func validatePassword(password string) error {
 	if len(password) < minPasswordLength {
 		return &service.Error{
-			Code:    "",
-			Message: "",
-			Fields:  map[string]string{},
+			Code:    service.ErrCodeBadRequest,
+			Message: "password too short",
 		}
 	}
 
 	if len(password) > maxPasswordLength {
 		return &service.Error{
-			Code:    "",
-			Message: "",
-			Fields:  map[string]string{},
+			Code:    service.ErrCodeBadRequest,
+			Message: "password too long",
 		}
 	}
 

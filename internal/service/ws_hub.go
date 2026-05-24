@@ -329,10 +329,8 @@ func (h *hub) broadcastError(userID int, ref string, err error) {
 	payload := ws.ErrorPayload{Ref: &ref}
 
 	if serviceError, ok := errors.AsType[*service.Error](err); ok {
-		payload.Code = serviceError.Code
 		payload.Message = serviceError.Message
 	} else {
-		payload.Code = "internal_error"
 		payload.Message = "something went wrong"
 	}
 

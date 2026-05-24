@@ -39,22 +39,34 @@ type conversationService struct {
 func (c *conversationService) Create(ctx context.Context, userID int, req request.ConversationCreateRequest) (*response.ConversationResponse, error) {
 	// invalid conversation type
 	if req.Type != direct && req.Type != group {
-		return nil, &service.Error{}
+		return nil, &service.Error{
+			Code:    service.ErrCodeBadRequest,
+			Message: "invalid conversation type",
+		}
 	}
 
 	// missing user ids to add
 	if len(req.UserIDs) == 0 {
-		return nil, &service.Error{}
+		return nil, &service.Error{
+			Code:    service.ErrCodeBadRequest,
+			Message: "missing user ids",
+		}
 	}
 
 	// missing group name
 	if req.Name == nil && req.Type == group {
-		return nil, &service.Error{}
+		return nil, &service.Error{
+			Code:    service.ErrCodeBadRequest,
+			Message: "missing group name",
+		}
 	}
 
 	// should not add more than one member to a conversation
 	if len(req.UserIDs) > 1 && req.Type == direct {
-		return nil, &service.Error{}
+		return nil, &service.Error{
+			Code:    service.ErrCodeBadRequest,
+			Message: "too many user ids",
+		}
 	}
 
 	// if direct conversation, ensure to not create duplicate conversation
@@ -80,7 +92,10 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 
 		for _, conversation := range memberConversations {
 			if conversationMap[conversation.ID] {
-				return nil, &service.Error{}
+				return nil, &service.Error{
+					Code:    service.ErrCodeConflict,
+					Message: "duplicate conversation",
+				}
 			}
 		}
 	}
@@ -283,7 +298,10 @@ func userInConversation(ctx context.Context, repo repository.ConversationReposit
 
 	// sender doesn't belong in the conversation
 	if errors.Is(err, pgx.ErrNoRows) {
-		return &service.Error{}
+		return &service.Error{
+			Code:    service.ErrCodeForbidden,
+			Message: "user not in conversation",
+		}
 	}
 
 	return err

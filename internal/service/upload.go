@@ -48,7 +48,10 @@ func NewUploadService(cfg config.Config) UploadService {
 func (u *uploadService) Upload(ctx context.Context, file *multipart.FileHeader) (*response.UploadResponse, error) {
 	// file too large
 	if file.Size > maxUploadSize {
-		return nil, &service.Error{}
+		return nil, &service.Error{
+			Code:    service.ErrCodeBadRequest,
+			Message: "file too large",
+		}
 	}
 
 	src, err := file.Open()
@@ -67,7 +70,10 @@ func (u *uploadService) Upload(ctx context.Context, file *multipart.FileHeader) 
 
 	// invalid file type
 	if !allowedMIMETypes[mimeType] {
-		return nil, &service.Error{}
+		return nil, &service.Error{
+			Code:    service.ErrCodeBadRequest,
+			Message: "invalid file type",
+		}
 	}
 
 	if _, err = src.Seek(0, io.SeekStart); err != nil {

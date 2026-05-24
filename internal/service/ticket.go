@@ -46,7 +46,10 @@ func (t *ticketService) ValidateAndConsume(ticket string) (*int, error) {
 
 	// ticket has expired
 	if val == nil {
-		return nil, &service.Error{}
+		return nil, &service.Error{
+			Code:    service.ErrCodeForbidden,
+			Message: "ticket is expired",
+		}
 	}
 
 	userID, err := strconv.Atoi(string(val))
