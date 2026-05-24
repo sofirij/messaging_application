@@ -277,17 +277,17 @@ func (u *userService) SearchByUsername(ctx context.Context, query string) ([]res
 		return nil, err
 	}
 
-	resp := make([]response.UserResponse, 0)
+	resp := make([]response.UserResponse, len(users))
 
-	for _, user := range users {
-		resp = append(resp, response.UserResponse{
+	for i, user := range users {
+		resp[i] = response.UserResponse{
 			ID:         user.ID,
 			Username:   user.Username,
 			AvatarURL:  user.AvatarURL,
 			IsOnline:   u.hub.IsOnline(user.ID),
 			LastSeenAt: user.LastSeenAt,
 			CreatedAt:  user.CreatedAt,
-		})
+		}
 	}
 
 	return resp, nil

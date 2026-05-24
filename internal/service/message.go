@@ -56,16 +56,16 @@ func (m *messageService) Create(ctx context.Context, senderID, conversationID in
 		return nil, err
 	}
 
-	attachmentResp := make([]response.MessageAttachment, 0)
+	attachmentResp := make([]response.MessageAttachment, len(attachments))
 
-	for _, attachment := range attachments {
-		attachmentResp = append(attachmentResp, response.MessageAttachment{
+	for i, attachment := range attachments {
+		attachmentResp[i] = response.MessageAttachment{
 			ID:       attachment.ID,
 			Type:     attachment.Type,
 			URL:      attachment.URL,
 			Filename: attachment.Filename,
 			Size:     attachment.Size,
-		})
+		}
 	}
 
 	resp := response.MessageResponse{
