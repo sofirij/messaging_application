@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
+	"time"
 
 	"app/internal/model/request"
 	"app/internal/model/service"
@@ -14,11 +15,103 @@ import (
 	"github.com/gofiber/contrib/websocket"
 )
 
+const (
+	pingInterval = 30 * time.Second
+	pongTimeout = pingInterval + 15 * time.Second
+	writeTimeout = 5 * time.Second
+	readTimeout = writeTimeout
+)
+
 type Client struct {
 	UserID int
 	conn   *websocket.Conn
 	send   chan []byte
 	ctx    context.Context
+}
+
+func (c *Client) WritePump(hub HubService) {
+	ticker := time.NewTicker(pingInterval)
+	defer func() {
+		ticker.Stop()
+		c.conn.Close()
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.send:
+			c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+			if !ok {
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+				return
+			}
+		case <-ticker.C:
+			c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}
+}
+
+func (c *Client) ReadPump(hub HubService) {
+	defer func() {
+		hub.Unregister(c)
+		c.conn.Close()
+	}()
+
+	c.conn.SetReadDeadline(time.Now().Add(pongTimeout))
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(pongTimeout))
+		return nil
+	})
+
+	for {
+		_, message, err := c.conn.ReadMessage()
+		if err != nil {
+			return
+		}
+
+		var event ws.Event
+		if err = json.Unmarshal(message, &event); err != nil {
+			continue
+		}
+
+		switch event.Type {
+		case ws.EventMessageSend:
+			var payload ws.MessageSendPayload
+			if err := json.Unmarshal(event.Payload, &payload); err != nil {
+				continue
+			}
+			hub.HandleMessageSend(c.ctx, c, payload)
+		case ws.EventMessageDelete:
+			var payload ws.MessageDeletePayload
+			if err := json.Unmarshal(event.Payload, &payload); err != nil {
+				continue
+			}
+			hub.HandleMessageDelete(c.ctx, c, payload)
+		case ws.EventTypingStart:
+			var payload ws.TypingPayloadInbound
+			if err := json.Unmarshal(event.Payload, &payload); err != nil {
+				continue
+			}
+			hub.HandleTypingStart(c.ctx, c, payload)
+		case ws.EventTypingStop:
+			var payload ws.TypingPayloadInbound
+			if err := json.Unmarshal(event.Payload, &payload); err != nil {
+				continue
+			}
+			hub.HandleTypingStop(c.ctx, c, payload)
+		case ws.EventMessageRead:
+			var payload ws.MessageReadPayload
+			if err := json.Unmarshal(event.Payload, &payload); err != nil {
+				continue
+			}
+			hub.HandleMessageRead(c.ctx, c, payload)
+		}
+	}
 }
 
 type hub struct {
@@ -29,6 +122,7 @@ type hub struct {
 	messageService   MessageService
 	conversationRepo repository.ConversationRepository
 	userRepo         repository.UserRepository
+	stop chan struct{}
 }
 
 type HubService interface {
@@ -43,6 +137,7 @@ type HubService interface {
 	HandleTypingStart(ctx context.Context, client *Client, payload ws.TypingPayloadInbound)
 	HandleTypingStop(ctx context.Context, client *Client, payload ws.TypingPayloadInbound)
 	HandleMessageRead(ctx context.Context, client *Client, payload ws.MessageReadPayload)
+	Stop()
 }
 
 func NewHubService(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, messageService MessageService) HubService {
@@ -57,6 +152,10 @@ func NewHubService(conversationRepo repository.ConversationRepository, userRepo 
 	}
 }
 
+func (h *hub) Stop() {
+	h.stop <- struct{}{}
+}
+
 func (h *hub) Run() {
 	for {
 		select {
@@ -67,7 +166,7 @@ func (h *hub) Run() {
 			}
 			h.clients[client.UserID][client] = true
 			h.mu.Unlock()
-			h.broadcastUserStatus(client.ctx, client.UserID, true)
+			h.broadcastOnlineStatus(client.ctx, client.UserID, true)
 
 		case client := <-h.unregister:
 			h.mu.Lock()
@@ -79,7 +178,18 @@ func (h *hub) Run() {
 				}
 			}
 			h.mu.Unlock()
-			h.broadcastUserStatus(client.ctx, client.UserID, false)
+			h.broadcastOnlineStatus(client.ctx, client.UserID, false)
+
+		case <- h.stop:
+			h.mu.Lock()
+			for _, clients := range h.clients {
+				for client := range clients {
+					close(client.send)
+				}
+			}
+			h.mu.Unlock()
+			close(h.register)
+			return
 		}
 	}
 }
@@ -354,7 +464,7 @@ func (h *hub) broadcastError(userID int, ref string, err error) {
 	h.BroadcastToUser(userID, respBytes)
 }
 
-func (h *hub) broadcastUserStatus(ctx context.Context, userID int, online bool) {
+func (h *hub) broadcastOnlineStatus(ctx context.Context, userID int, online bool) {
 	conversations, err := h.conversationRepo.GetByUserID(ctx, userID)
 
 	if err != nil {

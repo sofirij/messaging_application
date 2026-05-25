@@ -9,7 +9,7 @@ import (
 
 	"app/internal/config"
 	"app/internal/middleware"
-
+	
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
 )
@@ -27,11 +27,8 @@ func main() {
 
 	app := fiber.New(fiber.Config{
 		AppName:                 "MyApp",
-		EnableIPValidation:      true,
-		IdleTimeout:             1 * time.Minute,
-		ReadTimeout:             1 * time.Minute,
-		WriteTimeout:            1 * time.Minute,
-		DisableHeadAutoRegister: true,
+		IdleTimeout:             30 * time.Second,
+		WriteTimeout:            5 * time.Second,
 	})
 
 	// setup middleware
