@@ -8,28 +8,36 @@ import (
 	"time"
 
 	"app/internal/model/request"
-	"app/internal/model/service"
 	"app/internal/model/ws"
 	"app/internal/repository"
 
-	"github.com/gofiber/contrib/websocket"
+	"github.com/gofiber/contrib/v3/websocket"
 )
 
 const (
 	pingInterval = 30 * time.Second
-	pongTimeout = pingInterval + 15 * time.Second
+	pongTimeout  = pingInterval + 15*time.Second
 	writeTimeout = 5 * time.Second
-	readTimeout = writeTimeout
+	readTimeout  = writeTimeout
 )
 
-type Client struct {
-	UserID int
+type client struct {
+	userID int
 	conn   *websocket.Conn
 	send   chan []byte
 	ctx    context.Context
 }
 
-func (c *Client) WritePump(hub HubService) {
+func NewClient(userID int, conn *websocket.Conn, ctx context.Context) *client {
+	return &client{
+		userID: userID,
+		conn: conn,
+		send: make(chan []byte),
+		ctx: ctx,
+	}
+}
+
+func (c *client) WritePump(hub HubService) {
 	ticker := time.NewTicker(pingInterval)
 	defer func() {
 		ticker.Stop()
@@ -56,7 +64,7 @@ func (c *Client) WritePump(hub HubService) {
 	}
 }
 
-func (c *Client) ReadPump(hub HubService) {
+func (c *client) ReadPump(hub HubService) {
 	defer func() {
 		hub.Unregister(c)
 		c.conn.Close()
@@ -115,36 +123,36 @@ func (c *Client) ReadPump(hub HubService) {
 }
 
 type hub struct {
-	clients          map[int]map[*Client]bool
-	register         chan *Client
-	unregister       chan *Client
+	clients          map[int]map[*client]bool
+	register         chan *client
+	unregister       chan *client
 	mu               sync.RWMutex
 	messageService   MessageService
 	conversationRepo repository.ConversationRepository
 	userRepo         repository.UserRepository
-	stop chan struct{}
+	stop             chan struct{}
 }
 
 type HubService interface {
 	Run()
-	Register(client *Client)
-	Unregister(client *Client)
+	Register(client *client)
+	Unregister(client *client)
 	IsOnline(userID int) bool
 	BroadcastToUser(userID int, event []byte)
 	BroadcastToConversation(ctx context.Context, conversationID int, event []byte) error
-	HandleMessageSend(ctx context.Context, client *Client, payload ws.MessageSendPayload)
-	HandleMessageDelete(ctx context.Context, client *Client, payload ws.MessageDeletePayload)
-	HandleTypingStart(ctx context.Context, client *Client, payload ws.TypingPayloadInbound)
-	HandleTypingStop(ctx context.Context, client *Client, payload ws.TypingPayloadInbound)
-	HandleMessageRead(ctx context.Context, client *Client, payload ws.MessageReadPayload)
+	HandleMessageSend(ctx context.Context, client *client, payload ws.MessageSendPayload)
+	HandleMessageDelete(ctx context.Context, client *client, payload ws.MessageDeletePayload)
+	HandleTypingStart(ctx context.Context, client *client, payload ws.TypingPayloadInbound)
+	HandleTypingStop(ctx context.Context, client *client, payload ws.TypingPayloadInbound)
+	HandleMessageRead(ctx context.Context, client *client, payload ws.MessageReadPayload)
 	Stop()
 }
 
 func NewHubService(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, messageService MessageService) HubService {
 	return &hub{
-		clients:          make(map[int]map[*Client]bool),
-		register:         make(chan *Client),
-		unregister:       make(chan *Client),
+		clients:          make(map[int]map[*client]bool),
+		register:         make(chan *client),
+		unregister:       make(chan *client),
 		mu:               sync.RWMutex{},
 		messageService:   messageService,
 		conversationRepo: conversationRepo,
@@ -159,28 +167,28 @@ func (h *hub) Stop() {
 func (h *hub) Run() {
 	for {
 		select {
-		case client := <-h.register:
+		case conn := <-h.register:
 			h.mu.Lock()
-			if h.clients[client.UserID] == nil {
-				h.clients[client.UserID] = make(map[*Client]bool)
+			if h.clients[conn.userID] == nil {
+				h.clients[conn.userID] = make(map[*client]bool)
 			}
-			h.clients[client.UserID][client] = true
+			h.clients[conn.userID][conn] = true
 			h.mu.Unlock()
-			h.broadcastOnlineStatus(client.ctx, client.UserID, true)
+			h.broadcastOnlineStatus(conn.ctx, conn.userID, true)
 
-		case client := <-h.unregister:
+		case conn := <-h.unregister:
 			h.mu.Lock()
-			if clients, ok := h.clients[client.UserID]; ok {
-				delete(clients, client)
-				close(client.send)
+			if clients, ok := h.clients[conn.userID]; ok {
+				delete(clients, conn)
+				close(conn.send)
 				if len(clients) == 0 {
-					delete(h.clients, client.UserID)
+					delete(h.clients, conn.userID)
 				}
 			}
 			h.mu.Unlock()
-			h.broadcastOnlineStatus(client.ctx, client.UserID, false)
+			h.broadcastOnlineStatus(conn.ctx, conn.userID, false)
 
-		case <- h.stop:
+		case <-h.stop:
 			h.mu.Lock()
 			for _, clients := range h.clients {
 				for client := range clients {
@@ -194,11 +202,11 @@ func (h *hub) Run() {
 	}
 }
 
-func (h *hub) Register(client *Client) {
+func (h *hub) Register(client *client) {
 	h.register <- client
 }
 
-func (h *hub) Unregister(client *Client) {
+func (h *hub) Unregister(client *client) {
 	h.unregister <- client
 }
 
@@ -247,24 +255,24 @@ func (h *hub) BroadcastToConversation(ctx context.Context, conversationID int, e
 	return nil
 }
 
-func (h *hub) HandleMessageSend(ctx context.Context, client *Client, payload ws.MessageSendPayload) {
+func (h *hub) HandleMessageSend(ctx context.Context, client *client, payload ws.MessageSendPayload) {
 	req := request.MessageCreateRequest{
 		ReplyToID:   payload.ReplyToID,
 		Body:        payload.Body,
 		Attachments: payload.Attachments,
 	}
 
-	payloadResp, err := h.messageService.Create(ctx, client.UserID, payload.ConversationID, req)
+	payloadResp, err := h.messageService.Create(ctx, client.userID, payload.ConversationID, req)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageSend, err)
+		h.broadcastError(client.userID, ws.EventMessageSend, err)
 		return
 	}
 
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageSend, err)
+		h.broadcastError(client.userID, ws.EventMessageSend, err)
 		return
 	}
 
@@ -276,23 +284,23 @@ func (h *hub) HandleMessageSend(ctx context.Context, client *Client, payload ws.
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageSend, err)
+		h.broadcastError(client.userID, ws.EventMessageSend, err)
 		return
 	}
 
 	err = h.BroadcastToConversation(ctx, payloadResp.ConversationID, respBytes)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageSend, err)
+		h.broadcastError(client.userID, ws.EventMessageSend, err)
 		return
 	}
 }
 
-func (h *hub) HandleMessageDelete(ctx context.Context, client *Client, payload ws.MessageDeletePayload) {
-	message, err := h.messageService.SoftDelete(ctx, client.UserID, payload.MessageID)
+func (h *hub) HandleMessageDelete(ctx context.Context, client *client, payload ws.MessageDeletePayload) {
+	message, err := h.messageService.SoftDelete(ctx, client.userID, payload.MessageID)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageDelete, err)
+		h.broadcastError(client.userID, ws.EventMessageDelete, err)
 		return
 	}
 
@@ -304,7 +312,7 @@ func (h *hub) HandleMessageDelete(ctx context.Context, client *Client, payload w
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageDelete, err)
+		h.broadcastError(client.userID, ws.EventMessageDelete, err)
 		return
 	}
 
@@ -316,28 +324,28 @@ func (h *hub) HandleMessageDelete(ctx context.Context, client *Client, payload w
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageDelete, err)
+		h.broadcastError(client.userID, ws.EventMessageDelete, err)
 		return
 	}
 
 	err = h.BroadcastToConversation(ctx, message.ConversationID, respBytes)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageDelete, err)
+		h.broadcastError(client.userID, ws.EventMessageDelete, err)
 		return
 	}
 }
 
-func (h *hub) HandleTypingStart(ctx context.Context, client *Client, payload ws.TypingPayloadInbound) {
+func (h *hub) HandleTypingStart(ctx context.Context, client *client, payload ws.TypingPayloadInbound) {
 	payloadResp := ws.TypingPayloadOutbound{
 		ConversationID: payload.ConversationID,
-		UserID:         client.UserID,
+		UserID:         client.userID,
 	}
 
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventUserTypingStart, err)
+		h.broadcastError(client.userID, ws.EventUserTypingStart, err)
 		return
 	}
 
@@ -349,28 +357,28 @@ func (h *hub) HandleTypingStart(ctx context.Context, client *Client, payload ws.
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventUserTypingStart, err)
+		h.broadcastError(client.userID, ws.EventUserTypingStart, err)
 		return
 	}
 
 	err = h.BroadcastToConversation(ctx, payload.ConversationID, respBytes)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventUserTypingStart, err)
+		h.broadcastError(client.userID, ws.EventUserTypingStart, err)
 		return
 	}
 }
 
-func (h *hub) HandleTypingStop(ctx context.Context, client *Client, payload ws.TypingPayloadInbound) {
+func (h *hub) HandleTypingStop(ctx context.Context, client *client, payload ws.TypingPayloadInbound) {
 	payloadResp := ws.TypingPayloadOutbound{
 		ConversationID: payload.ConversationID,
-		UserID:         client.UserID,
+		UserID:         client.userID,
 	}
 
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventUserTypingStop, err)
+		h.broadcastError(client.userID, ws.EventUserTypingStop, err)
 		return
 	}
 
@@ -382,28 +390,28 @@ func (h *hub) HandleTypingStop(ctx context.Context, client *Client, payload ws.T
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventUserTypingStop, err)
+		h.broadcastError(client.userID, ws.EventUserTypingStop, err)
 		return
 	}
 
 	err = h.BroadcastToConversation(ctx, payload.ConversationID, respBytes)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventUserTypingStop, err)
+		h.broadcastError(client.userID, ws.EventUserTypingStop, err)
 		return
 	}
 }
 
-func (h *hub) HandleMessageRead(ctx context.Context, client *Client, payload ws.MessageReadPayload) {
-	err := h.messageService.MarkAsRead(ctx, client.UserID, payload.ConversationID, payload.MessageID)
+func (h *hub) HandleMessageRead(ctx context.Context, client *client, payload ws.MessageReadPayload) {
+	err := h.messageService.MarkAsRead(ctx, client.userID, payload.ConversationID, payload.MessageID)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageRead, err)
+		h.broadcastError(client.userID, ws.EventMessageRead, err)
 		return
 	}
 
 	payloadResp := ws.MessageSeenPayload{
-		UserID:         client.UserID,
+		UserID:         client.userID,
 		MessageID:      payload.MessageID,
 		ConversationID: payload.ConversationID,
 	}
@@ -411,7 +419,7 @@ func (h *hub) HandleMessageRead(ctx context.Context, client *Client, payload ws.
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageRead, err)
+		h.broadcastError(client.userID, ws.EventMessageRead, err)
 		return
 	}
 
@@ -423,14 +431,14 @@ func (h *hub) HandleMessageRead(ctx context.Context, client *Client, payload ws.
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageRead, err)
+		h.broadcastError(client.userID, ws.EventMessageRead, err)
 		return
 	}
 
 	err = h.BroadcastToConversation(ctx, payloadResp.ConversationID, respBytes)
 
 	if err != nil {
-		h.broadcastError(client.UserID, ws.EventMessageRead, err)
+		h.broadcastError(client.userID, ws.EventMessageRead, err)
 		return
 	}
 }
@@ -438,7 +446,7 @@ func (h *hub) HandleMessageRead(ctx context.Context, client *Client, payload ws.
 func (h *hub) broadcastError(userID int, ref string, err error) {
 	payload := ws.ErrorPayload{Ref: &ref}
 
-	if serviceError, ok := errors.AsType[*service.Error](err); ok {
+	if serviceError, ok := errors.AsType[*Error](err); ok {
 		payload.Message = serviceError.Message
 	} else {
 		payload.Message = "something went wrong"

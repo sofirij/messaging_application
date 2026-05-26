@@ -165,7 +165,6 @@ func (u *userRepository) SearchByUsername(ctx context.Context, q string, limit i
 	query := `
 		SELECT * FROM users
 		WHERE LOWER(username) LIKE '%' || LOWER($1) || '%'
-		AND deleted_at IS NULL 
 		LIMIT $2
 	`
 

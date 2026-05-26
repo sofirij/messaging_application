@@ -9,7 +9,6 @@ import (
 	"app/internal/model/db"
 	"app/internal/model/request"
 	"app/internal/model/response"
-	"app/internal/model/service"
 	"app/internal/repository"
 
 	"github.com/jackc/pgx/v5"
@@ -37,16 +36,16 @@ type messageService struct {
 func (m *messageService) Create(ctx context.Context, senderID, conversationID int, req request.MessageCreateRequest) (*response.MessageResponse, error) {
 	// too many attachments
 	if len(req.Attachments) > attachmentLimit {
-		return nil, &service.Error{
-			Code:    service.ErrCodeBadRequest,
+		return nil, &Error{
+			Code:    ErrCodeBadRequest,
 			Message: fmt.Sprintf("more than %d attachments", attachmentLimit),
 		}
 	}
 
 	// missing body and attachments
 	if req.Body == nil && req.Attachments == nil {
-		return nil, &service.Error{
-			Code:    service.ErrCodeBadRequest,
+		return nil, &Error{
+			Code:    ErrCodeBadRequest,
 			Message: "missing body",
 		}
 	}
@@ -98,16 +97,16 @@ func (m *messageService) UpdateBody(ctx context.Context, senderID int, messageID
 
 	// message past edit window
 	if time.Since(message.CreatedAt) > editMessageWindow {
-		return &service.Error{
-			Code:    service.ErrCodeForbidden,
+		return &Error{
+			Code:    ErrCodeForbidden,
 			Message: "edit window has expired",
 		}
 	}
 
 	// cannot edit deleted message
 	if message.DeletedAt != nil {
-		return &service.Error{
-			Code:    service.ErrCodeNotFound,
+		return &Error{
+			Code:    ErrCodeNotFound,
 			Message: "message not found",
 		}
 	}
@@ -130,8 +129,8 @@ func (m *messageService) SoftDelete(ctx context.Context, senderID, messageID int
 
 	// cannot delete deleted message
 	if message.DeletedAt != nil {
-		return nil, &service.Error{
-			Code:    service.ErrCodeNotFound,
+		return nil, &Error{
+			Code:    ErrCodeNotFound,
 			Message: "message not found",
 		}
 	}
@@ -168,8 +167,8 @@ func (m *messageService) GetByConversationID(ctx context.Context, userID, conver
 
 	// conversation not found
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, &service.Error{
-			Code:    service.ErrCodeNotFound,
+		return nil, &Error{
+			Code:    ErrCodeNotFound,
 			Message: "conversation not found",
 		}
 	}
@@ -258,8 +257,8 @@ func (m *messageService) MarkAsRead(ctx context.Context, userID, conversationID,
 
 	// message is not in conversation
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
-		return &service.Error{
-			Code:    service.ErrCodeForbidden,
+		return &Error{
+			Code:    ErrCodeForbidden,
 			Message: "message not in conversation",
 		}
 	}
@@ -287,8 +286,8 @@ func userOwnsMessage(ctx context.Context, repo repository.MessageRepository, mes
 
 	// sender doesn't own message
 	if message.SenderID != userID {
-		return nil, &service.Error{
-			Code:    service.ErrCodeForbidden,
+		return nil, &Error{
+			Code:    ErrCodeForbidden,
 			Message: "user doesn't own message",
 		}
 	}

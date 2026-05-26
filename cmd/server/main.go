@@ -29,6 +29,7 @@ func main() {
 		AppName:                 "MyApp",
 		IdleTimeout:             30 * time.Second,
 		WriteTimeout:            5 * time.Second,
+		BodyLimit: 100 * 1024 * 1024, // 100MB
 	})
 
 	// setup middleware

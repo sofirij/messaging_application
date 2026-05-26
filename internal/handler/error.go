@@ -1,0 +1,41 @@
+package handler
+
+import (
+	"errors"
+
+	"app/internal/service"
+	"app/internal/model/response"
+
+	"github.com/gofiber/fiber/v3"
+)
+
+func handleServiceError(c fiber.Ctx, err error) error {
+	if serviceErr, ok := errors.AsType[*service.Error](err); ok {
+		errorDetail := response.ErrorDetail{
+			Message: serviceErr.Message,
+		}
+		resp := response.ErrorResponse{
+			Error: errorDetail,
+		}
+
+		switch(serviceErr.Code) {
+		case service.ErrCodeUnauthorized:
+			return c.Status(fiber.StatusUnauthorized).JSON(resp)
+		case service.ErrCodeForbidden:
+			return c.Status(fiber.StatusForbidden).JSON(resp)
+		case service.ErrCodeNotFound:
+			return c.Status(fiber.StatusNotFound).JSON(resp)
+		case service.ErrCodeConflict:
+			return c.Status(fiber.StatusConflict).JSON(resp)
+		default:
+			return c.Status(fiber.StatusBadRequest).JSON(resp)
+		}
+	} else {
+		errorDetail := response.ErrorDetail{
+			Message: "something went wrong",
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response.ErrorResponse{
+			Error: errorDetail,
+		})
+	}
+}

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -10,12 +9,12 @@ import (
 
 	"app/internal/config"
 	"app/internal/model/response"
-	"app/internal/model/service"
 
 	"github.com/google/uuid"
 )
 
-const maxUploadSize = 100 * 1024 * 1024 // 100MB
+// todo: ensure upload size is within app body limit
+const maxUploadSize = 99 * 1024 * 1024 // 99MB
 
 var allowedMIMETypes = map[string]bool{
 	"image/jpeg":      true,
@@ -35,8 +34,8 @@ type uploadService struct {
 }
 
 type UploadService interface {
-	Upload(ctx context.Context, file *multipart.FileHeader) (*response.UploadResponse, error)
-	UploadMany(ctx context.Context, files []*multipart.FileHeader) ([]response.UploadResponse, error)
+	Upload(file *multipart.FileHeader) (*response.UploadResponse, error)
+	UploadMany(files []*multipart.FileHeader) ([]response.UploadResponse, error)
 }
 
 func NewUploadService(cfg config.Config) UploadService {
@@ -45,11 +44,11 @@ func NewUploadService(cfg config.Config) UploadService {
 	}
 }
 
-func (u *uploadService) Upload(ctx context.Context, file *multipart.FileHeader) (*response.UploadResponse, error) {
+func (u *uploadService) Upload(file *multipart.FileHeader) (*response.UploadResponse, error) {
 	// file too large
 	if file.Size > maxUploadSize {
-		return nil, &service.Error{
-			Code:    service.ErrCodeBadRequest,
+		return nil, &Error{
+			Code:    ErrCodeBadRequest,
 			Message: "file too large",
 		}
 	}
@@ -70,8 +69,8 @@ func (u *uploadService) Upload(ctx context.Context, file *multipart.FileHeader) 
 
 	// invalid file type
 	if !allowedMIMETypes[mimeType] {
-		return nil, &service.Error{
-			Code:    service.ErrCodeBadRequest,
+		return nil, &Error{
+			Code:    ErrCodeBadRequest,
 			Message: "invalid file type",
 		}
 	}
@@ -102,11 +101,11 @@ func (u *uploadService) Upload(ctx context.Context, file *multipart.FileHeader) 
 	}, nil
 }
 
-func (u *uploadService) UploadMany(ctx context.Context, files []*multipart.FileHeader) ([]response.UploadResponse, error) {
+func (u *uploadService) UploadMany(files []*multipart.FileHeader) ([]response.UploadResponse, error) {
 	resp := make([]response.UploadResponse, 0, len(files))
 
 	for _, file := range files {
-		r, err := u.Upload(ctx, file)
+		r, err := u.Upload(file)
 
 		if err != nil {
 			for _, saved := range resp {

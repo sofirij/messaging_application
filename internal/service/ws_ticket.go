@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"app/internal/model/response"
-	"app/internal/model/service"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -46,8 +45,8 @@ func (t *ticketService) ValidateAndConsume(ticket string) (*int, error) {
 
 	// ticket has expired
 	if val == nil {
-		return nil, &service.Error{
-			Code:    service.ErrCodeForbidden,
+		return nil, &Error{
+			Code:    ErrCodeForbidden,
 			Message: "ticket is expired",
 		}
 	}

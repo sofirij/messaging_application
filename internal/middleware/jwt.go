@@ -41,7 +41,7 @@ func JWT(secret string) fiber.Handler {
 			})
 		}
 
-		c.Locals("userID", int(sub))
+		c.Locals("user_id", int(sub))
 
 		return c.Next()
 	}
