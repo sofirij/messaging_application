@@ -10,21 +10,21 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-type userHandler struct {
+type UserHandler struct {
 	userService          service.UserService
 	accessTokenDuration  time.Duration
 	refreshTokenDuration time.Duration
 }
 
-func NewUserHandler(userService service.UserService, accessTokenDuration time.Duration, refreshTokenDuration time.Duration) *userHandler {
-	return &userHandler{
-		userService: userService,
-		accessTokenDuration: accessTokenDuration,
+func NewUserHandler(userService service.UserService, accessTokenDuration time.Duration, refreshTokenDuration time.Duration) *UserHandler {
+	return &UserHandler{
+		userService:          userService,
+		accessTokenDuration:  accessTokenDuration,
 		refreshTokenDuration: refreshTokenDuration,
 	}
 }
 
-func (u *userHandler) createCookie(name string, value string, duration time.Duration) *fiber.Cookie {
+func (u *UserHandler) createCookie(name string, value string, duration time.Duration) *fiber.Cookie {
 	cookie := new(fiber.Cookie)
 	cookie.Name = name
 	cookie.Value = value
@@ -40,7 +40,7 @@ func (u *userHandler) createCookie(name string, value string, duration time.Dura
 	return cookie
 }
 
-func (u *userHandler) Register(c fiber.Ctx) error {
+func (u *UserHandler) Register(c fiber.Ctx) error {
 	var req request.UserAuthRequest
 	err := c.Bind().Body(&req)
 	if err != nil {
@@ -57,7 +57,7 @@ func (u *userHandler) Register(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusCreated)
 }
 
-func (u *userHandler) Login(c fiber.Ctx) error {
+func (u *UserHandler) Login(c fiber.Ctx) error {
 	var req request.UserAuthRequest
 	err := c.Bind().Body(&req)
 	if err != nil {
@@ -78,7 +78,7 @@ func (u *userHandler) Login(c fiber.Ctx) error {
 	return c.JSON(response.Response[*response.UserResponse]{Data: resp})
 }
 
-func (u *userHandler) RefreshToken(c fiber.Ctx) error {
+func (u *UserHandler) RefreshToken(c fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token", "")
 
 	accessToken, refreshToken, err := u.userService.RefreshToken(c.Context(), refreshToken)
@@ -93,7 +93,7 @@ func (u *userHandler) RefreshToken(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (u *userHandler) Logout(c fiber.Ctx) error {
+func (u *UserHandler) Logout(c fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token", "")
 
 	err := u.userService.Logout(c.Context(), refreshToken)
@@ -105,7 +105,7 @@ func (u *userHandler) Logout(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (u *userHandler) SoftDelete(c fiber.Ctx) error {
+func (u *UserHandler) SoftDelete(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(int)
 
 	err := u.userService.SoftDelete(c.Context(), userID)
@@ -116,7 +116,7 @@ func (u *userHandler) SoftDelete(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (u *userHandler) UpdateAvatarURL(c fiber.Ctx) error {
+func (u *UserHandler) UpdateAvatarURL(c fiber.Ctx) error {
 	var req request.UserAvatarRequest
 	err := c.Bind().Body(&req)
 	if err != nil {
@@ -135,7 +135,7 @@ func (u *userHandler) UpdateAvatarURL(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (u *userHandler) UpdateUsername(c fiber.Ctx) error {
+func (u *UserHandler) UpdateUsername(c fiber.Ctx) error {
 	var req request.UserUsernameRequest
 	err := c.Bind().Body(&req)
 	if err != nil {
@@ -154,7 +154,7 @@ func (u *userHandler) UpdateUsername(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (u *userHandler) GetByID(c fiber.Ctx) error {
+func (u *UserHandler) GetByID(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(int)
 
 	resp, err := u.userService.GetByID(c.Context(), userID)
@@ -166,7 +166,7 @@ func (u *userHandler) GetByID(c fiber.Ctx) error {
 	return c.JSON(response.Response[*response.UserResponse]{Data: resp})
 }
 
-func (u *userHandler) SearchByUsername(c fiber.Ctx) error {
+func (u *UserHandler) SearchByUsername(c fiber.Ctx) error {
 	query := c.Query("q", "")
 
 	resp, err := u.userService.SearchByUsername(c.Context(), query)

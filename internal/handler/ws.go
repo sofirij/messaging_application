@@ -10,19 +10,19 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-type wsHandler struct {
+type WSHandler struct {
 	hub           service.HubService
 	ticketService service.TicketService
 }
 
-func NewWSHandler(hub service.HubService, ticketService service.TicketService) *wsHandler {
-	return &wsHandler{
-		hub: hub,
+func NewWSHandler(hub service.HubService, ticketService service.TicketService) *WSHandler {
+	return &WSHandler{
+		hub:           hub,
 		ticketService: ticketService,
 	}
 }
 
-func (w *wsHandler) Connect(c *websocket.Conn) {
+func (w *WSHandler) Connect(c *websocket.Conn) {
 	userID := c.Locals("user_id").(int)
 	ctx := context.Background()
 
@@ -32,7 +32,7 @@ func (w *wsHandler) Connect(c *websocket.Conn) {
 	client.ReadPump(w.hub)
 }
 
-func (t *wsHandler) CreateTicket(c fiber.Ctx) error {
+func (t *WSHandler) CreateTicket(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(int)
 	resp, err := t.ticketService.Create(c.Context(), userID)
 

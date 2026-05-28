@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -9,9 +10,15 @@ import (
 
 	"app/internal/config"
 	"app/internal/middleware"
-	
+	"app/internal/repository"
+	"app/internal/service"
+	"app/internal/handler"
+	"app/internal/router"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/gofiber/storage/memory/v2"
 )
 
 const (
@@ -36,12 +43,62 @@ func main() {
 	app.Use(middleware.CORS(cfg.AppHost))
 	app.Use(middleware.Compress())
 	app.Use(middleware.Logger())
+
+	// serve static files
 	app.Use(uploadURLPath, static.New(cfg.UploadDir, static.Config{
 		Browse:        false,
 		Compress:      true,
 		MaxAge:        int(assetMaxAge.Seconds()),
 		CacheDuration: assetCacheDuration,
 	}))
+
+	// initialize db connection
+	// todo configure db connection
+	dbPool, err := pgxpool.New(context.Background(), cfg.DbURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = dbPool.Ping(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	
+	}
+
+	// initialize storage interface
+	storage := memory.New(memory.Config{
+		GCInterval: 1 * time.Second,
+	})
+
+	// setup repositories
+	userRepo := repository.NewUserRepository(dbPool)
+	messageRepo := repository.NewMessageRepository(dbPool)
+	conversationRepo := repository.NewConversationRepository(dbPool)
+	
+	// setup services
+	messageService := service.NewMessageService(messageRepo, conversationRepo)
+	hubService := service.NewHubService(conversationRepo, userRepo, messageService)
+	userService := service.NewUserService(userRepo, hubService, cfg)
+	conversationService := service.NewConversationService(conversationRepo, userRepo, cfg)
+	uploadService := service.NewUploadService(cfg)
+	ticketService := service.NewTicketService(storage)
+
+	// setup handlers
+	userHandler := handler.NewUserHandler(userService, cfg.AccessTokenDuration, cfg.RefreshTokenDuration)
+	conversationHandler := handler.NewConversationHandler(conversationService)
+	messageHandler := handler.NewMessageHandler(messageService)
+	uploadHandler := handler.NewUploadHandler(uploadService)
+	wsHandler := handler.NewWSHandler(hubService, ticketService)
+
+	// setup routers
+	router.RegisterUserRoutes(app, userHandler, cfg.JWTSecret)
+	router.RegisterConversationRoutes(app, conversationHandler, messageHandler, cfg.JWTSecret)
+	router.RegisterMessageRoutes(app, messageHandler, cfg.JWTSecret)
+	router.RegisterWSRoutes(app, wsHandler, ticketService, cfg.JWTSecret)
+	router.RegisterUploadRoutes(app, uploadHandler, cfg.JWTSecret)
+
+	// start hubservice
+	go hubService.Run()
 
 	// app listen
 	go func() {
@@ -64,4 +121,7 @@ func main() {
 		log.Fatalf("server shutdown failed, %v\n", err)
 	}
 	log.Println("server shutdown gracefully")
+
+	// shut down hub
+	hubService.Stop()
 }

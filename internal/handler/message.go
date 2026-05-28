@@ -10,17 +10,17 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-type messageHandler struct {
+type MessageHandler struct {
 	messageService service.MessageService
 }
 
-func NewMessageHandler(messageService service.MessageService) *messageHandler {
-	return &messageHandler{
+func NewMessageHandler(messageService service.MessageService) *MessageHandler {
+	return &MessageHandler{
 		messageService: messageService,
 	}
 }
 
-func (m *messageHandler) Create(c fiber.Ctx) error {
+func (m *MessageHandler) Create(c fiber.Ctx) error {
 	convIDString := c.Params("id", "")
 	conversationID, err := strconv.Atoi(convIDString)
 
@@ -48,7 +48,7 @@ func (m *messageHandler) Create(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(response.Response[*response.MessageResponse]{Data: resp})
 }
 
-func (m *messageHandler) UpdateBody(c fiber.Ctx) error {
+func (m *MessageHandler) UpdateBody(c fiber.Ctx) error {
 	messageIDString := c.Params("message_id", "")
 	messageID, err := strconv.Atoi(messageIDString)
 
@@ -75,7 +75,7 @@ func (m *messageHandler) UpdateBody(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (m *messageHandler) SoftDelete(c fiber.Ctx) error {
+func (m *MessageHandler) SoftDelete(c fiber.Ctx) error {
 	messageIDString := c.Params("message_id", "")
 	messageID, err := strconv.Atoi(messageIDString)
 
@@ -94,7 +94,7 @@ func (m *messageHandler) SoftDelete(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (m *messageHandler) GetByConversationID(c fiber.Ctx) error {
+func (m *MessageHandler) GetByConversationID(c fiber.Ctx) error {
 	var before *int
 
 	cursorString := c.Query("before", "")

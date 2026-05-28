@@ -10,17 +10,17 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-type conversationHandler struct {
+type ConversationHandler struct {
 	conversationService service.ConversationService
 }
 
-func NewConversationHandler(conversationService service.ConversationService) *conversationHandler {
-	return &conversationHandler{
+func NewConversationHandler(conversationService service.ConversationService) *ConversationHandler {
+	return &ConversationHandler{
 		conversationService: conversationService,
 	}
 }
 
-func (h *conversationHandler) Create(c fiber.Ctx) error {
+func (h *ConversationHandler) Create(c fiber.Ctx) error {
 	var req request.ConversationCreateRequest
 	err := c.Bind().Body(&req)
 	if err != nil {
@@ -40,7 +40,7 @@ func (h *conversationHandler) Create(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(response.Response[*response.ConversationResponse]{Data: resp})
 }
 
-func (h *conversationHandler) GetByUserID(c fiber.Ctx) error {
+func (h *ConversationHandler) GetByUserID(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(int)
 
 	resp, err := h.conversationService.GetByUserID(c.Context(), userID)
@@ -52,7 +52,7 @@ func (h *conversationHandler) GetByUserID(c fiber.Ctx) error {
 	return c.JSON(response.Response[[]response.ConversationResponse]{Data: resp})
 }
 
-func (h *conversationHandler) GetByID(c fiber.Ctx) error {
+func (h *ConversationHandler) GetByID(c fiber.Ctx) error {
 	IDString := c.Params("id", "")
 	conversationID, err := strconv.Atoi(IDString)
 
@@ -72,7 +72,7 @@ func (h *conversationHandler) GetByID(c fiber.Ctx) error {
 	return c.JSON(response.Response[*response.ConversationResponse]{Data: resp})
 }
 
-func (h *conversationHandler) UpdateName(c fiber.Ctx) error {
+func (h *ConversationHandler) UpdateName(c fiber.Ctx) error {
 	IDString := c.Params("id", "")
 	conversationID, err := strconv.Atoi(IDString)
 
@@ -100,7 +100,7 @@ func (h *conversationHandler) UpdateName(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h *conversationHandler) UpdateAvatarURL(c fiber.Ctx) error {
+func (h *ConversationHandler) UpdateAvatarURL(c fiber.Ctx) error {
 	IDString := c.Params("id", "")
 	conversationID, err := strconv.Atoi(IDString)
 
@@ -128,7 +128,7 @@ func (h *conversationHandler) UpdateAvatarURL(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h *conversationHandler) AddMember(c fiber.Ctx) error {
+func (h *ConversationHandler) AddMember(c fiber.Ctx) error {
 	IDString := c.Params("id", "")
 	conversationID, err := strconv.Atoi(IDString)
 
@@ -156,7 +156,7 @@ func (h *conversationHandler) AddMember(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h *conversationHandler) RemoveMember(c fiber.Ctx) error {
+func (h *ConversationHandler) RemoveMember(c fiber.Ctx) error {
 	convIDString := c.Params("id", "")
 	conversationID, err := strconv.Atoi(convIDString)
 
@@ -185,7 +185,7 @@ func (h *conversationHandler) RemoveMember(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h *conversationHandler) SoftDelete(c fiber.Ctx) error {
+func (h *ConversationHandler) SoftDelete(c fiber.Ctx) error {
 	convIDString := c.Params("id", "")
 	conversationID, err := strconv.Atoi(convIDString)
 
@@ -205,7 +205,7 @@ func (h *conversationHandler) SoftDelete(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h *conversationHandler) ClearMessages(c fiber.Ctx) error {
+func (h *ConversationHandler) ClearMessages(c fiber.Ctx) error {
 	convIDString := c.Params("id", "")
 	conversationID, err := strconv.Atoi(convIDString)
 

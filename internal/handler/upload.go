@@ -7,17 +7,17 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-type uploadHandler struct {
+type UploadHandler struct {
 	uploadService service.UploadService
 }
 
-func NewUploadHandler(uploadService service.UploadService) *uploadHandler {
-	return &uploadHandler{
+func NewUploadHandler(uploadService service.UploadService) *UploadHandler {
+	return &UploadHandler{
 		uploadService: uploadService,
 	}
 }
 
-func (u *uploadHandler) Upload(c fiber.Ctx) error {
+func (u *UploadHandler) Upload(c fiber.Ctx) error {
 	file, err := c.FormFile("file")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.ErrorResponse{
@@ -33,7 +33,7 @@ func (u *uploadHandler) Upload(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(response.Response[*response.UploadResponse]{Data: resp})
 }
 
-func (u *uploadHandler) UploadMany(c fiber.Ctx) error {
+func (u *UploadHandler) UploadMany(c fiber.Ctx) error {
 	form, err := c.MultipartForm()
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.ErrorResponse{

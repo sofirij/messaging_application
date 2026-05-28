@@ -157,6 +157,7 @@ func NewHubService(conversationRepo repository.ConversationRepository, userRepo 
 		messageService:   messageService,
 		conversationRepo: conversationRepo,
 		userRepo:         userRepo,
+		stop: make(chan struct{}),
 	}
 }
 

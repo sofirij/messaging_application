@@ -12,6 +12,8 @@ require (
 	golang.org/x/crypto v0.51.0
 )
 
+require github.com/gofiber/storage/memory/v2 v2.1.2
+
 require (
 	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/fasthttp/websocket v1.5.12 // indirect

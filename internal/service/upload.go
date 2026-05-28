@@ -38,7 +38,7 @@ type UploadService interface {
 	UploadMany(files []*multipart.FileHeader) ([]response.UploadResponse, error)
 }
 
-func NewUploadService(cfg config.Config) UploadService {
+func NewUploadService(cfg *config.Config) UploadService {
 	return &uploadService{
 		uploadDir: cfg.UploadDir,
 	}
