@@ -23,8 +23,8 @@ type Config struct {
 	UploadDir            string
 }
 
-func Load() *Config {
-	err := godotenv.Load(".env")
+func Load(envFilePath string) *Config {
+	err := godotenv.Load(envFilePath)
 	if err != nil {
 		log.Println("no .env file found, using system env vars")
 	}

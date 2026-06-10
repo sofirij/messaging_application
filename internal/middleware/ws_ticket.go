@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func TicketAuth(ticketService service.TicketService) fiber.Handler{
+func TicketAuth(ticketService service.TicketService) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		ticket := c.Query("ticket")
 		if ticket == "" {

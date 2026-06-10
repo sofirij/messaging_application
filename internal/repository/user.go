@@ -199,8 +199,8 @@ func (u *userRepository) UpdateLastSeenAt(ctx context.Context, userID int) (*db.
 	query := `
 		UPDATE users
 		SET last_seen_at = NOW()
-		AND deleted_at IS NULL
 		WHERE id = $1
+		AND deleted_at IS NULL
 		RETURNING *
 	`
 

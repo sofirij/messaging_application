@@ -15,7 +15,7 @@ func RegisterUserRoutes(r fiber.Router, h *handler.UserHandler, jwtSecret string
 	auth.Post("/refresh", h.RefreshToken)
 
 	users := r.Group("/api/users", middleware.JWT(jwtSecret))
-	users.Get("/api/me", h.GetByID)
+	users.Get("/me", h.GetByID)
 	users.Delete("/me", h.SoftDelete)
 	users.Put("me/avatar", h.UpdateAvatarURL)
 	users.Put("/me/username", h.UpdateUsername)

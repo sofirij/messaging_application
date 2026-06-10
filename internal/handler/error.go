@@ -3,8 +3,8 @@ package handler
 import (
 	"errors"
 
-	"app/internal/service"
 	"app/internal/model/response"
+	"app/internal/service"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -18,7 +18,7 @@ func handleServiceError(c fiber.Ctx, err error) error {
 			Error: errorDetail,
 		}
 
-		switch(serviceErr.Code) {
+		switch serviceErr.Code {
 		case service.ErrCodeUnauthorized:
 			return c.Status(fiber.StatusUnauthorized).JSON(resp)
 		case service.ErrCodeForbidden:

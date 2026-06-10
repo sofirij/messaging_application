@@ -9,34 +9,35 @@ import (
 	"time"
 
 	"app/internal/config"
+	"app/internal/handler"
 	"app/internal/middleware"
 	"app/internal/repository"
-	"app/internal/service"
-	"app/internal/handler"
 	"app/internal/router"
+	"app/internal/service"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/gofiber/storage/memory/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
 	assetMaxAge        = 365 * 24 * time.Hour
 	assetCacheDuration = 1 * time.Minute
 	uploadURLPath      = "/uploads"
+	envFilePath        = ".env"
 )
 
 func main() {
-	cfg := config.Load()
+	cfg := config.Load(envFilePath)
 
 	log.Printf("starting in %s mode\n", cfg.AppEnv)
 
 	app := fiber.New(fiber.Config{
-		AppName:                 "MyApp",
-		IdleTimeout:             30 * time.Second,
-		WriteTimeout:            5 * time.Second,
-		BodyLimit: 100 * 1024 * 1024, // 100MB
+		AppName:      "MyApp",
+		IdleTimeout:  30 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		BodyLimit:    100 * 1024 * 1024, // 100MB
 	})
 
 	// setup middleware
@@ -58,11 +59,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer dbPool.Close()
 
 	err = dbPool.Ping(context.Background())
 	if err != nil {
 		log.Fatal(err)
-	
+
 	}
 
 	// initialize storage interface
@@ -74,7 +76,7 @@ func main() {
 	userRepo := repository.NewUserRepository(dbPool)
 	messageRepo := repository.NewMessageRepository(dbPool)
 	conversationRepo := repository.NewConversationRepository(dbPool)
-	
+
 	// setup services
 	messageService := service.NewMessageService(messageRepo, conversationRepo)
 	hubService := service.NewHubService(conversationRepo, userRepo, messageService)

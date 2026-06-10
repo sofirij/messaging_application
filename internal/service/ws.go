@@ -31,9 +31,9 @@ type client struct {
 func NewClient(userID int, conn *websocket.Conn, ctx context.Context) *client {
 	return &client{
 		userID: userID,
-		conn: conn,
-		send: make(chan []byte),
-		ctx: ctx,
+		conn:   conn,
+		send:   make(chan []byte),
+		ctx:    ctx,
 	}
 }
 
@@ -157,7 +157,7 @@ func NewHubService(conversationRepo repository.ConversationRepository, userRepo 
 		messageService:   messageService,
 		conversationRepo: conversationRepo,
 		userRepo:         userRepo,
-		stop: make(chan struct{}),
+		stop:             make(chan struct{}),
 	}
 }
 

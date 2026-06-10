@@ -1,7 +1,6 @@
-include .env
-export
+env ?= .env
+include $(env)
 
-# variables
 BINARY_NAME=app.exe
 BUILD_DIR=bin
 MAIN_PATH=./cmd/server/main.go
@@ -25,6 +24,9 @@ build:
 # run the binary
 run:
 	-$(BUILD_DIR)/$(BINARY_NAME)
+
+test:
+	go test ./internal/test -v
 
 # tidy dependencies
 tidy:
@@ -51,10 +53,11 @@ migrate-create:
 
 # show available commands
 help:
-	@echo Available commands:
+	@echo   Available commands:
 	@echo   make            			- format all code, build binary and run
 	@echo   make format     			- format all code
 	@echo   make build      			- build binary
+	@echo   make test                   - run all tests
 	@echo   make tidy       			- tidy go modules
 	@echo   make clean      			- remove build artifacts
 	@echo   make run        			- run the compiled executable
