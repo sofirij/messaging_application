@@ -22,6 +22,9 @@ var (
 	cfg        *config.Config
 	hubService service.HubService
 	messageService service.MessageService
+	testCfg = fiber.TestConfig{
+		Timeout: 100 * time.Second,
+	}
 )
 
 const envFilePath = "../../.env.test"
