@@ -2,16 +2,15 @@ package test
 
 import (
 	"bytes"
-	_"encoding/json"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"app/internal/model/request"
-	_"app/internal/model/response"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,6 +59,7 @@ func createMultipartRequestMany(t *testing.T, accessCookie *http.Cookie, fieldna
 func TestUpload_InvalidFile(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
+	defer clearUploadFolder(t)
 
 	user1 := request.UserAuthRequest{
 		Username: "testuser1",
@@ -76,7 +76,7 @@ func TestUpload_InvalidFile(t *testing.T) {
 	require.NoError(t, err)
 	req := createMultipartRequest(t, accessCookie1, "file", "app.exe", content)
 
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testCfg)
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -85,6 +85,7 @@ func TestUpload_InvalidFile(t *testing.T) {
 func TestUpload_ValidFile(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
+	defer clearUploadFolder(t)
 
 	user1 := request.UserAuthRequest{
 		Username: "testuser1",
@@ -101,7 +102,7 @@ func TestUpload_ValidFile(t *testing.T) {
 	require.NoError(t, err)
 	req := createMultipartRequest(t, accessCookie1, "file", "image.png", content)
 
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testCfg)
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
@@ -110,6 +111,7 @@ func TestUpload_ValidFile(t *testing.T) {
 func TestUpload_ManyFiles(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
+	defer clearUploadFolder(t)
 
 	user1 := request.UserAuthRequest{
 		Username: "testuser1",
@@ -136,7 +138,7 @@ func TestUpload_ManyFiles(t *testing.T) {
 
 	req := createMultipartRequestMany(t, accessCookie1, "files", filenames, contents)
 
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testCfg)
 
 	require.NoError(t, err)
 
@@ -146,6 +148,7 @@ func TestUpload_ManyFiles(t *testing.T) {
 func TestUpload_TooManyFiles(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
+	defer clearUploadFolder(t)
 
 	user1 := request.UserAuthRequest{
 		Username: "testuser1",
@@ -182,6 +185,7 @@ func TestUpload_TooManyFiles(t *testing.T) {
 func TestUpload_ManyFilesOneInvalid(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
+	defer clearUploadFolder(t)
 
 	user1 := request.UserAuthRequest{
 		Username: "testuser1",
@@ -217,9 +221,21 @@ func TestUpload_ManyFilesOneInvalid(t *testing.T) {
 
 	req := createMultipartRequestMany(t, accessCookie1, "files", filenames, contents)
 
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, testCfg)
 
 	require.NoError(t, err)
 
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func clearUploadFolder(t *testing.T) {
+	t.Helper()
+
+	uploadDir := "../../uploads"
+	entries, err := os.ReadDir(uploadDir)
+
+	require.NoError(t, err)
+	for _, entry := range entries {
+		os.RemoveAll(filepath.Join(uploadDir, entry.Name()))
+	}
 }
