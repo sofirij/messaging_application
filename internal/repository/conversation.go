@@ -149,7 +149,13 @@ func (c *conversationRepository) GetByUserID(ctx context.Context, userID int) ([
 		SELECT c.* FROM conversations AS c
 		JOIN conversation_members AS cm ON c.id = cm.conversation_id
 		WHERE cm.user_id = $1
-		AND (cm.deleted_at IS NULL OR c.last_message_id > cm.after_cursor)
+		AND (
+			cm.deleted_at IS NULL
+			OR (
+				c.last_message_id IS NOT NULL
+				AND (cm.after_cursor IS NULL OR c.last_message_id > cm.after_cursor)
+			)
+		)
 		ORDER BY c.last_message_id DESC NULLS LAST
 	`
 

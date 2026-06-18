@@ -16,6 +16,11 @@ type MessageSeenPayload struct {
 	MessageID      int `json:"message_id"`
 }
 
+type MessageEditedPayload struct {
+	MessageID int `json:"message_id"`
+	Body string `json:"body"`
+}
+
 // inbound
 type MessageSendPayload struct {
 	ConversationID int                         `json:"conversation_id"`

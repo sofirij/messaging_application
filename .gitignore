@@ -3,3 +3,5 @@ key.pem
 bin
 .env
 san.cnf
+internal/test/files
+uploads

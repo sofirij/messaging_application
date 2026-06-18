@@ -3,9 +3,12 @@ package handler
 import (
 	"app/internal/model/response"
 	"app/internal/service"
+	"fmt"
 
 	"github.com/gofiber/fiber/v3"
 )
+
+const uploadLimit = 10
 
 type UploadHandler struct {
 	uploadService service.UploadService
@@ -46,6 +49,12 @@ func (u *UploadHandler) UploadMany(c fiber.Ctx) error {
 	if !ok {
 		return c.Status(fiber.StatusBadRequest).JSON(response.ErrorResponse{
 			Error: response.ErrorDetail{Message: "missing files"},
+		})
+	}
+
+	if len(files) > uploadLimit {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrorResponse{
+			Error: response.ErrorDetail{Message: fmt.Sprintf("upload limit of %d files", uploadLimit)},
 		})
 	}
 

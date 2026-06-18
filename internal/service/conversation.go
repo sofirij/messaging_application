@@ -107,9 +107,14 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 		return nil, err
 	}
 
+	// if direct conversation set the name to that of the recipient
+	if conversation.Type == direct {
+		setRecipientName(ctx, userID, conversation, c.conversationRepo, c.userRepo)
+	}
+
 	resp := response.ConversationResponse{
 		ID:              conversation.ID,
-		Name:            conversation.Name,
+		Name:            *conversation.Name,
 		AvatarURL:       conversation.AvatarURL,
 		Type:            conversation.Type,
 		LastMessageID:   conversation.LastMessageID,
@@ -160,6 +165,19 @@ func (c *conversationService) AddMember(ctx context.Context, userID, conversatio
 		return err
 	}
 
+	conversation, err := c.conversationRepo.GetByID(ctx, conversationID)
+
+	if err != nil {
+		return err
+	}
+
+	if conversation.Type == direct {
+		return &Error{
+			Code: ErrCodeBadRequest,
+			Message: "cannot add to direct conversation",
+		}
+	}
+
 	return c.conversationRepo.AddMembers(ctx, conversationID, req.UserIDs)
 }
 
@@ -168,6 +186,19 @@ func (c *conversationService) RemoveMember(ctx context.Context, userID, conversa
 
 	if err != nil {
 		return err
+	}
+
+	conversation, err := c.conversationRepo.GetByID(ctx, conversationID)
+
+	if err != nil {
+		return err
+	}
+
+	if conversation.Type == direct {
+		return &Error{
+			Code: ErrCodeBadRequest,
+			Message: "cannot remove member from direct conversation",
+		}
 	}
 
 	return c.conversationRepo.RemoveMember(ctx, conversationID, memberID)
@@ -183,9 +214,14 @@ func (c *conversationService) GetByUserID(ctx context.Context, userID int) ([]re
 	resp := make([]response.ConversationResponse, len(conversations))
 
 	for i, conversation := range conversations {
+		// if direct conversation set the name to that of the recipient
+		if conversation.Type == direct {
+			setRecipientName(ctx, userID, &conversation, c.conversationRepo, c.userRepo)
+		}
+
 		resp[i] = response.ConversationResponse{
 			ID:              conversation.ID,
-			Name:            conversation.Name,
+			Name:            *conversation.Name,
 			AvatarURL:       conversation.AvatarURL,
 			Type:            conversation.Type,
 			LastMessageID:   conversation.LastMessageID,
@@ -246,9 +282,14 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 		}
 	}
 
+	// if direct conversation set the name to that of the recipient
+	if conversation.Type == direct {
+		setRecipientName(ctx, userID, conversation, c.conversationRepo, c.userRepo)
+	}
+
 	resp := response.ConversationResponse{
 		ID:              conversation.ID,
-		Name:            conversation.Name,
+		Name:            *conversation.Name,
 		AvatarURL:       conversation.AvatarURL,
 		Type:            conversation.Type,
 		LastMessageID:   conversation.LastMessageID,
@@ -304,4 +345,27 @@ func userInConversation(ctx context.Context, repo repository.ConversationReposit
 	}
 
 	return err
+}
+
+func setRecipientName(ctx context.Context, userID int, conversation *db.Conversation, conversationRepo repository.ConversationRepository, userRepo repository.UserRepository) error {
+	members, err := conversationRepo.GetMembers(ctx, conversation.ID)
+
+	if err != nil {
+		return err
+	}
+
+	for _, member := range members {
+		if member.UserID != userID {
+			user, err := userRepo.GetByID(ctx, member.UserID)
+
+			if err != nil {
+				return err
+			}
+
+			name := user.Username
+			conversation.Name = &name
+		}
+	}
+
+	return nil
 }

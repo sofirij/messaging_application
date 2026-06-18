@@ -167,9 +167,10 @@ func (u *UserHandler) GetByID(c fiber.Ctx) error {
 }
 
 func (u *UserHandler) SearchByUsername(c fiber.Ctx) error {
+	userID := c.Locals("user_id").(int)
 	query := c.Query("q", "")
 
-	resp, err := u.userService.SearchByUsername(c.Context(), query)
+	resp, err := u.userService.SearchByUsername(c.Context(), userID, query)
 
 	if err != nil {
 		return handleServiceError(c, err)

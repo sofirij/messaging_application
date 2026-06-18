@@ -49,7 +49,7 @@ func (m *MessageHandler) Create(c fiber.Ctx) error {
 }
 
 func (m *MessageHandler) UpdateBody(c fiber.Ctx) error {
-	messageIDString := c.Params("message_id", "")
+	messageIDString := c.Params("id", "")
 	messageID, err := strconv.Atoi(messageIDString)
 
 	if err != nil {
@@ -76,7 +76,7 @@ func (m *MessageHandler) UpdateBody(c fiber.Ctx) error {
 }
 
 func (m *MessageHandler) SoftDelete(c fiber.Ctx) error {
-	messageIDString := c.Params("message_id", "")
+	messageIDString := c.Params("id", "")
 	messageID, err := strconv.Atoi(messageIDString)
 
 	if err != nil {

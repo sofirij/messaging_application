@@ -28,7 +28,7 @@ type UserService interface {
 	UpdateUsername(ctx context.Context, userID int, req request.UserUsernameRequest) error
 	UpdateLastSeenAt(ctx context.Context, userID int) (*response.UserResponse, error)
 	GetByID(ctx context.Context, userID int) (*response.UserResponse, error)
-	SearchByUsername(ctx context.Context, query string) ([]response.UserResponse, error)
+	SearchByUsername(ctx context.Context, userID int, query string) ([]response.UserResponse, error)
 }
 
 type userService struct {
@@ -266,8 +266,8 @@ func (u *userService) GetByID(ctx context.Context, userID int) (*response.UserRe
 	return &resp, nil
 }
 
-func (u *userService) SearchByUsername(ctx context.Context, query string) ([]response.UserResponse, error) {
-	users, err := u.userRepo.SearchByUsername(ctx, query, queryLimit)
+func (u *userService) SearchByUsername(ctx context.Context, userID int, query string) ([]response.UserResponse, error) {
+	users, err := u.userRepo.SearchByUsername(ctx, userID, query, queryLimit)
 
 	if err != nil {
 		return nil, err

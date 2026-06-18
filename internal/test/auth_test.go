@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"app/internal/model/request"
 	"app/internal/model/response"
 
 	"github.com/stretchr/testify/assert"
@@ -16,11 +17,13 @@ func TestAuthToken_Valid(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	username := "testuser"
-	password := "password123"
+	bodyStruct := request.UserAuthRequest{
+		Username: "testuser",
+		Password: "password123",
+	}
 
-	register(t, app, username, password)
-	_, accessCookie, _ := login(t, app, username, password)
+	register(t, app, bodyStruct)
+	_, accessCookie, _ := login(t, app, bodyStruct)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/users/me", nil)
 	req.Header.Set("Content-Type", "application/json")
@@ -36,17 +39,19 @@ func TestAuthToken_Valid(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, username, result.Data.Username)
+	assert.Equal(t, bodyStruct.Username, result.Data.Username)
 }
 
 func TestAuthToken_Invalid(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	username := "testuser"
-	password := "password123"
+	bodyStruct := request.UserAuthRequest{
+		Username: "testuser",
+		Password: "password123",
+	}
 
-	register(t, app, username, password)
+	register(t, app, bodyStruct)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/users/me", nil)
 	req.Header.Set("Content-Type", "application/json")
@@ -71,10 +76,12 @@ func TestAuthToken_Missing(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	username := "testuser"
-	password := "password123"
+	bodyStruct := request.UserAuthRequest{
+		Username: "testuser",
+		Password: "password123",
+	}
 
-	register(t, app, username, password)
+	register(t, app, bodyStruct)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/users/me", nil)
 	req.Header.Set("Content-Type", "application/json")

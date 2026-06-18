@@ -26,4 +26,8 @@ const (
 	EventUserTypingStop  = "user.typing.stop"
 	EventMessageSeen     = "message.seen"
 	EventError           = "error"
+	EventConversationNew = "conversation.new"
+	EventMessageEdited = "message.edited"
+	EventMemberAdded = "member.added"
+	EventMemberRemoved = "member.removed"
 )

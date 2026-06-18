@@ -70,7 +70,7 @@ func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversat
 	query = `
 		UPDATE conversations
 		SET last_message_id = $1
-		WHERE conversation_id = $2
+		WHERE id = $2
 	`
 
 	_, err = tx.Exec(ctx, query, message.ID, conversationID)

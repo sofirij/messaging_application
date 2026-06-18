@@ -20,8 +20,7 @@ type UserRepository interface {
 	UpdatePassword(ctx context.Context, userID int, passwordHash string) (*db.User, error)
 	UpdateLastSeenAt(ctx context.Context, userID int) (*db.User, error)
 	SoftDelete(ctx context.Context, userID int) error
-	SearchByUsername(ctx context.Context, query string, limit int) ([]db.User, error)
-
+	SearchByUsername(ctx context.Context, userID int, query string, limit int) ([]db.User, error)
 	CreateRefreshToken(ctx context.Context, userID int, tokenHash string, expiresAt time.Time) (*db.RefreshToken, error)
 	GetRefreshToken(ctx context.Context, tokenHash string) (*db.RefreshToken, error)
 	DeleteRefreshToken(ctx context.Context, tokenHash string) error
@@ -161,16 +160,17 @@ func (u *userRepository) GetRefreshToken(ctx context.Context, tokenHash string) 
 	return &refreshToken, nil
 }
 
-func (u *userRepository) SearchByUsername(ctx context.Context, q string, limit int) ([]db.User, error) {
+func (u *userRepository) SearchByUsername(ctx context.Context, userID int, q string, limit int) ([]db.User, error) {
 	query := `
 		SELECT * FROM users
 		WHERE LOWER(username) LIKE '%' || LOWER($1) || '%'
-		LIMIT $2
+		AND id != $2
+		LIMIT $3
 	`
 
 	var users []db.User
 
-	err := pgxscan.Select(ctx, u.db, &users, query, q, limit)
+	err := pgxscan.Select(ctx, u.db, &users, query, q, userID, limit)
 
 	return users, err
 }
