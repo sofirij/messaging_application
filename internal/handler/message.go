@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
 	"strconv"
 
 	"app/internal/model/request"
 	"app/internal/model/response"
+	"app/internal/model/ws"
 	"app/internal/service"
 
 	"github.com/gofiber/fiber/v3"
@@ -12,11 +15,13 @@ import (
 
 type MessageHandler struct {
 	messageService service.MessageService
+	hub service.HubService
 }
 
-func NewMessageHandler(messageService service.MessageService) *MessageHandler {
+func NewMessageHandler(messageService service.MessageService, hub service.HubService) *MessageHandler {
 	return &MessageHandler{
 		messageService: messageService,
+		hub: hub,
 	}
 }
 
@@ -72,6 +77,42 @@ func (m *MessageHandler) UpdateBody(c fiber.Ctx) error {
 		return handleServiceError(c, err)
 	}
 
+	message, err := m.messageService.GetByID(c.Context(), userID, messageID)
+
+	if err != nil {
+		return handleServiceError(c, err)
+	}
+
+	// server sent event
+	func (){
+		payload := ws.MessageEditedPayload{
+			ConversationID: message.ConversationID,
+			MessageID: message.ID,
+			Body: *message.Body,
+		}
+
+		payloadBytes, err := json.Marshal(payload)
+
+		if err != nil {
+			go m.hub.BroadcastError(userID, ws.EventMessageEdited, err)
+			return
+		}
+
+		event := ws.Event{
+			Type: ws.EventMessageEdited,
+			Payload: payloadBytes,
+		}
+
+		eventBytes, err := json.Marshal(event)
+
+		if err != nil {
+			go m.hub.BroadcastError(userID, ws.EventMessageEdited, err)
+			return
+		}
+
+		go m.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), message.ConversationID, eventBytes)
+	}()
+	
 	return c.SendStatus(fiber.StatusNoContent)
 }
 

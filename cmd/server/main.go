@@ -38,6 +38,7 @@ func main() {
 		IdleTimeout:  30 * time.Second,
 		WriteTimeout: 5 * time.Second,
 		ReadTimeout: 100 * time.Second,
+		BodyLimit: 100 * 1024 * 1024,
 	})
 
 	// setup middleware
@@ -87,8 +88,8 @@ func main() {
 
 	// setup handlers
 	userHandler := handler.NewUserHandler(userService, cfg.AccessTokenDuration, cfg.RefreshTokenDuration)
-	conversationHandler := handler.NewConversationHandler(conversationService)
-	messageHandler := handler.NewMessageHandler(messageService)
+	conversationHandler := handler.NewConversationHandler(conversationService, hubService)
+	messageHandler := handler.NewMessageHandler(messageService, hubService)
 	uploadHandler := handler.NewUploadHandler(uploadService)
 	wsHandler := handler.NewWSHandler(hubService, ticketService)
 

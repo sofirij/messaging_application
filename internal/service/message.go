@@ -26,6 +26,7 @@ type MessageService interface {
 	GetByConversationID(ctx context.Context, userID, conversationID int, before *int, limit int) (*response.PaginatedMessageResponse, error)
 	SoftDelete(ctx context.Context, senderID, messageID int) (*response.MessageResponse, error)
 	MarkAsRead(ctx context.Context, userID, conversationID, messageID int) error
+	GetByID(ctx context.Context, userID, messageID int) (*response.MessageResponse, error)
 }
 
 type messageService struct {
@@ -268,6 +269,53 @@ func (m *messageService) MarkAsRead(ctx context.Context, userID, conversationID,
 	}
 
 	return nil
+}
+
+func (m *messageService) GetByID(ctx context.Context, userID, messageID int) (*response.MessageResponse, error) {
+	message, err := m.messageRepo.GetByID(ctx, messageID)
+
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return nil, &Error{
+			Code: ErrCodeNotFound,
+			Message: "message not found",
+		}
+	}
+
+	if message.SenderID != userID {
+		return nil, &Error{
+			Code: ErrCodeForbidden,
+			Message: "user doesn't own message",
+		}
+	}
+
+	attachments, err := m.messageRepo.GetAttachmentsByMessageIDs(ctx, []int{message.ID})
+
+	if err != nil {
+		return nil, err
+	}
+
+	attachmentsResp := make([]response.MessageAttachment, len(attachments))
+
+	for i, attachment := range attachments {
+		attachmentsResp[i] = response.MessageAttachment{
+			ID: attachment.ID,
+			Type: attachment.Type,
+			URL: attachment.URL,
+			Filename: attachment.Filename,
+			Size: attachment.Size,
+		}
+	}
+
+	return &response.MessageResponse{
+		ID: message.ID,
+		ConversationID: message.ConversationID,
+		SenderID: message.SenderID,
+		ReplyToID: message.ReplyToID,
+		Body: message.Body,
+		Deleted: message.DeletedAt != nil,
+		CreatedAt: message.CreatedAt,
+		Attachments: attachmentsResp,
+	}, nil
 }
 
 func NewMessageService(messageRepo repository.MessageRepository, conversationRepo repository.ConversationRepository) MessageService {

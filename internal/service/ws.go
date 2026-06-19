@@ -139,6 +139,7 @@ type HubService interface {
 	Unregister(client *client)
 	IsOnline(userID int) bool
 	BroadcastToUser(userID int, event []byte)
+	BroadcastError(userID int, ref string, err error)
 	BroadcastToConversation(ctx context.Context, conversationID int, event []byte) error
 	HandleMessageSend(ctx context.Context, client *client, payload ws.MessageSendPayload)
 	HandleMessageDelete(ctx context.Context, client *client, payload ws.MessageDeletePayload)
@@ -266,14 +267,14 @@ func (h *hub) HandleMessageSend(ctx context.Context, client *client, payload ws.
 	payloadResp, err := h.messageService.Create(ctx, client.userID, payload.ConversationID, req)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageSend, err)
+		h.BroadcastError(client.userID, ws.EventMessageSend, err)
 		return
 	}
 
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageSend, err)
+		h.BroadcastError(client.userID, ws.EventMessageSend, err)
 		return
 	}
 
@@ -285,14 +286,14 @@ func (h *hub) HandleMessageSend(ctx context.Context, client *client, payload ws.
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageSend, err)
+		h.BroadcastError(client.userID, ws.EventMessageSend, err)
 		return
 	}
 
 	err = h.BroadcastToConversation(ctx, payloadResp.ConversationID, respBytes)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageSend, err)
+		h.BroadcastError(client.userID, ws.EventMessageSend, err)
 		return
 	}
 }
@@ -301,7 +302,7 @@ func (h *hub) HandleMessageDelete(ctx context.Context, client *client, payload w
 	message, err := h.messageService.SoftDelete(ctx, client.userID, payload.MessageID)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageDelete, err)
+		h.BroadcastError(client.userID, ws.EventMessageDelete, err)
 		return
 	}
 
@@ -313,7 +314,7 @@ func (h *hub) HandleMessageDelete(ctx context.Context, client *client, payload w
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageDelete, err)
+		h.BroadcastError(client.userID, ws.EventMessageDelete, err)
 		return
 	}
 
@@ -325,14 +326,14 @@ func (h *hub) HandleMessageDelete(ctx context.Context, client *client, payload w
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageDelete, err)
+		h.BroadcastError(client.userID, ws.EventMessageDelete, err)
 		return
 	}
 
 	err = h.BroadcastToConversation(ctx, message.ConversationID, respBytes)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageDelete, err)
+		h.BroadcastError(client.userID, ws.EventMessageDelete, err)
 		return
 	}
 }
@@ -346,7 +347,7 @@ func (h *hub) HandleTypingStart(ctx context.Context, client *client, payload ws.
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventUserTypingStart, err)
+		h.BroadcastError(client.userID, ws.EventUserTypingStart, err)
 		return
 	}
 
@@ -358,14 +359,14 @@ func (h *hub) HandleTypingStart(ctx context.Context, client *client, payload ws.
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventUserTypingStart, err)
+		h.BroadcastError(client.userID, ws.EventUserTypingStart, err)
 		return
 	}
 
 	err = h.BroadcastToConversation(ctx, payload.ConversationID, respBytes)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventUserTypingStart, err)
+		h.BroadcastError(client.userID, ws.EventUserTypingStart, err)
 		return
 	}
 }
@@ -379,7 +380,7 @@ func (h *hub) HandleTypingStop(ctx context.Context, client *client, payload ws.T
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventUserTypingStop, err)
+		h.BroadcastError(client.userID, ws.EventUserTypingStop, err)
 		return
 	}
 
@@ -391,14 +392,14 @@ func (h *hub) HandleTypingStop(ctx context.Context, client *client, payload ws.T
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventUserTypingStop, err)
+		h.BroadcastError(client.userID, ws.EventUserTypingStop, err)
 		return
 	}
 
 	err = h.BroadcastToConversation(ctx, payload.ConversationID, respBytes)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventUserTypingStop, err)
+		h.BroadcastError(client.userID, ws.EventUserTypingStop, err)
 		return
 	}
 }
@@ -407,7 +408,7 @@ func (h *hub) HandleMessageRead(ctx context.Context, client *client, payload ws.
 	err := h.messageService.MarkAsRead(ctx, client.userID, payload.ConversationID, payload.MessageID)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageRead, err)
+		h.BroadcastError(client.userID, ws.EventMessageRead, err)
 		return
 	}
 
@@ -420,7 +421,7 @@ func (h *hub) HandleMessageRead(ctx context.Context, client *client, payload ws.
 	payloadBytes, err := json.Marshal(payloadResp)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageRead, err)
+		h.BroadcastError(client.userID, ws.EventMessageRead, err)
 		return
 	}
 
@@ -432,19 +433,19 @@ func (h *hub) HandleMessageRead(ctx context.Context, client *client, payload ws.
 	respBytes, err := json.Marshal(resp)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageRead, err)
+		h.BroadcastError(client.userID, ws.EventMessageRead, err)
 		return
 	}
 
 	err = h.BroadcastToConversation(ctx, payloadResp.ConversationID, respBytes)
 
 	if err != nil {
-		h.broadcastError(client.userID, ws.EventMessageRead, err)
+		h.BroadcastError(client.userID, ws.EventMessageRead, err)
 		return
 	}
 }
 
-func (h *hub) broadcastError(userID int, ref string, err error) {
+func (h *hub) BroadcastError(userID int, ref string, err error) {
 	payload := ws.ErrorPayload{Ref: &ref}
 
 	if serviceError, ok := errors.AsType[*Error](err); ok {

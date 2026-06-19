@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
 	"strconv"
 
 	"app/internal/model/request"
 	"app/internal/model/response"
+	"app/internal/model/ws"
 	"app/internal/service"
 
 	"github.com/gofiber/fiber/v3"
@@ -12,11 +15,13 @@ import (
 
 type ConversationHandler struct {
 	conversationService service.ConversationService
+	hub service.HubService
 }
 
-func NewConversationHandler(conversationService service.ConversationService) *ConversationHandler {
+func NewConversationHandler(conversationService service.ConversationService, hub service.HubService) *ConversationHandler {
 	return &ConversationHandler{
 		conversationService: conversationService,
+		hub: hub,
 	}
 }
 
@@ -36,6 +41,30 @@ func (h *ConversationHandler) Create(c fiber.Ctx) error {
 	if err != nil {
 		return handleServiceError(c, err)
 	}
+
+	// server sent event
+	func() {
+		payloadBytes, err := json.Marshal(resp)
+		if err != nil {
+			go h.hub.BroadcastError(userID, ws.EventConversationNew, err)
+			return
+		}
+
+		event := ws.Event{
+			Type: ws.EventConversationNew,
+			Payload: payloadBytes,
+		}
+
+		eventBytes, err := json.Marshal(event)
+
+		if err != nil {
+			go h.hub.BroadcastError(userID, ws.EventConversationNew, err)
+			return
+		}
+
+		go h.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), resp.ID, eventBytes)
+	}()
+	
 
 	return c.Status(fiber.StatusCreated).JSON(response.Response[*response.ConversationResponse]{Data: resp})
 }
@@ -153,6 +182,37 @@ func (h *ConversationHandler) AddMember(c fiber.Ctx) error {
 		return handleServiceError(c, err)
 	}
 
+	// server sent event
+	func() {
+		for _, id := range req.UserIDs {
+			payload := ws.MemberAddedPayload{
+				ConversationID: conversationID,
+				UserID: id,
+			}
+			payloadBytes, err := json.Marshal(payload)
+
+			if err != nil {
+				go h.hub.BroadcastError(userID, ws.EventMemberAdded, err)
+				continue
+			}
+
+			event := ws.Event{
+				Type: ws.EventMemberAdded,
+				Payload: payloadBytes,
+			}
+
+			eventBytes, err := json.Marshal(event)
+
+			if err != nil {
+				go h.hub.BroadcastError(userID, ws.EventMemberAdded, err)
+				continue
+			}
+
+			go h.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), conversationID, eventBytes)
+		}
+	}()
+	
+
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
@@ -181,6 +241,36 @@ func (h *ConversationHandler) RemoveMember(c fiber.Ctx) error {
 	if err != nil {
 		return handleServiceError(c, err)
 	}
+
+	// server sent event
+	func(){
+		payload := ws.MemberRemovedPayload{
+			ConversationID: conversationID,
+			UserID: memberID,
+		}
+
+		payloadBytes, err := json.Marshal(payload)
+
+		if err != nil {
+			go h.hub.BroadcastError(userID, ws.EventMemberRemoved, err)
+			return
+		}
+
+		event := ws.Event{
+			Type: ws.EventMemberRemoved,
+			Payload: payloadBytes,
+		}
+
+		eventBytes, err := json.Marshal(event)
+
+		if err != nil {
+			go h.hub.BroadcastError(userID, ws.EventMemberRemoved, err)
+			return
+		}
+
+		go h.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), conversationID, eventBytes)
+	}()
+	
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
