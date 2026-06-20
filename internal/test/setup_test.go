@@ -20,7 +20,6 @@ import (
 var (
 	dbPool     *pgxpool.Pool
 	cfg        *config.Config
-	hubService service.HubService
 	messageService service.MessageService
 	testCfg = fiber.TestConfig{
 		Timeout: 100 * time.Second,
@@ -92,11 +91,16 @@ func truncateTables(t *testing.T) {
 		conversations, refresh_tokens, users RESTART IDENTITY CASCADE
 	`
 
-	_, err := dbPool.Exec(context.Background(), query)
-
-	if err != nil {
-		t.Fatalf("failed to truncate tables: %v", err)
+	var err error
+	for range 3 { // to avoid any deadlocks
+		_, err  = dbPool.Exec(context.Background(), query)
+		if err == nil {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
+
+	t.Fatalf("failed to truncate tables: %v", err)
 }
 
 func TestMain(m *testing.M) {

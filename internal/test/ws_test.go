@@ -51,7 +51,10 @@ func getTicket(t *testing.T, app *fiber.App, accessCookie *http.Cookie) string {
 
 func TestWS_Connect(t *testing.T) {
 	app := setupApp(t)
+	go listen(t, app)
+	
 	defer truncateTables(t)
+	defer app.Shutdown()
 
 	user1 := request.UserAuthRequest{
 		Username: "testuser1",
@@ -64,9 +67,6 @@ func TestWS_Connect(t *testing.T) {
 
 	ticket := getTicket(t, app, accessCookie1)
 
-	go listen(t, app)
-	defer app.Shutdown()
-
 	conn := connect(t, ticket)
-	conn.Close()
+	defer conn.Close()
 }
