@@ -40,5 +40,5 @@ func (t *WSHandler) CreateTicket(c fiber.Ctx) error {
 		return handleServiceError(c, err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(response.Response[*response.TicketResponse]{Data: resp})
+	return c.JSON(response.Response[*response.TicketResponse]{Data: resp})
 }

@@ -2,6 +2,7 @@ package test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,9 +12,32 @@ import (
 	"app/internal/model/request"
 	"app/internal/model/response"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func createMessage(t *testing.T, userID, conversationID int, text string) *response.MessageResponse {
+	bodyStruct := request.MessageCreateRequest{
+		Body: &text,
+	}
+
+	messageResponse, err := messageService.Create(context.Background(), userID, conversationID, bodyStruct)
+	require.NoError(t, err)
+
+	return messageResponse
+}
+
+func clearMessages(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conversationID int) *http.Response {
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
+	req.AddCookie(accessCookie)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+
+	return resp
+}
 
 func TestMessage_Edit(t *testing.T) {
 	app := setupApp(t)

@@ -8,9 +8,24 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func register(t *testing.T, app *fiber.App, bodyStruct request.UserAuthRequest) *http.Response {
+	body, err := json.Marshal(bodyStruct)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	return resp
+}
 
 func TestRegister(t *testing.T) {
 	app := setupApp(t)

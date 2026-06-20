@@ -11,9 +11,32 @@ import (
 	"app/internal/model/request"
 	"app/internal/model/response"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func createConversation(t *testing.T, app *fiber.App, accessCookie *http.Cookie, bodyStruct request.ConversationCreateRequest) (*response.Response[response.ConversationResponse], *http.Response) {
+	body, err := json.Marshal(bodyStruct)
+
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/conversations", bytes.NewReader(body))
+	req.AddCookie(accessCookie)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var conversation response.Response[response.ConversationResponse]
+
+	err = json.NewDecoder(resp.Body).Decode(&conversation)
+	require.NoError(t, err)
+
+	return &conversation, resp
+}
 
 // indirectly tests the happy path for GetByID
 func TestConversation_CreateDirect(t *testing.T) {

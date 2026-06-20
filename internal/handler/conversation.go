@@ -269,6 +269,7 @@ func (h *ConversationHandler) RemoveMember(c fiber.Ctx) error {
 		}
 
 		go h.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), conversationID, eventBytes)
+		go h.hub.BroadcastToUser(memberID, eventBytes)
 	}()
 	
 

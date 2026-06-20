@@ -9,9 +9,27 @@ import (
 	"app/internal/model/request"
 	"app/internal/model/response"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func getUserID(t *testing.T, app *fiber.App, accessCookie *http.Cookie) int {
+	req := httptest.NewRequest(http.MethodGet, "/api/users/me", nil)
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(accessCookie)
+
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var user response.Response[response.UserResponse]
+	err = json.NewDecoder(resp.Body).Decode(&user)
+
+	require.NoError(t, err)
+	return user.Data.ID
+}
 
 func TestUser_Search(t *testing.T) {
 	app := setupApp(t)

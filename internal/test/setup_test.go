@@ -25,6 +25,9 @@ var (
 	testCfg = fiber.TestConfig{
 		Timeout: 100 * time.Second,
 	}
+	listenCfg = fiber.ListenConfig{
+		DisableStartupMessage: true,
+	}
 )
 
 const envFilePath = "../../.env.test"
@@ -61,6 +64,8 @@ func setupApp(t *testing.T) *fiber.App {
 	conversationService := service.NewConversationService(conversationRepo, userRepo, cfg)
 	uploadService := service.NewUploadService(cfg)
 	ticketService := service.NewTicketService(storage)
+
+	go hubService.Run()
 
 	// setup handlers
 	userHandler := handler.NewUserHandler(userService, cfg.AccessTokenDuration, cfg.RefreshTokenDuration)
