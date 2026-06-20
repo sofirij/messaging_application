@@ -68,5 +68,5 @@ func TestWS_Connect(t *testing.T) {
 	ticket := getTicket(t, app, accessCookie1)
 
 	conn := connect(t, ticket)
-	defer conn.Close()
+	conn.Close()
 }
