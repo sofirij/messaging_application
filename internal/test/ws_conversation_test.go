@@ -118,7 +118,7 @@ func TestWSConversation_AddMember(t *testing.T) {
 		UserIDs: []int{userID},
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	conversationID := result.Data.ID
 
 	// user1 adds user3 to conversation
@@ -196,7 +196,7 @@ func TestWSConversation_RemoveMember(t *testing.T) {
 		UserIDs: []int{userID},
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	conversationID := result.Data.ID
 
 	// user1 removes user2
@@ -208,7 +208,7 @@ func TestWSConversation_RemoveMember(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, http.StatusNoContent, resp.StatusCode)
-	
+
 	// ensure user 2 receives the message
 	var event ws.Event
 	for {
@@ -225,4 +225,152 @@ func TestWSConversation_RemoveMember(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotZero(t, payload.ConversationID)
+}
+
+func TestWSConversation_TypingStart(t *testing.T) {
+	app := setupApp(t)
+	defer truncateTables(t)
+
+	go listen(t, app)
+	defer app.Shutdown()
+
+	user1 := request.UserAuthRequest{
+		Username: "testuser1",
+		Password: "password123",
+	}
+
+	user2 := request.UserAuthRequest{
+		Username: "testuser2",
+		Password: "password123",
+	}
+
+	register(t, app, user1)
+	register(t, app, user2)
+
+	_, accessCookie1, _ := login(t, app, user1)
+	_, accessCookie2, _ := login(t, app, user2)
+
+	// get the id for user 2
+	userID := getUserID(t, app, accessCookie2)
+
+	ticket := getTicket(t, app, accessCookie2)
+	conn := connect(t, ticket)
+	defer conn.Close()
+
+	// user1 creates a direct conversation with user2
+	bodyStruct := request.ConversationCreateRequest{
+		Type:    "direct",
+		UserIDs: []int{userID}, // user2's id
+	}
+
+	result := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := result.Data.ID
+
+	// user2 starts typing
+	reqPayload := ws.TypingPayloadInbound{
+		ConversationID: conversationID,
+	}
+
+	payloadBytes, err := json.Marshal(reqPayload)
+
+	require.NoError(t, err)
+
+	event := ws.Event{
+		Type:    ws.EventTypingStart,
+		Payload: payloadBytes,
+	}
+
+	err = conn.WriteJSON(event)
+	require.NoError(t, err)
+
+	// user2 should receive the typing start message
+	for {
+		err = conn.ReadJSON(&event)
+		require.NoError(t, err)
+
+		if event.Type == ws.EventUserTypingStart {
+			break
+		}
+	}
+
+	var payload ws.TypingPayloadOutbound
+	err = json.Unmarshal(event.Payload, &payload)
+	require.NoError(t, err)
+
+	assert.NotZero(t, payload.ConversationID)
+	assert.NotZero(t, payload.UserID)
+}
+
+func TestWSConversation_TypingStop(t *testing.T) {
+	app := setupApp(t)
+	defer truncateTables(t)
+
+	go listen(t, app)
+	defer app.Shutdown()
+
+	user1 := request.UserAuthRequest{
+		Username: "testuser1",
+		Password: "password123",
+	}
+
+	user2 := request.UserAuthRequest{
+		Username: "testuser2",
+		Password: "password123",
+	}
+
+	register(t, app, user1)
+	register(t, app, user2)
+
+	_, accessCookie1, _ := login(t, app, user1)
+	_, accessCookie2, _ := login(t, app, user2)
+
+	// get the id for user 2
+	userID := getUserID(t, app, accessCookie2)
+
+	ticket := getTicket(t, app, accessCookie2)
+	conn := connect(t, ticket)
+	defer conn.Close()
+
+	// user1 creates a direct conversation with user2
+	bodyStruct := request.ConversationCreateRequest{
+		Type:    "direct",
+		UserIDs: []int{userID}, // user2's id
+	}
+
+	result := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := result.Data.ID
+
+	// user2 starts typing
+	reqPayload := ws.TypingPayloadInbound{
+		ConversationID: conversationID,
+	}
+
+	payloadBytes, err := json.Marshal(reqPayload)
+
+	require.NoError(t, err)
+
+	event := ws.Event{
+		Type:    ws.EventTypingStop,
+		Payload: payloadBytes,
+	}
+
+	err = conn.WriteJSON(event)
+	require.NoError(t, err)
+
+	// user2 should receive the typing start message
+	for {
+		err = conn.ReadJSON(&event)
+		require.NoError(t, err)
+
+		if event.Type == ws.EventUserTypingStop {
+			break
+		}
+	}
+
+	var payload ws.TypingPayloadOutbound
+	err = json.Unmarshal(event.Payload, &payload)
+	require.NoError(t, err)
+
+	assert.NotZero(t, payload.ConversationID)
+	assert.NotZero(t, payload.UserID)
 }

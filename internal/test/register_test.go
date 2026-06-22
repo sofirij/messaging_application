@@ -49,7 +49,7 @@ func TestRegister_DuplicateUsername(t *testing.T) {
 	}
 
 	register(t, app, bodyStruct)
-	
+
 	body, err := json.Marshal(bodyStruct)
 	require.NoError(t, err)
 
@@ -69,7 +69,7 @@ func TestRegister_InvalidInput(t *testing.T) {
 		Username: "sj", // username smaller than 3 characters
 		// missing password
 	}
-	
+
 	body, err := json.Marshal(bodyStruct)
 	require.NoError(t, err)
 

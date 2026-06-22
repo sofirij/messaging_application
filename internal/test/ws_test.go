@@ -12,13 +12,14 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const readDeadline = 5 * time.Second
 
 func listen(t *testing.T, app *fiber.App) {
-	err := app.Listen(cfg.AppHost + cfg.AppPort, listenCfg)
+	err := app.Listen(cfg.AppHost+cfg.AppPort, listenCfg)
 	require.NoError(t, err)
 }
 
@@ -52,7 +53,7 @@ func getTicket(t *testing.T, app *fiber.App, accessCookie *http.Cookie) string {
 func TestWS_Connect(t *testing.T) {
 	app := setupApp(t)
 	go listen(t, app)
-	
+
 	defer truncateTables(t)
 	defer app.Shutdown()
 
@@ -69,4 +70,34 @@ func TestWS_Connect(t *testing.T) {
 
 	conn := connect(t, ticket)
 	conn.Close()
+}
+
+func TestWS_Heartbeat(t *testing.T) {
+	app := setupApp(t)
+	go listen(t, app)
+
+	defer truncateTables(t)
+	defer app.Shutdown()
+
+	user1 := request.UserAuthRequest{
+		Username: "testuser1",
+		Password: "password123",
+	}
+
+	register(t, app, user1)
+
+	_, accessCookie1, _ := login(t, app, user1)
+
+	ticket := getTicket(t, app, accessCookie1)
+
+	conn := connect(t, ticket)
+	conn.SetPingHandler(func(appData string) error {
+		return nil
+	})
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second)) // set server ping interval before running
+
+	// read until the conn is closed by the server
+	_, _, err := conn.NextReader()
+	require.Error(t, err)
+	assert.True(t, websocket.IsCloseError(err, websocket.CloseAbnormalClosure))
 }

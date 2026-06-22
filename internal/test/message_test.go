@@ -2,7 +2,6 @@ package test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -17,15 +16,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMessage(t *testing.T, userID, conversationID int, text string) *response.MessageResponse {
+func createMessage(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conversationID int, text string) response.Response[response.MessageResponse] {
 	bodyStruct := request.MessageCreateRequest{
 		Body: &text,
 	}
-
-	messageResponse, err := messageService.Create(context.Background(), userID, conversationID, bodyStruct)
+	bodyBytes, err := json.Marshal(bodyStruct)
 	require.NoError(t, err)
 
-	return messageResponse
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", conversationID), bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(accessCookie)
+
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var result response.Response[response.MessageResponse]
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+
+	require.NotNil(t, result.Data.Body)
+	require.Equal(t, text, *result.Data.Body)
+
+	return result
 }
 
 func clearMessages(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conversationID int) *http.Response {
@@ -37,6 +52,44 @@ func clearMessages(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conv
 	require.NoError(t, err)
 
 	return resp
+}
+
+func TestMessage_Create(t *testing.T) {
+	app := setupApp(t)
+	defer truncateTables(t)
+
+	user1 := request.UserAuthRequest{
+		Username: "testuser1",
+		Password: "password123",
+	}
+
+	user2 := request.UserAuthRequest{
+		Username: "testuser2",
+		Password: "password123",
+	}
+
+	register(t, app, user1)
+	register(t, app, user2)
+
+	_, accessCookie1, _ := login(t, app, user1)
+	_, accessCookie2, _ := login(t, app, user2)
+
+	// get the id for user 2
+	user2ID := getUserID(t, app, accessCookie2)
+
+	// user1 creates a direct conversation with user2
+	bodyStruct := request.ConversationCreateRequest{
+		Type:    "direct",
+		UserIDs: []int{user2ID}, // user2's id
+	}
+
+	result := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := result.Data.ID
+
+	text := "this is the original text"
+
+	// user1 sends a message
+	createMessage(t, app, accessCookie1, conversationID, text)
 }
 
 func TestMessage_Edit(t *testing.T) {
@@ -68,16 +121,14 @@ func TestMessage_Edit(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	conversationID := result.Data.ID
 
 	originalText := "this is the original text"
 	editedText := "this is the edited text"
 
-	user1ID := getUserID(t, app, accessCookie1)
-
 	// user1 sends a message
-	createMessage(t, user1ID, conversationID, originalText)
+	createMessage(t, app, accessCookie1, conversationID, originalText)
 
 	// get the messageID
 	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
@@ -108,7 +159,7 @@ func TestMessage_Edit(t *testing.T) {
 	req3 := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/messages/%d", messageID), bytes.NewReader(messageEditBytes))
 	req3.Header.Set("Content-Type", "application/json")
 	req3.AddCookie(accessCookie1)
-	
+
 	resp3, err := app.Test(req3)
 
 	require.NoError(t, err)
@@ -125,6 +176,7 @@ func TestMessage_Edit(t *testing.T) {
 
 	require.NoError(t, err)
 
+	require.NotNil(t, result2.Data[0].Body)
 	assert.Equal(t, editedText, *result2.Data[0].Body)
 }
 
@@ -157,16 +209,14 @@ func TestMessage_EditForbidden(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	conversationID := result.Data.ID
 
 	originalText := "this is the original text"
 	editedText := "this is the edited text"
 
-	user1ID := getUserID(t, app, accessCookie1)
-
 	// user1 sends a message
-	createMessage(t, user1ID, conversationID, originalText)
+	createMessage(t, app, accessCookie1, conversationID, originalText)
 
 	// get the messageID
 	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
@@ -197,7 +247,7 @@ func TestMessage_EditForbidden(t *testing.T) {
 	req3 := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/messages/%d", messageID), bytes.NewReader(messageEditBytes))
 	req3.Header.Set("Content-Type", "application/json")
 	req3.AddCookie(accessCookie2)
-	
+
 	resp3, err := app.Test(req3)
 
 	require.NoError(t, err)
@@ -234,15 +284,13 @@ func TestMessage_Delete(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	conversationID := result.Data.ID
 
 	originalText := "this is the original text"
 
-	user1ID := getUserID(t, app, accessCookie1)
-
 	// user1 sends a message
-	createMessage(t, user1ID, conversationID, originalText)
+	createMessage(t, app, accessCookie1, conversationID, originalText)
 
 	// get the messageID
 	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
@@ -313,19 +361,17 @@ func TestMessage_GetPagination(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	conversationID := result.Data.ID
 
 	text := "this is the original text"
 	nextCycleText := "this it the text after the first cycle of get messages"
 
-	user1ID := getUserID(t, app, accessCookie1)
-
-	// send messages
-	createMessage(t, user1ID, conversationID, nextCycleText)
+	// user1 send messages
+	createMessage(t, app, accessCookie1, conversationID, nextCycleText)
 	limit := 20
 	for range limit {
-		createMessage(t, user1ID, conversationID, text)
+		createMessage(t, app, accessCookie1, conversationID, text)
 	}
 
 	// get the first batch of messages
@@ -346,7 +392,7 @@ func TestMessage_GetPagination(t *testing.T) {
 	require.NoError(t, err)
 
 	lastMessageID := *result2.NextCursor
-	
+
 	// get the last batch
 	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages?before=%d&limit=1", conversationID, lastMessageID), nil)
 	req2.Header.Set("Content-Type", "application/json")
@@ -362,5 +408,6 @@ func TestMessage_GetPagination(t *testing.T) {
 
 	require.NoError(t, err)
 
+	require.NotNil(t, result2.Data[0].Body)
 	assert.Equal(t, nextCycleText, *result2.Data[0].Body)
 }

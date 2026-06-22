@@ -60,7 +60,7 @@ func TestUser_Search(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result response.Response[[]response.UserResponse] 
+	var result response.Response[[]response.UserResponse]
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 

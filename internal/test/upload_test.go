@@ -124,9 +124,9 @@ func TestUpload_ManyFiles(t *testing.T) {
 
 	filename := "./files/image.png"
 	content, err := os.ReadFile(filename)
-	
+
 	require.NoError(t, err)
-	
+
 	amount := 10
 	contents := make([][]byte, amount)
 	filenames := make([]string, amount)
@@ -161,9 +161,9 @@ func TestUpload_TooManyFiles(t *testing.T) {
 
 	filename := "./files/image.png"
 	content, err := os.ReadFile(filename)
-	
+
 	require.NoError(t, err)
-	
+
 	amount := 100
 	contents := make([][]byte, amount)
 	filenames := make([]string, amount)
@@ -198,9 +198,9 @@ func TestUpload_ManyFilesOneInvalid(t *testing.T) {
 
 	filename := "./files/image.png"
 	content, err := os.ReadFile(filename)
-	
+
 	require.NoError(t, err)
-	
+
 	amount := 9
 	contents := make([][]byte, amount)
 	filenames := make([]string, amount)
@@ -209,7 +209,7 @@ func TestUpload_ManyFilesOneInvalid(t *testing.T) {
 		contents[i] = content
 		filenames[i] = "image.png"
 	}
-	
+
 	// invalid file
 	filename = "./files/app.exe"
 	content, err = os.ReadFile(filename)

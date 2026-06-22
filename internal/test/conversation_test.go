@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createConversation(t *testing.T, app *fiber.App, accessCookie *http.Cookie, bodyStruct request.ConversationCreateRequest) (*response.Response[response.ConversationResponse], *http.Response) {
+func createConversation(t *testing.T, app *fiber.App, accessCookie *http.Cookie, bodyStruct request.ConversationCreateRequest) response.Response[response.ConversationResponse] {
 	body, err := json.Marshal(bodyStruct)
 
 	require.NoError(t, err)
@@ -35,7 +35,7 @@ func createConversation(t *testing.T, app *fiber.App, accessCookie *http.Cookie,
 	err = json.NewDecoder(resp.Body).Decode(&conversation)
 	require.NoError(t, err)
 
-	return &conversation, resp
+	return conversation
 }
 
 // indirectly tests the happy path for GetByID
@@ -68,7 +68,7 @@ func TestConversation_CreateDirect(t *testing.T) {
 		UserIDs: []int{userID}, // user2's id
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 
 	// ensure that the only 2 members in the conversation are user1 and user2
 	require.NotZero(t, result.Data.ID)
@@ -188,7 +188,7 @@ func TestConversation_CreateGroup(t *testing.T) {
 		UserIDs: []int{userID}, // user2's id
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	require.NotZero(t, result.Data.ID)
 
 	conversationID := result.Data.ID
@@ -255,7 +255,7 @@ func TestConversation_UserNotInConversation(t *testing.T) {
 		UserIDs: []int{userID}, // user2's id
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	require.NotZero(t, result.Data.ID)
 
 	conversationID := result.Data.ID
@@ -310,7 +310,7 @@ func TestConversation_AddMember(t *testing.T) {
 		UserIDs: []int{userID},
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	conversationID := result.Data.ID
 
 	// user1 adds user3 to conversation
@@ -396,7 +396,7 @@ func TestConversation_AddMemberToDirect(t *testing.T) {
 		UserIDs: []int{userID},
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	conversationID := result.Data.ID
 
 	// user1 adds user3 to conversation
@@ -450,7 +450,7 @@ func TestConversation_RemoveMember(t *testing.T) {
 		UserIDs: []int{userID},
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	conversationID := result.Data.ID
 
 	// user1 removes user2
@@ -516,14 +516,11 @@ func TestConversation_ClearMessages(t *testing.T) {
 		UserIDs: []int{userID}, // user2's id
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 	conversationID := result.Data.ID
 
-	// get the id for user 1
-	userID = getUserID(t, app, accessCookie1)
-
 	// user1 sends a message
-	createMessage(t, userID, conversationID, "this is a text")
+	createMessage(t, app, accessCookie1, conversationID, "this is a text")
 
 	// user2 clears the message
 	resp := clearMessages(t, app, accessCookie2, conversationID)
@@ -532,7 +529,7 @@ func TestConversation_ClearMessages(t *testing.T) {
 
 	// user1 sends a message after it was cleared for user2
 	lastMessage := "this is a text after messages where cleared"
-	createMessage(t, userID, conversationID, lastMessage)
+	createMessage(t, app, accessCookie1, conversationID, lastMessage)
 
 	// ensure its only the last message user2 can see
 	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
@@ -543,13 +540,15 @@ func TestConversation_ClearMessages(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
-	
+
 	var result2 response.PaginatedMessageResponse
 	err = json.NewDecoder(resp.Body).Decode(&result2)
 
 	require.NoError(t, err)
 
 	assert.Equal(t, 1, len(result2.Data))
+
+	require.NotNil(t, result2.Data[0].Body)
 	assert.Equal(t, lastMessage, *result2.Data[0].Body)
 }
 
@@ -582,7 +581,7 @@ func TestConversation_Delete(t *testing.T) {
 		UserIDs: []int{userID}, // user2's id
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 
 	conversationID := result.Data.ID
 
@@ -590,7 +589,7 @@ func TestConversation_Delete(t *testing.T) {
 	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/conversations/%d", conversationID), nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie2)
-	
+
 	resp, err := app.Test(req)
 
 	require.NoError(t, err)
@@ -662,7 +661,7 @@ func TestConversation_GetAfterDelete(t *testing.T) {
 		UserIDs: []int{userID}, // user2's id
 	}
 
-	result, _ := createConversation(t, app, accessCookie1, bodyStruct)
+	result := createConversation(t, app, accessCookie1, bodyStruct)
 
 	conversationID := result.Data.ID
 
@@ -670,7 +669,7 @@ func TestConversation_GetAfterDelete(t *testing.T) {
 	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/conversations/%d", conversationID), nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie2)
-	
+
 	resp, err := app.Test(req)
 
 	require.NoError(t, err)
@@ -678,7 +677,7 @@ func TestConversation_GetAfterDelete(t *testing.T) {
 
 	// user1 sends a message
 	text := "texting after conversation was deleted"
-	createMessage(t, getUserID(t, app, accessCookie1), conversationID, text)
+	createMessage(t, app, accessCookie1, conversationID, text)
 
 	// the conversation should show up in user2's list
 	req2 := httptest.NewRequest(http.MethodGet, "/api/conversations", nil)

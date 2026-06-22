@@ -18,10 +18,10 @@ import (
 )
 
 var (
-	dbPool     *pgxpool.Pool
-	cfg        *config.Config
+	dbPool         *pgxpool.Pool
+	cfg            *config.Config
 	messageService service.MessageService
-	testCfg = fiber.TestConfig{
+	testCfg        = fiber.TestConfig{
 		Timeout: 100 * time.Second,
 	}
 	listenCfg = fiber.ListenConfig{
@@ -29,7 +29,11 @@ var (
 	}
 )
 
-const envFilePath = "../../.env.test"
+const (
+	envFilePath = "../../.env.test"
+	pingInterval = 2 * time.Second
+	pongTimeout = 2 * time.Second
+)
 
 func setupApp(t *testing.T) *fiber.App {
 	t.Helper()
@@ -38,7 +42,7 @@ func setupApp(t *testing.T) *fiber.App {
 		AppName:      "MyApp",
 		IdleTimeout:  30 * time.Second,
 		WriteTimeout: 5 * time.Second,
-		BodyLimit: 100 * 1024 * 1024,
+		BodyLimit:    100 * 1024 * 1024,
 	})
 
 	// setup middleware
@@ -71,7 +75,7 @@ func setupApp(t *testing.T) *fiber.App {
 	conversationHandler := handler.NewConversationHandler(conversationService, hubService)
 	messageHandler := handler.NewMessageHandler(messageService, hubService)
 	uploadHandler := handler.NewUploadHandler(uploadService)
-	wsHandler := handler.NewWSHandler(hubService, ticketService)
+	wsHandler := handler.NewWSHandler(hubService, ticketService, pingInterval, pongTimeout)
 
 	// setup routers
 	router.RegisterUserRoutes(app, userHandler, cfg.JWTSecret)
@@ -93,7 +97,7 @@ func truncateTables(t *testing.T) {
 
 	var err error
 	for range 3 { // to avoid any deadlocks
-		_, err  = dbPool.Exec(context.Background(), query)
+		_, err = dbPool.Exec(context.Background(), query)
 		if err == nil {
 			return
 		}

@@ -31,7 +31,7 @@ func TestLogout(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
-	
+
 	for _, cookie := range resp.Cookies() {
 		assert.NotEqual(t, cookie.Value, accessCookie.Value)
 		assert.NotEqual(t, cookie.Value, refreshCookie.Value)

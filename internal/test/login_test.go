@@ -79,7 +79,7 @@ func TestLogin_WrongCredentials(t *testing.T) {
 		Username: "testuser",
 		Password: "wrongpassword", // use wrong password
 	}
-	
+
 	body, err := json.Marshal(bodyStruct)
 	require.NoError(t, err)
 

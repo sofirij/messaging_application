@@ -39,7 +39,7 @@ func TestRefresh(t *testing.T) {
 	var newRefreshCookie *http.Cookie
 
 	for _, cookie := range resp.Cookies() {
-		switch (cookie.Name) {
+		switch cookie.Name {
 		case accessCookie.Name:
 			newAccessCookie = cookie
 		case refreshCookie.Name:
@@ -49,7 +49,7 @@ func TestRefresh(t *testing.T) {
 
 	assert.NotNil(t, newAccessCookie)
 	assert.NotNil(t, newRefreshCookie)
-	
+
 	// access authorization protected content with old tokens should fail
 	resp2, err := app.Test(req)
 
