@@ -113,9 +113,9 @@ func TestWSOnlineStatus_Offline(t *testing.T) {
 
 	ticket = getTicket(t, app, accessCookie2)
 	conn2 := connect(t, ticket)
+	conn2.Close()
 
 	// when user2 goes offline user1 should receive a message that user2 is offline
-	conn2.Close()
 	var event ws.Event
 	for {
 		err := conn1.ReadJSON(&event)

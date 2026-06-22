@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	writeTimeout = 5 * time.Second
-	readTimeout  = writeTimeout
+	writeTimeout  = 5 * time.Second
+	readTimeout   = writeTimeout
+	messageBuffer = 64
 )
 
 type client struct {
@@ -29,7 +30,7 @@ func NewClient(userID int, conn *websocket.Conn, ctx context.Context) *client {
 	return &client{
 		userID: userID,
 		conn:   conn,
-		send:   make(chan []byte),
+		send:   make(chan []byte, messageBuffer), // buffer for slow connections
 		ctx:    ctx,
 	}
 }
@@ -123,9 +124,8 @@ type HubService interface {
 	Register(client *client)
 	Unregister(client *client)
 	IsOnline(userID int) bool
-	BroadcastToUser(userID int, event []byte)
-	BroadcastError(userID int, ref string, err error)
-	BroadcastToConversation(ctx context.Context, conversationID int, event []byte) error
+	BroadcastToUser(ref string, userID int, payload any)
+	BroadcastToConversation(ctx context.Context, userID int, ref string, conversationID int, payload any)
 	HandleTypingStart(ctx context.Context, client *client, payload ws.TypingPayloadInbound)
 	HandleTypingStop(ctx context.Context, client *client, payload ws.TypingPayloadInbound)
 	HandleMessageRead(ctx context.Context, client *client, payload ws.MessageReadPayload)
@@ -202,24 +202,60 @@ func (h *hub) IsOnline(userID int) bool {
 	return ok
 }
 
-func (h *hub) BroadcastToUser(userID int, event []byte) {
+func (h *hub) BroadcastToUser(ref string, userID int, payload any) {
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		broadcastError(h, userID, ref, err)
+		return
+	}
+
+	event := ws.Event{
+		Type:    ref,
+		Payload: payloadBytes,
+	}
+
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		broadcastError(h, userID, ref, err)
+	}
+
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	conns := h.clients[userID]
 
 	for client := range conns {
 		select {
-		case client.send <- event:
+		case client.send <- eventBytes:
 		default:
-			// buffer is full
+			// client connection is too slow so disconnect client
+			// client should reconnect again
+			h.Unregister(client)
 		}
 	}
 }
 
-func (h *hub) BroadcastToConversation(ctx context.Context, conversationID int, event []byte) error {
+func (h *hub) BroadcastToConversation(ctx context.Context, userID int, ref string, conversationID int, payload any) {
 	members, err := h.conversationRepo.GetMembers(ctx, conversationID)
 	if err != nil {
-		return err
+		broadcastError(h, userID, ref, err)
+		return
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		broadcastError(h, userID, ref, err)
+		return
+	}
+
+	event := ws.Event{
+		Type:    ref,
+		Payload: payloadBytes,
+	}
+
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		broadcastError(h, userID, ref, err)
+		return
 	}
 
 	h.mu.RLock()
@@ -230,14 +266,14 @@ func (h *hub) BroadcastToConversation(ctx context.Context, conversationID int, e
 
 		for client := range conns {
 			select {
-			case client.send <- event:
+			case client.send <- eventBytes:
 			default:
-				// buffer is full
+				// client connection is too slow so disconnect client
+				// client should reconnect again
+				h.Unregister(client)
 			}
 		}
 	}
-
-	return nil
 }
 
 func (h *hub) HandleTypingStart(ctx context.Context, client *client, payload ws.TypingPayloadInbound) {
@@ -246,31 +282,7 @@ func (h *hub) HandleTypingStart(ctx context.Context, client *client, payload ws.
 		UserID:         client.userID,
 	}
 
-	payloadBytes, err := json.Marshal(payloadResp)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventUserTypingStart, err)
-		return
-	}
-
-	resp := ws.Event{
-		Type:    ws.EventUserTypingStart,
-		Payload: payloadBytes,
-	}
-
-	respBytes, err := json.Marshal(resp)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventUserTypingStart, err)
-		return
-	}
-
-	err = h.BroadcastToConversation(ctx, payload.ConversationID, respBytes)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventUserTypingStart, err)
-		return
-	}
+	h.BroadcastToConversation(ctx, client.userID, ws.EventUserTypingStart, payload.ConversationID, payloadResp)
 }
 
 func (h *hub) HandleTypingStop(ctx context.Context, client *client, payload ws.TypingPayloadInbound) {
@@ -279,38 +291,14 @@ func (h *hub) HandleTypingStop(ctx context.Context, client *client, payload ws.T
 		UserID:         client.userID,
 	}
 
-	payloadBytes, err := json.Marshal(payloadResp)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventUserTypingStop, err)
-		return
-	}
-
-	resp := ws.Event{
-		Type:    ws.EventUserTypingStop,
-		Payload: payloadBytes,
-	}
-
-	respBytes, err := json.Marshal(resp)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventUserTypingStop, err)
-		return
-	}
-
-	err = h.BroadcastToConversation(ctx, payload.ConversationID, respBytes)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventUserTypingStop, err)
-		return
-	}
+	h.BroadcastToConversation(ctx, client.userID, ws.EventUserTypingStop, payload.ConversationID, payloadResp)
 }
 
 func (h *hub) HandleMessageRead(ctx context.Context, client *client, payload ws.MessageReadPayload) {
 	err := h.messageService.MarkAsRead(ctx, client.userID, payload.ConversationID, payload.MessageID)
 
 	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageRead, err)
+		broadcastError(h, client.userID, ws.EventMessageRead, err)
 		return
 	}
 
@@ -320,34 +308,10 @@ func (h *hub) HandleMessageRead(ctx context.Context, client *client, payload ws.
 		ConversationID: payload.ConversationID,
 	}
 
-	payloadBytes, err := json.Marshal(payloadResp)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageRead, err)
-		return
-	}
-
-	resp := ws.Event{
-		Type:    ws.EventMessageSeen,
-		Payload: payloadBytes,
-	}
-
-	respBytes, err := json.Marshal(resp)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageRead, err)
-		return
-	}
-
-	err = h.BroadcastToConversation(ctx, payloadResp.ConversationID, respBytes)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageRead, err)
-		return
-	}
+	h.BroadcastToConversation(ctx, client.userID, ws.EventMessageSeen, payloadResp.ConversationID, payloadResp)
 }
 
-func (h *hub) BroadcastError(userID int, ref string, err error) {
+func broadcastError(h HubService, userID int, ref string, err error) {
 	payload := ws.ErrorPayload{Ref: &ref}
 
 	if serviceError, ok := errors.AsType[*Error](err); ok {
@@ -356,55 +320,21 @@ func (h *hub) BroadcastError(userID int, ref string, err error) {
 		payload.Message = "something went wrong"
 	}
 
-	payloadBytes, err := json.Marshal(payload)
-
-	if err != nil {
-		return
-	}
-
-	resp := ws.Event{
-		Type:    "error",
-		Payload: payloadBytes,
-	}
-
-	respBytes, err := json.Marshal(resp)
-
-	if err != nil {
-		return
-	}
-
-	h.BroadcastToUser(userID, respBytes)
+	h.BroadcastToUser(ws.EventError, userID, payload)
 }
 
 func (h *hub) broadcastOnlineStatus(ctx context.Context, userID int, online bool) {
 	conversations, err := h.conversationRepo.GetByUserID(ctx, userID)
 
 	if err != nil {
+		broadcastError(h, userID, ws.EventBroadcastUserStatus, err)
 		return
 	}
 
-	var respBytes json.RawMessage
-
+	var payload any
 	if online {
-		payload := ws.UserOnlinePayload{
+		payload = ws.UserOnlinePayload{
 			UserID: userID,
-		}
-
-		payloadBytes, err := json.Marshal(payload)
-
-		if err != nil {
-			return
-		}
-
-		resp := ws.Event{
-			Type:    ws.EventUserOnline,
-			Payload: payloadBytes,
-		}
-
-		respBytes, err = json.Marshal(resp)
-
-		if err != nil {
-			return
 		}
 	} else {
 		user, err := h.userRepo.UpdateLastSeenAt(ctx, userID)
@@ -413,26 +343,9 @@ func (h *hub) broadcastOnlineStatus(ctx context.Context, userID int, online bool
 			return
 		}
 
-		payload := ws.UserOfflinePayload{
+		payload = ws.UserOfflinePayload{
 			UserID:     userID,
 			LastSeenAt: *user.LastSeenAt,
-		}
-
-		payloadBytes, err := json.Marshal(payload)
-
-		if err != nil {
-			return
-		}
-
-		resp := ws.Event{
-			Type:    ws.EventUserOffline,
-			Payload: payloadBytes,
-		}
-
-		respBytes, err = json.Marshal(resp)
-
-		if err != nil {
-			return
 		}
 	}
 
@@ -461,7 +374,11 @@ func (h *hub) broadcastOnlineStatus(ctx context.Context, userID int, online bool
 
 	for memberID := range memberMap {
 		if memberID != userID {
-			h.BroadcastToUser(memberID, respBytes)
+			if online {
+				h.BroadcastToUser(ws.EventUserOnline, memberID, payload)
+			} else {
+				h.BroadcastToUser(ws.EventUserOffline, memberID, payload)
+			}
 		}
 	}
 }

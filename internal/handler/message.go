@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 
 	"app/internal/model/request"
@@ -51,27 +50,7 @@ func (m *MessageHandler) Create(c fiber.Ctx) error {
 	}
 
 	// server sent event
-	func() {
-		payloadBytes, err := json.Marshal(resp)
-		if err != nil {
-			go m.hub.BroadcastError(userID, ws.EventMessageNew, err)
-			return
-		}
-
-		event := ws.Event{
-			Type:    ws.EventMessageNew,
-			Payload: payloadBytes,
-		}
-
-		eventBytes, err := json.Marshal(event)
-
-		if err != nil {
-			go m.hub.BroadcastError(userID, ws.EventMessageNew, err)
-			return
-		}
-
-		go m.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), resp.ConversationID, eventBytes)
-	}()
+	go m.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), userID, ws.EventMessageNew, resp.ConversationID, resp)
 
 	return c.Status(fiber.StatusCreated).JSON(response.Response[*response.MessageResponse]{Data: resp})
 }
@@ -107,34 +86,13 @@ func (m *MessageHandler) UpdateBody(c fiber.Ctx) error {
 	}
 
 	// server sent event
-	func() {
-		payload := ws.MessageEditedPayload{
-			ConversationID: message.ConversationID,
-			MessageID:      message.ID,
-			Body:           *message.Body,
-		}
+	payload := ws.MessageEditedPayload{
+		ConversationID: message.ConversationID,
+		MessageID:      message.ID,
+		Body:           *message.Body,
+	}
 
-		payloadBytes, err := json.Marshal(payload)
-
-		if err != nil {
-			go m.hub.BroadcastError(userID, ws.EventMessageEdited, err)
-			return
-		}
-
-		event := ws.Event{
-			Type:    ws.EventMessageEdited,
-			Payload: payloadBytes,
-		}
-
-		eventBytes, err := json.Marshal(event)
-
-		if err != nil {
-			go m.hub.BroadcastError(userID, ws.EventMessageEdited, err)
-			return
-		}
-
-		go m.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), message.ConversationID, eventBytes)
-	}()
+	go m.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), userID, ws.EventMessageEdited, message.ConversationID, payload)
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
@@ -156,32 +114,12 @@ func (m *MessageHandler) SoftDelete(c fiber.Ctx) error {
 	}
 
 	// server sent event
-	func() {
-		payload := ws.MessageDeletedPayload{
-			ConversationID: message.ConversationID,
-			MessageID:      message.ID,
-		}
+	payload := ws.MessageDeletedPayload{
+		ConversationID: message.ConversationID,
+		MessageID:      message.ID,
+	}
 
-		payloadBytes, err := json.Marshal(payload)
-		if err != nil {
-			go m.hub.BroadcastError(userID, ws.EventMessageDeleted, err)
-			return
-		}
-
-		event := ws.Event{
-			Type:    ws.EventMessageDeleted,
-			Payload: payloadBytes,
-		}
-
-		eventBytes, err := json.Marshal(event)
-
-		if err != nil {
-			go m.hub.BroadcastError(userID, ws.EventMessageDeleted, err)
-			return
-		}
-
-		go m.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), message.ConversationID, eventBytes)
-	}()
+	go m.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), userID, ws.EventMessageDeleted, message.ConversationID, payload)
 
 	return c.SendStatus(fiber.StatusNoContent)
 }

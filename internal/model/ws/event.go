@@ -27,6 +27,7 @@ const (
 	EventMessageEdited   = "message.edited"
 	EventMemberAdded     = "member.added"
 	EventMemberRemoved   = "member.removed"
+	EventBroadcastUserStatus = "broadcast_user_status"
 
 	EventError = "error"
 )
