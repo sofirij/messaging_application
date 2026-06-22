@@ -119,12 +119,6 @@ func (u *userService) Login(ctx context.Context, req request.UserAuthRequest) (*
 		}
 	}
 
-	_, err = u.userRepo.UpdateLastSeenAt(ctx, user.ID)
-
-	if err != nil {
-		return nil, "", "", err
-	}
-
 	accessToken, _, err := generateJWT(user.ID, u.jwtSecret, u.accessTokenDuration)
 
 	if err != nil {

@@ -15,13 +15,13 @@ import (
 
 type MessageHandler struct {
 	messageService service.MessageService
-	hub service.HubService
+	hub            service.HubService
 }
 
 func NewMessageHandler(messageService service.MessageService, hub service.HubService) *MessageHandler {
 	return &MessageHandler{
 		messageService: messageService,
-		hub: hub,
+		hub:            hub,
 	}
 }
 
@@ -49,6 +49,29 @@ func (m *MessageHandler) Create(c fiber.Ctx) error {
 	if err != nil {
 		return handleServiceError(c, err)
 	}
+
+	// server sent event
+	func() {
+		payloadBytes, err := json.Marshal(resp)
+		if err != nil {
+			go m.hub.BroadcastError(userID, ws.EventMessageNew, err)
+			return
+		}
+
+		event := ws.Event{
+			Type:    ws.EventMessageNew,
+			Payload: payloadBytes,
+		}
+
+		eventBytes, err := json.Marshal(event)
+
+		if err != nil {
+			go m.hub.BroadcastError(userID, ws.EventMessageNew, err)
+			return
+		}
+
+		go m.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), resp.ConversationID, eventBytes)
+	}()
 
 	return c.Status(fiber.StatusCreated).JSON(response.Response[*response.MessageResponse]{Data: resp})
 }
@@ -84,11 +107,11 @@ func (m *MessageHandler) UpdateBody(c fiber.Ctx) error {
 	}
 
 	// server sent event
-	func (){
+	func() {
 		payload := ws.MessageEditedPayload{
 			ConversationID: message.ConversationID,
-			MessageID: message.ID,
-			Body: *message.Body,
+			MessageID:      message.ID,
+			Body:           *message.Body,
 		}
 
 		payloadBytes, err := json.Marshal(payload)
@@ -99,7 +122,7 @@ func (m *MessageHandler) UpdateBody(c fiber.Ctx) error {
 		}
 
 		event := ws.Event{
-			Type: ws.EventMessageEdited,
+			Type:    ws.EventMessageEdited,
 			Payload: payloadBytes,
 		}
 
@@ -112,7 +135,7 @@ func (m *MessageHandler) UpdateBody(c fiber.Ctx) error {
 
 		go m.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), message.ConversationID, eventBytes)
 	}()
-	
+
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
@@ -127,10 +150,38 @@ func (m *MessageHandler) SoftDelete(c fiber.Ctx) error {
 	}
 
 	userID := c.Locals("user_id").(int)
-	_, err = m.messageService.SoftDelete(c.Context(), userID, messageID)
+	message, err := m.messageService.SoftDelete(c.Context(), userID, messageID)
 	if err != nil {
 		return handleServiceError(c, err)
 	}
+
+	// server sent event
+	func() {
+		payload := ws.MessageDeletedPayload{
+			ConversationID: message.ConversationID,
+			MessageID:      message.ID,
+		}
+
+		payloadBytes, err := json.Marshal(payload)
+		if err != nil {
+			go m.hub.BroadcastError(userID, ws.EventMessageDeleted, err)
+			return
+		}
+
+		event := ws.Event{
+			Type:    ws.EventMessageDeleted,
+			Payload: payloadBytes,
+		}
+
+		eventBytes, err := json.Marshal(event)
+
+		if err != nil {
+			go m.hub.BroadcastError(userID, ws.EventMessageDeleted, err)
+			return
+		}
+
+		go m.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), message.ConversationID, eventBytes)
+	}()
 
 	return c.SendStatus(fiber.StatusNoContent)
 }

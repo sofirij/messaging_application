@@ -26,6 +26,8 @@ const (
 	assetCacheDuration = 1 * time.Minute
 	uploadURLPath      = "/uploads"
 	envFilePath        = ".env"
+	pingInterval       = 15 * time.Second
+	pongTimeout        = pingInterval + 15*time.Second
 )
 
 func main() {
@@ -37,8 +39,8 @@ func main() {
 		AppName:      "MyApp",
 		IdleTimeout:  30 * time.Second,
 		WriteTimeout: 5 * time.Second,
-		ReadTimeout: 100 * time.Second,
-		BodyLimit: 100 * 1024 * 1024,
+		ReadTimeout:  100 * time.Second,
+		BodyLimit:    100 * 1024 * 1024,
 	})
 
 	// setup middleware
@@ -91,7 +93,7 @@ func main() {
 	conversationHandler := handler.NewConversationHandler(conversationService, hubService)
 	messageHandler := handler.NewMessageHandler(messageService, hubService)
 	uploadHandler := handler.NewUploadHandler(uploadService)
-	wsHandler := handler.NewWSHandler(hubService, ticketService)
+	wsHandler := handler.NewWSHandler(hubService, ticketService, pingInterval, pongTimeout)
 
 	// setup routers
 	router.RegisterUserRoutes(app, userHandler, cfg.JWTSecret)

@@ -173,7 +173,7 @@ func (c *conversationService) AddMember(ctx context.Context, userID, conversatio
 
 	if conversation.Type == direct {
 		return &Error{
-			Code: ErrCodeBadRequest,
+			Code:    ErrCodeBadRequest,
 			Message: "cannot add to direct conversation",
 		}
 	}
@@ -196,7 +196,7 @@ func (c *conversationService) RemoveMember(ctx context.Context, userID, conversa
 
 	if conversation.Type == direct {
 		return &Error{
-			Code: ErrCodeBadRequest,
+			Code:    ErrCodeBadRequest,
 			Message: "cannot remove member from direct conversation",
 		}
 	}

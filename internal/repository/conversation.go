@@ -269,7 +269,7 @@ func (c *conversationRepository) UpdateLastMessageRead(ctx context.Context, conv
 		UPDATE conversations
 		SET last_message_read = $1
 		WHERE id = $2
-		AND last_message_read < $1 -- safeguard for concurrent requests
+		AND (last_message_read IS NULL OR last_message_read < $1)
 		AND EXISTS (
 			SELECT 1 FROM messages
 			WHERE id = $1
@@ -280,7 +280,7 @@ func (c *conversationRepository) UpdateLastMessageRead(ctx context.Context, conv
 
 	var conversation db.Conversation
 
-	err := pgxscan.Get(ctx, c.db, &conversation, query, messageID)
+	err := pgxscan.Get(ctx, c.db, &conversation, query, messageID, conversationID)
 
 	if err != nil {
 		return nil, err

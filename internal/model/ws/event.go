@@ -11,23 +11,22 @@ type Event struct {
 
 const (
 	// inbound
-	EventMessageSend   = "message.send"
-	EventMessageDelete = "message.delete"
-	EventTypingStart   = "typing.start"
-	EventTypingStop    = "typing.stop"
-	EventMessageRead   = "message.read"
+	EventTypingStart = "typing.start"
+	EventTypingStop  = "typing.stop"
+	EventMessageRead = "message.read"
 
 	// outbound
 	EventMessageNew      = "message.new"
 	EventMessageDeleted  = "message.deleted"
-	EventUserOnline      = "user.online"
-	EventUserOffline     = "user.offline"
 	EventUserTypingStart = "user.typing.start"
 	EventUserTypingStop  = "user.typing.stop"
 	EventMessageSeen     = "message.seen"
-	EventError           = "error"
+	EventUserOnline      = "user.online"
+	EventUserOffline     = "user.offline"
 	EventConversationNew = "conversation.new"
-	EventMessageEdited = "message.edited"
-	EventMemberAdded = "member.added"
-	EventMemberRemoved = "member.removed"
+	EventMessageEdited   = "message.edited"
+	EventMemberAdded     = "member.added"
+	EventMemberRemoved   = "member.removed"
+
+	EventError = "error"
 )

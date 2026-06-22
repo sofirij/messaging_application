@@ -254,15 +254,36 @@ func (m *messageService) MarkAsRead(ctx context.Context, userID, conversationID,
 		return err
 	}
 
-	_, err = m.conversationRepo.UpdateLastMessageRead(ctx, conversationID, messageID)
-
-	// message is not in conversation
+	conversation, err := m.conversationRepo.GetByID(ctx, conversationID)
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return &Error{
-			Code:    ErrCodeForbidden,
+			Code:    ErrCodeNotFound,
+			Message: "conversation not found",
+		}
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if conversation.LastMessageID != nil && *conversation.LastMessageID > messageID {
+		return nil
+	}
+
+	message, err := getMessageByID(ctx, m.messageRepo, messageID)
+
+	if err != nil {
+		return err
+	}
+
+	if message.ConversationID != conversation.ID {
+		return &Error{
+			Code:    ErrCodeBadRequest,
 			Message: "message not in conversation",
 		}
 	}
+
+	_, err = m.conversationRepo.UpdateLastMessageRead(ctx, conversationID, messageID)
 
 	if err != nil {
 		return err
@@ -272,50 +293,18 @@ func (m *messageService) MarkAsRead(ctx context.Context, userID, conversationID,
 }
 
 func (m *messageService) GetByID(ctx context.Context, userID, messageID int) (*response.MessageResponse, error) {
-	message, err := m.messageRepo.GetByID(ctx, messageID)
-
-	if err != nil && errors.Is(err, pgx.ErrNoRows) {
-		return nil, &Error{
-			Code: ErrCodeNotFound,
-			Message: "message not found",
-		}
+	message, err := getMessageByID(ctx, m.messageRepo, messageID)
+	if err != nil {
+		return nil, err
 	}
 
-	if message.SenderID != userID {
-		return nil, &Error{
-			Code: ErrCodeForbidden,
-			Message: "user doesn't own message",
-		}
-	}
-
-	attachments, err := m.messageRepo.GetAttachmentsByMessageIDs(ctx, []int{message.ID})
+	err = userInConversation(ctx, m.conversationRepo, message.ConversationID, userID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	attachmentsResp := make([]response.MessageAttachment, len(attachments))
-
-	for i, attachment := range attachments {
-		attachmentsResp[i] = response.MessageAttachment{
-			ID: attachment.ID,
-			Type: attachment.Type,
-			URL: attachment.URL,
-			Filename: attachment.Filename,
-			Size: attachment.Size,
-		}
-	}
-
-	return &response.MessageResponse{
-		ID: message.ID,
-		ConversationID: message.ConversationID,
-		SenderID: message.SenderID,
-		ReplyToID: message.ReplyToID,
-		Body: message.Body,
-		Deleted: message.DeletedAt != nil,
-		CreatedAt: message.CreatedAt,
-		Attachments: attachmentsResp,
-	}, nil
+	return message, nil
 }
 
 func NewMessageService(messageRepo repository.MessageRepository, conversationRepo repository.ConversationRepository) MessageService {
@@ -341,4 +330,44 @@ func userOwnsMessage(ctx context.Context, repo repository.MessageRepository, mes
 	}
 
 	return message, nil
+}
+
+func getMessageByID(ctx context.Context, messageRepo repository.MessageRepository, messageID int) (*response.MessageResponse, error) {
+	message, err := messageRepo.GetByID(ctx, messageID)
+
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return nil, &Error{
+			Code:    ErrCodeNotFound,
+			Message: "message not found",
+		}
+	}
+
+	attachments, err := messageRepo.GetAttachmentsByMessageIDs(ctx, []int{message.ID})
+
+	if err != nil {
+		return nil, err
+	}
+
+	attachmentsResp := make([]response.MessageAttachment, len(attachments))
+
+	for i, attachment := range attachments {
+		attachmentsResp[i] = response.MessageAttachment{
+			ID:       attachment.ID,
+			Type:     attachment.Type,
+			URL:      attachment.URL,
+			Filename: attachment.Filename,
+			Size:     attachment.Size,
+		}
+	}
+
+	return &response.MessageResponse{
+		ID:             message.ID,
+		ConversationID: message.ConversationID,
+		SenderID:       message.SenderID,
+		ReplyToID:      message.ReplyToID,
+		Body:           message.Body,
+		Deleted:        message.DeletedAt != nil,
+		CreatedAt:      message.CreatedAt,
+		Attachments:    attachmentsResp,
+	}, nil
 }

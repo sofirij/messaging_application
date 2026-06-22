@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	"app/internal/model/response"
 	"app/internal/service"
@@ -13,12 +14,16 @@ import (
 type WSHandler struct {
 	hub           service.HubService
 	ticketService service.TicketService
+	pingInterval  time.Duration
+	pongTimeout   time.Duration
 }
 
-func NewWSHandler(hub service.HubService, ticketService service.TicketService) *WSHandler {
+func NewWSHandler(hub service.HubService, ticketService service.TicketService, pingInterval, pongTimeout time.Duration) *WSHandler {
 	return &WSHandler{
 		hub:           hub,
 		ticketService: ticketService,
+		pingInterval:  pingInterval,
+		pongTimeout:   pongTimeout,
 	}
 }
 
@@ -28,8 +33,8 @@ func (w *WSHandler) Connect(c *websocket.Conn) {
 
 	client := service.NewClient(userID, c, ctx)
 	w.hub.Register(client)
-	go client.WritePump(w.hub)
-	client.ReadPump(w.hub)
+	go client.WritePump(w.hub, w.pingInterval)
+	client.ReadPump(w.hub, w.pongTimeout)
 }
 
 func (t *WSHandler) CreateTicket(c fiber.Ctx) error {

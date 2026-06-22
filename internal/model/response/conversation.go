@@ -6,7 +6,7 @@ import (
 
 type ConversationResponse struct {
 	ID              int              `json:"id"`
-	Name            string          `json:"name"`
+	Name            string           `json:"name"`
 	AvatarURL       *string          `json:"avatar_url"`
 	Type            string           `json:"type"`
 	LastMessageID   *int             `json:"last_message_id"`

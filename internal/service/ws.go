@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"app/internal/model/request"
 	"app/internal/model/ws"
 	"app/internal/repository"
 
@@ -15,8 +14,6 @@ import (
 )
 
 const (
-	pingInterval = 30 * time.Second
-	pongTimeout  = pingInterval + 15*time.Second
 	writeTimeout = 5 * time.Second
 	readTimeout  = writeTimeout
 )
@@ -37,7 +34,7 @@ func NewClient(userID int, conn *websocket.Conn, ctx context.Context) *client {
 	}
 }
 
-func (c *client) WritePump(hub HubService) {
+func (c *client) WritePump(hub HubService, pingInterval time.Duration) {
 	ticker := time.NewTicker(pingInterval)
 	defer func() {
 		ticker.Stop()
@@ -64,7 +61,7 @@ func (c *client) WritePump(hub HubService) {
 	}
 }
 
-func (c *client) ReadPump(hub HubService) {
+func (c *client) ReadPump(hub HubService, pongTimeout time.Duration) {
 	defer func() {
 		hub.Unregister(c)
 		c.conn.Close()
@@ -88,18 +85,6 @@ func (c *client) ReadPump(hub HubService) {
 		}
 
 		switch event.Type {
-		case ws.EventMessageSend:
-			var payload ws.MessageSendPayload
-			if err := json.Unmarshal(event.Payload, &payload); err != nil {
-				continue
-			}
-			hub.HandleMessageSend(c.ctx, c, payload)
-		case ws.EventMessageDelete:
-			var payload ws.MessageDeletePayload
-			if err := json.Unmarshal(event.Payload, &payload); err != nil {
-				continue
-			}
-			hub.HandleMessageDelete(c.ctx, c, payload)
 		case ws.EventTypingStart:
 			var payload ws.TypingPayloadInbound
 			if err := json.Unmarshal(event.Payload, &payload); err != nil {
@@ -141,8 +126,6 @@ type HubService interface {
 	BroadcastToUser(userID int, event []byte)
 	BroadcastError(userID int, ref string, err error)
 	BroadcastToConversation(ctx context.Context, conversationID int, event []byte) error
-	HandleMessageSend(ctx context.Context, client *client, payload ws.MessageSendPayload)
-	HandleMessageDelete(ctx context.Context, client *client, payload ws.MessageDeletePayload)
 	HandleTypingStart(ctx context.Context, client *client, payload ws.TypingPayloadInbound)
 	HandleTypingStop(ctx context.Context, client *client, payload ws.TypingPayloadInbound)
 	HandleMessageRead(ctx context.Context, client *client, payload ws.MessageReadPayload)
@@ -255,87 +238,6 @@ func (h *hub) BroadcastToConversation(ctx context.Context, conversationID int, e
 	}
 
 	return nil
-}
-
-func (h *hub) HandleMessageSend(ctx context.Context, client *client, payload ws.MessageSendPayload) {
-	req := request.MessageCreateRequest{
-		ReplyToID:   payload.ReplyToID,
-		Body:        payload.Body,
-		Attachments: payload.Attachments,
-	}
-
-	payloadResp, err := h.messageService.Create(ctx, client.userID, payload.ConversationID, req)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageSend, err)
-		return
-	}
-
-	payloadBytes, err := json.Marshal(payloadResp)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageSend, err)
-		return
-	}
-
-	resp := ws.Event{
-		Type:    ws.EventMessageNew,
-		Payload: payloadBytes,
-	}
-
-	respBytes, err := json.Marshal(resp)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageSend, err)
-		return
-	}
-
-	err = h.BroadcastToConversation(ctx, payloadResp.ConversationID, respBytes)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageSend, err)
-		return
-	}
-}
-
-func (h *hub) HandleMessageDelete(ctx context.Context, client *client, payload ws.MessageDeletePayload) {
-	message, err := h.messageService.SoftDelete(ctx, client.userID, payload.MessageID)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageDelete, err)
-		return
-	}
-
-	payloadResp := ws.MessageDeletedPayload{
-		MessageID:      payload.MessageID,
-		ConversationID: message.ConversationID,
-	}
-
-	payloadBytes, err := json.Marshal(payloadResp)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageDelete, err)
-		return
-	}
-
-	resp := ws.Event{
-		Type:    ws.EventMessageDeleted,
-		Payload: payloadBytes,
-	}
-
-	respBytes, err := json.Marshal(resp)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageDelete, err)
-		return
-	}
-
-	err = h.BroadcastToConversation(ctx, message.ConversationID, respBytes)
-
-	if err != nil {
-		h.BroadcastError(client.userID, ws.EventMessageDelete, err)
-		return
-	}
 }
 
 func (h *hub) HandleTypingStart(ctx context.Context, client *client, payload ws.TypingPayloadInbound) {
@@ -552,7 +454,7 @@ func (h *hub) broadcastOnlineStatus(ctx context.Context, userID int, online bool
 		memberMap[member.UserID] = true
 	}
 
-	// verify user status hasn't changed before broadcasting
+	// verify user status before broadcasting
 	if (!online && h.IsOnline(userID)) || (online && !h.IsOnline(userID)) {
 		return
 	}

@@ -15,13 +15,13 @@ import (
 
 type ConversationHandler struct {
 	conversationService service.ConversationService
-	hub service.HubService
+	hub                 service.HubService
 }
 
 func NewConversationHandler(conversationService service.ConversationService, hub service.HubService) *ConversationHandler {
 	return &ConversationHandler{
 		conversationService: conversationService,
-		hub: hub,
+		hub:                 hub,
 	}
 }
 
@@ -51,7 +51,7 @@ func (h *ConversationHandler) Create(c fiber.Ctx) error {
 		}
 
 		event := ws.Event{
-			Type: ws.EventConversationNew,
+			Type:    ws.EventConversationNew,
 			Payload: payloadBytes,
 		}
 
@@ -64,7 +64,6 @@ func (h *ConversationHandler) Create(c fiber.Ctx) error {
 
 		go h.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), resp.ID, eventBytes)
 	}()
-	
 
 	return c.Status(fiber.StatusCreated).JSON(response.Response[*response.ConversationResponse]{Data: resp})
 }
@@ -187,7 +186,7 @@ func (h *ConversationHandler) AddMember(c fiber.Ctx) error {
 		for _, id := range req.UserIDs {
 			payload := ws.MemberAddedPayload{
 				ConversationID: conversationID,
-				UserID: id,
+				UserID:         id,
 			}
 			payloadBytes, err := json.Marshal(payload)
 
@@ -197,7 +196,7 @@ func (h *ConversationHandler) AddMember(c fiber.Ctx) error {
 			}
 
 			event := ws.Event{
-				Type: ws.EventMemberAdded,
+				Type:    ws.EventMemberAdded,
 				Payload: payloadBytes,
 			}
 
@@ -211,7 +210,6 @@ func (h *ConversationHandler) AddMember(c fiber.Ctx) error {
 			go h.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), conversationID, eventBytes)
 		}
 	}()
-	
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
@@ -243,10 +241,10 @@ func (h *ConversationHandler) RemoveMember(c fiber.Ctx) error {
 	}
 
 	// server sent event
-	func(){
+	func() {
 		payload := ws.MemberRemovedPayload{
 			ConversationID: conversationID,
-			UserID: memberID,
+			UserID:         memberID,
 		}
 
 		payloadBytes, err := json.Marshal(payload)
@@ -257,7 +255,7 @@ func (h *ConversationHandler) RemoveMember(c fiber.Ctx) error {
 		}
 
 		event := ws.Event{
-			Type: ws.EventMemberRemoved,
+			Type:    ws.EventMemberRemoved,
 			Payload: payloadBytes,
 		}
 
@@ -271,7 +269,6 @@ func (h *ConversationHandler) RemoveMember(c fiber.Ctx) error {
 		go h.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), conversationID, eventBytes)
 		go h.hub.BroadcastToUser(memberID, eventBytes)
 	}()
-	
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
