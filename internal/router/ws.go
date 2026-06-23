@@ -10,6 +10,6 @@ import (
 )
 
 func RegisterWSRoutes(r fiber.Router, h *handler.WSHandler, ticketService service.TicketService, jwtSecret string) {
-	r.Get("/api/ws/ticket", middleware.JWT(jwtSecret), h.CreateTicket)
+	r.Get("/ws/ticket", middleware.JWT(jwtSecret), h.CreateTicket)
 	r.Get("/ws", middleware.Upgrade(), middleware.TicketAuth(ticketService), websocket.New(h.Connect))
 }

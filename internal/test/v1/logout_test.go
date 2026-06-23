@@ -1,4 +1,4 @@
-package test
+package v1
 
 import (
 	"app/internal/model/request"
@@ -22,7 +22,7 @@ func TestLogout(t *testing.T) {
 	register(t, app, bodyStruct)
 	_, accessCookie, refreshCookie := login(t, app, bodyStruct)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie)
 	req.AddCookie(refreshCookie)
@@ -38,7 +38,7 @@ func TestLogout(t *testing.T) {
 	}
 
 	// refresh token should be invalid now and fail
-	req2 := httptest.NewRequest(http.MethodPost, "/api/auth/refresh", nil)
+	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/auth/refresh", nil)
 	req2.Header.Set("Contetn-Type", "application/json")
 	req2.AddCookie(accessCookie)
 	req2.AddCookie(refreshCookie)

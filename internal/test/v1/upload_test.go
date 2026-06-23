@@ -1,4 +1,4 @@
-package test
+package v1
 
 import (
 	"bytes"
@@ -16,6 +16,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	filesPath = "../files/"
+	validFilename = "image.png"
+	invalidFilename = "app.exe"
+	validFilePath = filesPath + validFilename
+	invalidFilePath = filesPath + invalidFilename
+)
+
 func createMultipartRequest(t *testing.T, accessCookie *http.Cookie, fieldname, filename string, content []byte) *http.Request {
 	var buffer bytes.Buffer
 	writer := multipart.NewWriter(&buffer)
@@ -28,7 +36,7 @@ func createMultipartRequest(t *testing.T, accessCookie *http.Cookie, fieldname, 
 
 	writer.Close()
 
-	req := httptest.NewRequest(http.MethodPost, "/api/upload", &buffer)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/upload", &buffer)
 	req.AddCookie(accessCookie)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
@@ -49,7 +57,7 @@ func createMultipartRequestMany(t *testing.T, accessCookie *http.Cookie, fieldna
 
 	writer.Close()
 
-	req := httptest.NewRequest(http.MethodPost, "/api/upload-many", &buffer)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/upload-many", &buffer)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.AddCookie(accessCookie)
 
@@ -70,11 +78,10 @@ func TestUpload_InvalidFile(t *testing.T) {
 
 	_, accessCookie1, _ := login(t, app, user1)
 
-	filename := "./files/app.exe"
-	content, err := os.ReadFile(filename)
+	content, err := os.ReadFile(invalidFilePath)
 
 	require.NoError(t, err)
-	req := createMultipartRequest(t, accessCookie1, "file", "app.exe", content)
+	req := createMultipartRequest(t, accessCookie1, "file", invalidFilename, content)
 
 	resp, err := app.Test(req, testCfg)
 
@@ -96,11 +103,10 @@ func TestUpload_ValidFile(t *testing.T) {
 
 	_, accessCookie1, _ := login(t, app, user1)
 
-	filename := "./files/image.png"
-	content, err := os.ReadFile(filename)
+	content, err := os.ReadFile(validFilePath)
 
 	require.NoError(t, err)
-	req := createMultipartRequest(t, accessCookie1, "file", "image.png", content)
+	req := createMultipartRequest(t, accessCookie1, "file", validFilename, content)
 
 	resp, err := app.Test(req, testCfg)
 
@@ -122,8 +128,7 @@ func TestUpload_ManyFiles(t *testing.T) {
 
 	_, accessCookie1, _ := login(t, app, user1)
 
-	filename := "./files/image.png"
-	content, err := os.ReadFile(filename)
+	content, err := os.ReadFile(validFilePath)
 
 	require.NoError(t, err)
 
@@ -133,7 +138,7 @@ func TestUpload_ManyFiles(t *testing.T) {
 
 	for i := range amount {
 		contents[i] = content
-		filenames[i] = "image.png"
+		filenames[i] = validFilename
 	}
 
 	req := createMultipartRequestMany(t, accessCookie1, "files", filenames, contents)
@@ -159,8 +164,7 @@ func TestUpload_TooManyFiles(t *testing.T) {
 
 	_, accessCookie1, _ := login(t, app, user1)
 
-	filename := "./files/image.png"
-	content, err := os.ReadFile(filename)
+	content, err := os.ReadFile(validFilePath)
 
 	require.NoError(t, err)
 
@@ -170,7 +174,7 @@ func TestUpload_TooManyFiles(t *testing.T) {
 
 	for i := range amount {
 		contents[i] = content
-		filenames[i] = "image.png"
+		filenames[i] = validFilename
 	}
 
 	req := createMultipartRequestMany(t, accessCookie1, "files", filenames, contents)
@@ -196,8 +200,7 @@ func TestUpload_ManyFilesOneInvalid(t *testing.T) {
 
 	_, accessCookie1, _ := login(t, app, user1)
 
-	filename := "./files/image.png"
-	content, err := os.ReadFile(filename)
+	content, err := os.ReadFile(validFilePath)
 
 	require.NoError(t, err)
 
@@ -207,17 +210,16 @@ func TestUpload_ManyFilesOneInvalid(t *testing.T) {
 
 	for i := range amount {
 		contents[i] = content
-		filenames[i] = "image.png"
+		filenames[i] = validFilename
 	}
 
 	// invalid file
-	filename = "./files/app.exe"
-	content, err = os.ReadFile(filename)
+	content, err = os.ReadFile(invalidFilePath)
 
 	require.NoError(t, err)
 
 	contents = append(contents, content)
-	filenames = append(filenames, "app.exe")
+	filenames = append(filenames, invalidFilename)
 
 	req := createMultipartRequestMany(t, accessCookie1, "files", filenames, contents)
 
@@ -231,7 +233,7 @@ func TestUpload_ManyFilesOneInvalid(t *testing.T) {
 func clearUploadFolder(t *testing.T) {
 	t.Helper()
 
-	uploadDir := "../../uploads"
+	uploadDir := "../../../uploads"
 	entries, err := os.ReadDir(uploadDir)
 
 	require.NoError(t, err)

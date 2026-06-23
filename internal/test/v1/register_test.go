@@ -1,4 +1,4 @@
-package test
+package v1
 
 import (
 	"app/internal/model/request"
@@ -17,7 +17,7 @@ func register(t *testing.T, app *fiber.App, bodyStruct request.UserAuthRequest) 
 	body, err := json.Marshal(bodyStruct)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(req)
@@ -53,7 +53,7 @@ func TestRegister_DuplicateUsername(t *testing.T) {
 	body, err := json.Marshal(bodyStruct)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(req)
@@ -73,7 +73,7 @@ func TestRegister_InvalidInput(t *testing.T) {
 	body, err := json.Marshal(bodyStruct)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(req)

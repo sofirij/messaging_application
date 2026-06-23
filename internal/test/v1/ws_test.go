@@ -1,4 +1,4 @@
-package test
+package v1
 
 import (
 	"encoding/json"
@@ -24,7 +24,7 @@ func listen(t *testing.T, app *fiber.App) {
 }
 
 func connect(t *testing.T, ticket string) *websocket.Conn {
-	conn, _, err := websocket.DefaultDialer.Dial("ws://"+cfg.AppHost+cfg.AppPort+"/ws?ticket="+ticket, nil)
+	conn, _, err := websocket.DefaultDialer.Dial("ws://"+cfg.AppHost+cfg.AppPort+"/api/v1/ws?ticket="+ticket, nil)
 
 	require.NoError(t, err)
 	conn.SetReadDeadline(time.Now().Add(readDeadline))
@@ -32,7 +32,7 @@ func connect(t *testing.T, ticket string) *websocket.Conn {
 }
 
 func getTicket(t *testing.T, app *fiber.App, accessCookie *http.Cookie) string {
-	req := httptest.NewRequest(http.MethodGet, "/api/ws/ticket", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/ws/ticket", nil)
 	req.AddCookie(accessCookie)
 	req.Header.Set("Content-Type", "application/json")
 

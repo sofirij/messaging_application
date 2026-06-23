@@ -1,4 +1,4 @@
-package test
+package v1
 
 import (
 	"bytes"
@@ -23,7 +23,7 @@ func createMessage(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conv
 	bodyBytes, err := json.Marshal(bodyStruct)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", conversationID), bytes.NewReader(bodyBytes))
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/conversations/%d/messages", conversationID), bytes.NewReader(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie)
 
@@ -44,7 +44,7 @@ func createMessage(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conv
 }
 
 func clearMessages(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conversationID int) *http.Response {
-	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/conversations/%d/messages", conversationID), nil)
 	req.AddCookie(accessCookie)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -131,7 +131,7 @@ func TestMessage_Edit(t *testing.T) {
 	createMessage(t, app, accessCookie1, conversationID, originalText)
 
 	// get the messageID
-	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
+	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages", conversationID), nil)
 	req2.Header.Set("Content-Type", "application/json")
 	req2.AddCookie(accessCookie1)
 
@@ -156,7 +156,7 @@ func TestMessage_Edit(t *testing.T) {
 
 	require.NoError(t, err)
 
-	req3 := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/messages/%d", messageID), bytes.NewReader(messageEditBytes))
+	req3 := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/messages/%d", messageID), bytes.NewReader(messageEditBytes))
 	req3.Header.Set("Content-Type", "application/json")
 	req3.AddCookie(accessCookie1)
 
@@ -219,7 +219,7 @@ func TestMessage_EditForbidden(t *testing.T) {
 	createMessage(t, app, accessCookie1, conversationID, originalText)
 
 	// get the messageID
-	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
+	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages", conversationID), nil)
 	req2.Header.Set("Content-Type", "application/json")
 	req2.AddCookie(accessCookie1)
 
@@ -244,7 +244,7 @@ func TestMessage_EditForbidden(t *testing.T) {
 
 	require.NoError(t, err)
 
-	req3 := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/messages/%d", messageID), bytes.NewReader(messageEditBytes))
+	req3 := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/messages/%d", messageID), bytes.NewReader(messageEditBytes))
 	req3.Header.Set("Content-Type", "application/json")
 	req3.AddCookie(accessCookie2)
 
@@ -293,7 +293,7 @@ func TestMessage_Delete(t *testing.T) {
 	createMessage(t, app, accessCookie1, conversationID, originalText)
 
 	// get the messageID
-	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
+	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages", conversationID), nil)
 	req2.Header.Set("Content-Type", "application/json")
 	req2.AddCookie(accessCookie1)
 
@@ -310,7 +310,7 @@ func TestMessage_Delete(t *testing.T) {
 	messageID := result2.Data[0].ID
 
 	// user1 deletes message
-	req3 := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/messages/%d", messageID), nil)
+	req3 := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/messages/%d", messageID), nil)
 	req3.AddCookie(accessCookie1)
 	req3.Header.Set("Content-Type", "application/json")
 
@@ -375,7 +375,7 @@ func TestMessage_GetPagination(t *testing.T) {
 	}
 
 	// get the first batch of messages
-	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages?limit=20", conversationID), nil)
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages?limit=20", conversationID), nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie1)
 
@@ -394,7 +394,7 @@ func TestMessage_GetPagination(t *testing.T) {
 	lastMessageID := *result2.NextCursor
 
 	// get the last batch
-	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages?before=%d&limit=1", conversationID, lastMessageID), nil)
+	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages?before=%d&limit=1", conversationID, lastMessageID), nil)
 	req2.Header.Set("Content-Type", "application/json")
 	req2.AddCookie(accessCookie1)
 

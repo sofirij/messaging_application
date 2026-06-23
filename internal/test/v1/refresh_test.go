@@ -1,4 +1,4 @@
-package test
+package v1
 
 import (
 	"app/internal/model/request"
@@ -25,7 +25,7 @@ func TestRefresh(t *testing.T) {
 
 	time.Sleep(1 * time.Second) // tokens generated at the same time will be identical
 
-	req := httptest.NewRequest(http.MethodPost, "/api/auth/refresh", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/refresh", nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie)
 	req.AddCookie(refreshCookie)

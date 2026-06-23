@@ -1,4 +1,4 @@
-package test
+package v1
 
 import (
 	"encoding/json"
@@ -25,7 +25,7 @@ func TestAuthToken_Valid(t *testing.T) {
 	register(t, app, bodyStruct)
 	_, accessCookie, _ := login(t, app, bodyStruct)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/users/me", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie)
 
@@ -53,7 +53,7 @@ func TestAuthToken_Invalid(t *testing.T) {
 
 	register(t, app, bodyStruct)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/users/me", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(&http.Cookie{
 		Name:  "access_token",
@@ -83,7 +83,7 @@ func TestAuthToken_Missing(t *testing.T) {
 
 	register(t, app, bodyStruct)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/users/me", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(req)

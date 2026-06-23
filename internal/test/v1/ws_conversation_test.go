@@ -1,4 +1,4 @@
-package test
+package v1
 
 import (
 	"bytes"
@@ -130,7 +130,7 @@ func TestWSConversation_AddMember(t *testing.T) {
 
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/conversations/%d/members", conversationID), bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/conversations/%d/members", conversationID), bytes.NewReader(body))
 	req.AddCookie(accessCookie1)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -200,7 +200,7 @@ func TestWSConversation_RemoveMember(t *testing.T) {
 	conversationID := result.Data.ID
 
 	// user1 removes user2
-	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/conversations/%d/members/%d", conversationID, userID), nil)
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/conversations/%d/members/%d", conversationID, userID), nil)
 	req.AddCookie(accessCookie1)
 	req.Header.Set("Content-Type", "application/json")
 

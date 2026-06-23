@@ -1,4 +1,4 @@
-package test
+package v1
 
 import (
 	"bytes"
@@ -21,7 +21,7 @@ func createConversation(t *testing.T, app *fiber.App, accessCookie *http.Cookie,
 
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/conversations", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/conversations", bytes.NewReader(body))
 	req.AddCookie(accessCookie)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -75,7 +75,7 @@ func TestConversation_CreateDirect(t *testing.T) {
 
 	conversationID := result.Data.ID
 
-	req3 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d", conversationID), nil)
+	req3 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
 	req3.Header.Set("Content-Type", "application/json")
 	req3.AddCookie(accessCookie1)
 
@@ -146,7 +146,7 @@ func TestConversation_CreateDuplicateDirect(t *testing.T) {
 	body, err = json.Marshal(bodyStruct)
 	require.NoError(t, err)
 
-	req4 := httptest.NewRequest(http.MethodPost, "/api/conversations", bytes.NewReader(body))
+	req4 := httptest.NewRequest(http.MethodPost, "/api/v1/conversations", bytes.NewReader(body))
 	req4.Header.Set("Content-Type", "application/json")
 	req4.AddCookie(accessCookie2)
 
@@ -194,7 +194,7 @@ func TestConversation_CreateGroup(t *testing.T) {
 	conversationID := result.Data.ID
 
 	// ensure that the only 2 members in the conversation are user1 and user2
-	req3 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d", conversationID), nil)
+	req3 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
 	req3.Header.Set("Content-Type", "application/json")
 	req3.AddCookie(accessCookie1)
 
@@ -261,7 +261,7 @@ func TestConversation_UserNotInConversation(t *testing.T) {
 	conversationID := result.Data.ID
 
 	// user 3 tries to access the conversation
-	req3 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d", conversationID), nil)
+	req3 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
 	req3.Header.Set("Content-Type", "application/json")
 	req3.AddCookie(accessCookie3)
 
@@ -322,7 +322,7 @@ func TestConversation_AddMember(t *testing.T) {
 
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/conversations/%d/members", conversationID), bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/conversations/%d/members", conversationID), bytes.NewReader(body))
 	req.AddCookie(accessCookie1)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -332,7 +332,7 @@ func TestConversation_AddMember(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	// ensure conversation has the right members
-	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d", conversationID), nil)
+	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
 	req2.AddCookie(accessCookie1)
 	req2.Header.Set("Content-Type", "application/json")
 
@@ -408,7 +408,7 @@ func TestConversation_AddMemberToDirect(t *testing.T) {
 
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/conversations/%d/members", conversationID), bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/conversations/%d/members", conversationID), bytes.NewReader(body))
 	req.AddCookie(accessCookie1)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -454,7 +454,7 @@ func TestConversation_RemoveMember(t *testing.T) {
 	conversationID := result.Data.ID
 
 	// user1 removes user2
-	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/conversations/%d/members/%d", conversationID, userID), nil)
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/conversations/%d/members/%d", conversationID, userID), nil)
 	req.AddCookie(accessCookie1)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -464,7 +464,7 @@ func TestConversation_RemoveMember(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	// ensure that user2 is removed
-	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d", conversationID), nil)
+	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
 	req2.Header.Set("Content-Type", "application/json")
 	req2.AddCookie(accessCookie1)
 
@@ -532,7 +532,7 @@ func TestConversation_ClearMessages(t *testing.T) {
 	createMessage(t, app, accessCookie1, conversationID, lastMessage)
 
 	// ensure its only the last message user2 can see
-	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages", conversationID), nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie2)
 
@@ -586,7 +586,7 @@ func TestConversation_Delete(t *testing.T) {
 	conversationID := result.Data.ID
 
 	// user2 deletes conversation
-	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/conversations/%d", conversationID), nil)
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie2)
 
@@ -596,7 +596,7 @@ func TestConversation_Delete(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	// user1 should still see the conversation on their list
-	req2 := httptest.NewRequest(http.MethodGet, "/api/conversations", nil)
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/conversations", nil)
 	req2.Header.Set("Content-Type", "application/json")
 	req2.AddCookie(accessCookie1)
 
@@ -614,7 +614,7 @@ func TestConversation_Delete(t *testing.T) {
 	require.Equal(t, 1, len(result2.Data))
 
 	// user2's conversation list should be empty
-	req3 := httptest.NewRequest(http.MethodGet, "/api/conversations", nil)
+	req3 := httptest.NewRequest(http.MethodGet, "/api/v1/conversations", nil)
 	req3.Header.Set("Content-Type", "application/json")
 	req3.AddCookie(accessCookie2)
 
@@ -666,7 +666,7 @@ func TestConversation_GetAfterDelete(t *testing.T) {
 	conversationID := result.Data.ID
 
 	// user2 deletes conversation
-	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/conversations/%d", conversationID), nil)
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie2)
 
@@ -680,7 +680,7 @@ func TestConversation_GetAfterDelete(t *testing.T) {
 	createMessage(t, app, accessCookie1, conversationID, text)
 
 	// the conversation should show up in user2's list
-	req2 := httptest.NewRequest(http.MethodGet, "/api/conversations", nil)
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/conversations", nil)
 	req2.Header.Set("Content-Type", "application/json")
 	req2.AddCookie(accessCookie2)
 

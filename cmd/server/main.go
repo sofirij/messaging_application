@@ -96,11 +96,13 @@ func main() {
 	wsHandler := handler.NewWSHandler(hubService, ticketService, pingInterval, pongTimeout)
 
 	// setup routers
-	router.RegisterUserRoutes(app, userHandler, cfg.JWTSecret)
-	router.RegisterConversationRoutes(app, conversationHandler, messageHandler, cfg.JWTSecret)
-	router.RegisterMessageRoutes(app, messageHandler, cfg.JWTSecret)
-	router.RegisterWSRoutes(app, wsHandler, ticketService, cfg.JWTSecret)
-	router.RegisterUploadRoutes(app, uploadHandler, cfg.JWTSecret)
+	v1 := app.Group("/api/v1")
+	router.RegisterUserRoutes(v1, userHandler, cfg.JWTSecret)
+	router.RegisterConversationRoutes(v1, conversationHandler, messageHandler, cfg.JWTSecret)
+	router.RegisterMessageRoutes(v1, messageHandler, cfg.JWTSecret)
+	router.RegisterWSRoutes(v1, wsHandler, ticketService, cfg.JWTSecret)
+	router.RegisterUploadRoutes(v1, uploadHandler, cfg.JWTSecret)
+	router.RegisterAuthRoutes(v1, userHandler, cfg.JWTSecret)
 
 	// start hubservice
 	go hubService.Run()

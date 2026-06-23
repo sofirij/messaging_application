@@ -8,7 +8,7 @@ import (
 )
 
 func RegisterConversationRoutes(r fiber.Router, c *handler.ConversationHandler, m *handler.MessageHandler, jwtSecret string) {
-	conversations := r.Group("/api/conversations", middleware.JWT(jwtSecret))
+	conversations := r.Group("/conversations", middleware.JWT(jwtSecret))
 
 	conversations.Get("/", c.GetByUserID)
 	conversations.Post("/", c.Create)

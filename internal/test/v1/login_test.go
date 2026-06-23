@@ -1,4 +1,4 @@
-package test
+package v1
 
 import (
 	"app/internal/model/request"
@@ -18,7 +18,7 @@ func login(t *testing.T, app *fiber.App, bodyStruct request.UserAuthRequest) (*h
 	body, err := json.Marshal(bodyStruct)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(req)
@@ -83,7 +83,7 @@ func TestLogin_WrongCredentials(t *testing.T) {
 	body, err := json.Marshal(bodyStruct)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(req)

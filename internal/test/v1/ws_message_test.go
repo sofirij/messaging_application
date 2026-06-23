@@ -1,4 +1,4 @@
-package test
+package v1
 
 import (
 	"bytes"
@@ -122,7 +122,7 @@ func TestWSMessage_Delete(t *testing.T) {
 	createMessage(t, app, accessCookie1, conversationID, originalText)
 
 	// get the messageID
-	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
+	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages", conversationID), nil)
 	req2.Header.Set("Content-Type", "application/json")
 	req2.AddCookie(accessCookie1)
 
@@ -139,7 +139,7 @@ func TestWSMessage_Delete(t *testing.T) {
 	messageID := result2.Data[0].ID
 
 	// user1 deletes message
-	req3 := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/messages/%d", messageID), nil)
+	req3 := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/messages/%d", messageID), nil)
 	req3.AddCookie(accessCookie1)
 	req3.Header.Set("Content-Type", "application/json")
 
@@ -213,7 +213,7 @@ func TestWSMessage_Edit(t *testing.T) {
 	createMessage(t, app, accessCookie1, conversationID, originalText)
 
 	// get the messageID
-	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), nil)
+	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages", conversationID), nil)
 	req2.Header.Set("Content-Type", "application/json")
 	req2.AddCookie(accessCookie1)
 
@@ -238,7 +238,7 @@ func TestWSMessage_Edit(t *testing.T) {
 
 	require.NoError(t, err)
 
-	req3 := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/messages/%d", messageID), bytes.NewReader(messageEditBytes))
+	req3 := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/messages/%d", messageID), bytes.NewReader(messageEditBytes))
 	req3.Header.Set("Content-Type", "application/json")
 	req3.AddCookie(accessCookie1)
 
