@@ -84,7 +84,7 @@ func setupApp(t *testing.T) *fiber.App {
 	router.RegisterMessageRoutes(v1, messageHandler, cfg.JWTSecret)
 	router.RegisterWSRoutes(v1, wsHandler, ticketService, cfg.JWTSecret)
 	router.RegisterUploadRoutes(v1, uploadHandler, cfg.JWTSecret)
-	router.RegisterAuthRoutes(v1, userHandler, cfg.JWTSecret)
+	router.RegisterAuthRoutes(v1, userHandler)
 
 	return app
 }

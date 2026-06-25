@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func RegisterAuthRoutes(r fiber.Router, u *handler.UserHandler, jwtSecret string) {
+func RegisterAuthRoutes(r fiber.Router, u *handler.UserHandler) {
 	auth := r.Group("/auth")
 	auth.Post("/register", u.Register)
 	auth.Post("/login", u.Login)

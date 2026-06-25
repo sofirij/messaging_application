@@ -102,7 +102,7 @@ func main() {
 	router.RegisterMessageRoutes(v1, messageHandler, cfg.JWTSecret)
 	router.RegisterWSRoutes(v1, wsHandler, ticketService, cfg.JWTSecret)
 	router.RegisterUploadRoutes(v1, uploadHandler, cfg.JWTSecret)
-	router.RegisterAuthRoutes(v1, userHandler, cfg.JWTSecret)
+	router.RegisterAuthRoutes(v1, userHandler)
 
 	// start hubservice
 	go hubService.Run()
