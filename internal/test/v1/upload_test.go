@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	filesPath = "../files/"
-	validFilename = "image.png"
+	filesPath       = "../files/"
+	validFilename   = "image.png"
 	invalidFilename = "app.exe"
-	validFilePath = filesPath + validFilename
+	validFilePath   = filesPath + validFilename
 	invalidFilePath = filesPath + invalidFilename
 )
 
@@ -141,7 +141,7 @@ func TestUpload_ManyFiles(t *testing.T) {
 		filenames[i] = validFilename
 	}
 
-	req := createMultipartRequestMany(t, accessCookie1, "files", filenames, contents)
+	req := createMultipartRequestMany(t, accessCookie1, "file", filenames, contents)
 
 	resp, err := app.Test(req, testCfg)
 
@@ -177,7 +177,7 @@ func TestUpload_TooManyFiles(t *testing.T) {
 		filenames[i] = validFilename
 	}
 
-	req := createMultipartRequestMany(t, accessCookie1, "files", filenames, contents)
+	req := createMultipartRequestMany(t, accessCookie1, "file", filenames, contents)
 
 	resp, err := app.Test(req)
 
@@ -221,7 +221,7 @@ func TestUpload_ManyFilesOneInvalid(t *testing.T) {
 	contents = append(contents, content)
 	filenames = append(filenames, invalidFilename)
 
-	req := createMultipartRequestMany(t, accessCookie1, "files", filenames, contents)
+	req := createMultipartRequestMany(t, accessCookie1, "file", filenames, contents)
 
 	resp, err := app.Test(req, testCfg)
 

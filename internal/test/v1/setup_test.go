@@ -46,7 +46,7 @@ func setupApp(t *testing.T) *fiber.App {
 	})
 
 	// setup middleware
-	app.Use(middleware.CORS(cfg.AppHost))
+	app.Use(middleware.CORS([]string{}))
 	app.Use(middleware.Compress())
 	app.Use(middleware.Logger())
 
