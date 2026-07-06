@@ -113,6 +113,7 @@ func (u *UserHandler) SoftDelete(c fiber.Ctx) error {
 		return handleServiceError(c, err)
 	}
 
+	c.ClearCookie("access_token", "refresh_token")
 	return c.SendStatus(fiber.StatusNoContent)
 }
 

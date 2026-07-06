@@ -312,7 +312,7 @@ func (h *hub) HandleMessageRead(ctx context.Context, client *client, payload ws.
 }
 
 func broadcastError(h HubService, userID int, ref string, err error) {
-	payload := ws.ErrorPayload{Ref: &ref}
+	payload := ws.ErrorPayload{Ref: ref}
 
 	if serviceError, ok := errors.AsType[*Error](err); ok {
 		payload.Message = serviceError.Message

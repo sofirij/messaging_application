@@ -21,6 +21,7 @@ type Config struct {
 	RefreshTokenDuration time.Duration
 	BcryptCost           int
 	UploadDir            string
+	FrontendURL          string
 }
 
 func Load(envFilePath string) *Config {
@@ -43,6 +44,7 @@ func Load(envFilePath string) *Config {
 		RefreshTokenDuration: getDurationEnv("REFRESH_TOKEN_DURATION", time.Hour*24*7),
 		BcryptCost:           getIntEnv("BCRYPT_COST", 12),
 		UploadDir:            getEnv("UPLOAD_DIR", "./uploads"),
+		FrontendURL:          getEnv("FRONTEND_URL", "http://localhost:5000"),
 	}
 }
 

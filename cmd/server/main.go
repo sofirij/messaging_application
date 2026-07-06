@@ -44,7 +44,7 @@ func main() {
 	})
 
 	// setup middleware
-	app.Use(middleware.CORS(cfg.AppHost))
+	app.Use(middleware.CORS([]string{cfg.FrontendURL}))
 	app.Use(middleware.Compress())
 	app.Use(middleware.Logger())
 

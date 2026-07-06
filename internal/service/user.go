@@ -232,7 +232,13 @@ func (u *userService) UpdateAvatarURL(ctx context.Context, userID int, req reque
 }
 
 func (u *userService) UpdateUsername(ctx context.Context, userID int, req request.UserUsernameRequest) error {
-	_, err := u.userRepo.UpdateUsername(ctx, userID, req.Username)
+	err := validateUsername(req.Username)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = u.userRepo.UpdateUsername(ctx, userID, req.Username)
 
 	if err != nil {
 		return err

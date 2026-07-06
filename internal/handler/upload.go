@@ -44,7 +44,7 @@ func (u *UploadHandler) UploadMany(c fiber.Ctx) error {
 		})
 	}
 
-	files, ok := form.File["files"]
+	files, ok := form.File["file"]
 
 	if !ok {
 		return c.Status(fiber.StatusBadRequest).JSON(response.ErrorResponse{

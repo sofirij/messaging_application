@@ -5,9 +5,9 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/cors"
 )
 
-func CORS(host string) fiber.Handler {
+func CORS(allowedOrigins []string) fiber.Handler {
 	return cors.New(cors.Config{
-		AllowOrigins: []string{"https://" + host},
+		AllowOrigins: allowedOrigins,
 		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Accept-Encoding"},
 	})
 }
