@@ -24,10 +24,10 @@ import (
 const (
 	assetMaxAge        = 365 * 24 * time.Hour
 	assetCacheDuration = 1 * time.Minute
-	uploadURLPath      = "/uploads"
 	envFilePath        = ".env"
 	pingInterval       = 15 * time.Second
 	pongTimeout        = pingInterval + 15*time.Second
+	frontendAssetDir   = "./frontend/out"
 )
 
 func main() {
@@ -49,11 +49,12 @@ func main() {
 	app.Use(middleware.Logger())
 
 	// serve static files
-	app.Use(uploadURLPath, static.New(cfg.UploadDir, static.Config{
+	app.Get("/uploads/*", static.New(cfg.UploadDir, static.Config{
 		Browse:        false,
 		Compress:      true,
 		MaxAge:        int(assetMaxAge.Seconds()),
 		CacheDuration: assetCacheDuration,
+		NotFoundHandler: notFoundHandler,
 	}))
 
 	// initialize db connection
@@ -104,6 +105,21 @@ func main() {
 	router.RegisterUploadRoutes(v1, uploadHandler, cfg.JWTSecret)
 	router.RegisterAuthRoutes(v1, userHandler)
 
+	// frontend assets
+	app.Get("/login", static.New(frontendAssetDir, static.Config{
+		Browse: false,
+		Compress: true,
+		CacheDuration: assetCacheDuration,
+		NotFoundHandler: notFoundHandler,
+	}))
+
+	app.Get("/*", middleware.JWT(cfg.JWTSecret), static.New(frontendAssetDir, static.Config{
+		Browse: false,
+		Compress: true,
+		CacheDuration: assetCacheDuration,
+		NotFoundHandler: notFoundHandler,
+	}))
+
 	// start hubservice
 	go hubService.Run()
 
@@ -131,4 +147,11 @@ func main() {
 
 	// shut down hub
 	hubService.Stop()
+}
+
+func notFoundHandler(c fiber.Ctx) error {
+	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+		"error": "asset not found",
+		"path": c.Path(),
+	})
 }

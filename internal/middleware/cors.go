@@ -9,5 +9,6 @@ func CORS(allowedOrigins []string) fiber.Handler {
 	return cors.New(cors.Config{
 		AllowOrigins: allowedOrigins,
 		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Accept-Encoding"},
+		AllowCredentials: true,
 	})
 }

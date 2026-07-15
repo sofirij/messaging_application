@@ -13,7 +13,9 @@ func JWT(secret string) fiber.Handler {
 		token := c.Cookies("access_token")
 
 		if token == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{})
+			return c.Status(fiber.StatusUnauthorized).JSON(response.ErrorResponse{
+				Error: response.ErrorDetail{Message: "missing token"},
+			})
 		}
 
 		claims := jwt.MapClaims{}
