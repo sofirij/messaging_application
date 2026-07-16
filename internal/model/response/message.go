@@ -16,7 +16,7 @@ type MessageResponse struct {
 }
 
 type PaginatedMessageResponse struct {
-	Data       []MessageResponse `json:"data"`
+	Messages       []MessageResponse `json:"messages"`
 	NextCursor *int              `json:"next_cursor"`
 	HasMore    bool              `json:"has_more"`
 }

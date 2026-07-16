@@ -131,12 +131,12 @@ func TestWSMessage_Delete(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp2.StatusCode)
 
-	var result2 response.PaginatedMessageResponse
+	var result2 response.Response[*response.PaginatedMessageResponse]
 	err = json.NewDecoder(resp2.Body).Decode(&result2)
 
 	require.NoError(t, err)
 
-	messageID := result2.Data[0].ID
+	messageID := result2.Data.Messages[0].ID
 
 	// user1 deletes message
 	req3 := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/messages/%d", messageID), nil)
@@ -222,12 +222,12 @@ func TestWSMessage_Edit(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp2.StatusCode)
 
-	var result2 response.PaginatedMessageResponse
+	var result2 response.Response[*response.PaginatedMessageResponse]
 	err = json.NewDecoder(resp2.Body).Decode(&result2)
 
 	require.NoError(t, err)
 
-	messageID := result2.Data[0].ID
+	messageID := result2.Data.Messages[0].ID
 
 	// user1 edits the message
 	messageEditReq := request.MessageEditRequest{

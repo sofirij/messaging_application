@@ -239,7 +239,7 @@ func (m *messageService) GetByConversationID(ctx context.Context, userID, conver
 	}
 
 	resp := response.PaginatedMessageResponse{
-		Data:       messageResp,
+		Messages:       messageResp,
 		NextCursor: nextCursor,
 		HasMore:    hasMore,
 	}

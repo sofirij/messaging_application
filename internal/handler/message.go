@@ -162,6 +162,5 @@ func (m *MessageHandler) GetByConversationID(c fiber.Ctx) error {
 		return handleServiceError(c, err)
 	}
 
-	// paginated message response is already arranged as a response.Response
-	return c.JSON(resp)
+	return c.JSON(response.Response[*response.PaginatedMessageResponse]{Data: resp})
 }

@@ -541,15 +541,15 @@ func TestConversation_ClearMessages(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result2 response.PaginatedMessageResponse
+	var result2 response.Response[*response.PaginatedMessageResponse]
 	err = json.NewDecoder(resp.Body).Decode(&result2)
 
 	require.NoError(t, err)
 
-	assert.Equal(t, 1, len(result2.Data))
+	assert.Equal(t, 1, len(result2.Data.Messages))
 
-	require.NotNil(t, result2.Data[0].Body)
-	assert.Equal(t, lastMessage, *result2.Data[0].Body)
+	require.NotNil(t, result2.Data.Messages[0].Body)
+	assert.Equal(t, lastMessage, *result2.Data.Messages[0].Body)
 }
 
 func TestConversation_Delete(t *testing.T) {
