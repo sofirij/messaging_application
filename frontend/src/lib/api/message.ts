@@ -1,38 +1,29 @@
 import { ApiResult } from "@/types/http/response"
+import { fetchWithAuth } from "@/lib/api/fetch"
 
 const api_version = "/api/v1"
 const api_url = "http://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/messages"
 
 export async function editMessage(id: number): Promise<ApiResult> {
-    const res = await fetch(`${api_url}/${id}`, {
+    const url = `${api_url}/${id}`
+    const init = {
         method: "PATCH",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-        },
-    })
-
-    if (!res.ok) {
-        const json = await res.json()
-        return {error: json.error.message}
+            "Content-Type": "application/json"
+        }
     }
-
-    return {error: null}
+    
+    return fetchWithAuth(url, init, false)
 }
 
 export async function deleteMessage(id: number): Promise<ApiResult> {
-    const res = await fetch(`${api_url}/${id}`, {
+    const url = `${api_url}/${id}`
+    const init = {
         method: "PATCH",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-        },
-    })
-
-    if (!res.ok) {
-        const json = await res.json()
-        return {error: json.error.message}
+            "Content-Type": "application/json"
+        }
     }
-
-    return {error: null}
+    
+    return fetchWithAuth(url, init, false)
 }

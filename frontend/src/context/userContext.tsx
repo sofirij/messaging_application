@@ -7,17 +7,20 @@ import { getUser } from "@/lib/api/user"
 type UserContextType = {
     user: User | null
     setUser: Dispatch<SetStateAction<User | null>>
+	loading: boolean
 }
 
 const UserContext = createContext<UserContextType | null>(null)
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
 	const [ user, setUser ] = useState<User|null>(null)
+	const [loading, setLoading] = useState(true)
 	const { addError } = useErrorContext()
 
 	useEffect(() => {
 		async function loadUser() {
 			const res = await getUser()
+			setLoading(false)
 
 			if (res.error) {
 				addError(res.error)
@@ -29,10 +32,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 		}
 
 		loadUser()
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	return (
-		<UserContext value={{ user, setUser }}>
+		<UserContext value={{ user, setUser, loading }}>
 			{children}
 		</UserContext>
 	)

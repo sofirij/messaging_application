@@ -1,5 +1,6 @@
 import { Upload } from "@/types/http/upload"
 import { ApiResult } from "@/types/http/response"
+import { fetchWithAuth } from "@/lib/api/fetch"
 
 const api_url = "http://"+process.env.NEXT_PUBLIC_API_URL+"/api"
 
@@ -7,19 +8,13 @@ export async function upload(file: File): Promise<ApiResult<Upload>> {
     const form = new FormData()
     form.append("file", file)
 
-    const res = await fetch(`${api_url}/upload`, {
+    const url = `${api_url}/upload`
+    const init = {
         method: "POST",
-        credentials: "include",
-        body: form,
-    })
-    
-    const json = await res.json()
-
-    if (!res.ok) {
-        return {error: json.error.message, data: null}
+        body: form
     }
 
-    return {error: json.error.message, data: json.data}
+    return fetchWithAuth(url, init, true)
 }
 
 export async function uploadMany(files: File[]): Promise<ApiResult<Upload[]>> {
@@ -28,17 +23,11 @@ export async function uploadMany(files: File[]): Promise<ApiResult<Upload[]>> {
         form.append("file", file)
     }
 
-    const res = await fetch(`${api_url}/upload-many`, {
+    const url = `${api_url}/upload-many`
+    const init = {
         method: "POST",
-        credentials: "include",
-        body: form,
-    })
-
-    const json = await res.json()
-
-    if (!res.ok) {
-        return {error: json.error.message, data: null}
+        body: form
     }
 
-    return {error: null, data: json.data}
+    return fetchWithAuth(url, init, true)
 }

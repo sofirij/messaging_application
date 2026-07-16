@@ -1,84 +1,58 @@
 import { Conversation, ConversationAddMemberRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest } from "@/types/http/conversation"
 import { AttachmentRequest, Message, MessageCreateRequest } from "@/types/http/message"
 import { ApiResult } from "@/types/http/response"
+import { fetchWithAuth } from "@/lib/api/fetch"
 
 const api_version = "/api/v1"
 const api_url = "http://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/conversations"
 
 export async function getConversationsByUserID(): Promise<ApiResult<Conversation[]>> {
-    const res = await fetch(`${api_url}`, {
+    const init = {
         method: "GET",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-            
-        },
-    })
-
-    const json = await res.json()
-
-    if (!res.ok) {
-        return {error: json.error.message, data: null}
+            "Content-Type": "application/json"
+        }
     }
-
-    return {error: null, data: json.data}
+    
+    return fetchWithAuth(api_url, init, true)
 }
 
 export async function createConversation(type: string, name: string | null, user_ids: number[]): Promise<ApiResult<Conversation>> {
     const req : ConversationCreateRequest = { type, name, user_ids }
-
-    const res = await fetch(`${api_url}`, {
+    const init = {
         method: "POST",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-            
+            "Content-Type": "application/json"
         },
         body: JSON.stringify(req)
-    })
-
-    const json = await res.json()
-
-    if (!res.ok) {
-        return {error: json.error.message, data: null}
     }
-
-    return {error: null, data: json.data}
+    
+    return fetchWithAuth(api_url, init, true)
 }
 
 export async function getConversationByID(id: number): Promise<ApiResult<Conversation>> {
-    const res = await fetch(`${api_url}/${id}`, {
+    const url = `${api_url}/${id}`
+
+    const init = {
         method: "GET",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-        },
-    })
-
-    const json = await res.json()
-
-    if (!res.ok) {
-        return {error: json.error.message, data: null}
+            "Content-Type": "application/json"
+        }
     }
-
-    return {error: null, data: json.data}
+    
+    return fetchWithAuth(url, init, true)
 }
 
 export async function deleteConversation(id: number): Promise<ApiResult> {
-    const res = await fetch(`${api_url}/${id}`, {
+    const url = `${api_url}/${id}`
+    const init = {
         method: "DELETE",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-        },
-    })
-
-    if (!res.ok) {
-        const json = await res.json()
-        return {error: json.error.message}
+            "Content-Type": "application/json"
+        }
     }
 
-    return {error: null}
+    return fetchWithAuth(url, init, false)
 }
 
 export async function getMessages(conversationID: number, before: number | null, limit: number): Promise<ApiResult<{messages: Message[], next_cursor: number | null, has_more: boolean }>> {
@@ -88,138 +62,92 @@ export async function getMessages(conversationID: number, before: number | null,
         url.searchParams.set("before", String(before))
     }
 
-    const res = await fetch(url, {
+    const init = {
         method: "GET",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-            
-        },    
-    })
-
-    const json = await res.json()
-
-    if (!res.ok) {
-        return {error: json.error.message, data: null}
+            "Content-Type": "application/json"
+        }
     }
 
-    return { error: null, data: {messages: json.data, next_cursor: json.next_cursor, has_more: json.has_more} }
+    return fetchWithAuth(url, init, true)
 }
 
 export async function createMessage(conversation_id: number, reply_to_id: number | null, body: string | null, attachments: AttachmentRequest[]): Promise<ApiResult<Message>> {
     const req : MessageCreateRequest = { reply_to_id, body, attachments }
-
-    const res = await fetch(`${api_url}/${conversation_id}/messages`, {
+    const url = `${api_url}/${conversation_id}/messages`
+    const init = {
         method: "POST",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-            
+            "Content-Type": "application/json"
         },
         body: JSON.stringify(req)
-    })
-
-    const json = await res.json()
-
-    if (!res.ok) {
-        return {error: json.error.message, data: null}
     }
 
-    return {error: null, data: json.data}
+    return fetchWithAuth(url, init, true)
 }
 
-export async function addMember(conversation_id: number, user_ids: number[]): Promise<ApiResult> {
+export async function addMembers(conversation_id: number, user_ids: number[]): Promise<ApiResult> {
     const req : ConversationAddMemberRequest = { user_ids }
-
-    const res = await fetch(`${api_url}/${conversation_id}/members`, {
+    const url = `${api_url}/${conversation_id}/members`
+    const init = {
         method: "POST",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-            
+            "Content-Type": "application/json"
         },
         body: JSON.stringify(req)
-    })
-
-    if (!res.ok) {
-        const json = await res.json()
-        return {error: json.error.message}
     }
 
-    return {error: null}
+    return fetchWithAuth(url, init, false)
 }
 
 export async function updateConversationName(conversationID: number, name: string): Promise<ApiResult> {
     const req : ConversationRenameRequest = {name}
-
-    const res = await fetch(`${api_url}/${conversationID}/members`, {
+    const url = `${api_url}/${conversationID}/members`
+    const init = {
         method: "PUT",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-            
+            "Content-Type": "application/json"
         },
         body: JSON.stringify(req)
-    })
-
-    if (!res.ok) {
-        const json = await res.json()
-        return {error: json.error.message}
     }
 
-    return {error: null}
+    return fetchWithAuth(url, init, false)
 }
 
 export async function updateConversationAvatar(conversation_id: number, avatar_url: string): Promise<ApiResult> {
     const req : ConversationAvatarRequest = { avatar_url }
-
-    const res = await fetch(`${api_url}/${conversation_id}/avatar`, {
+    const url = `${api_url}/${conversation_id}/avatar`
+    const init = {
         method: "PUT",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json"
         },
         body: JSON.stringify(req)
-    })
-
-    if (!res.ok) {
-        const json = await res.json()
-        return {error: json.error.message}
     }
 
-    return {error: null}
+    return fetchWithAuth(url, init, false)
 }
 
 export async function clearMessages(conversation_id: number): Promise<ApiResult> {
-    const res = await fetch(`${api_url}/${conversation_id}/messages`, {
+    const url = `${api_url}/${conversation_id}/messages`
+    const init ={
         method: "DELETE",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-        },
-    })
-
-    if (!res.ok) {
-        const json = await res.json()
-        return {error: json.error.message}
+            "Content-Type": "application/json"
+        }
     }
-
-    return {error: null}
+    
+    return fetchWithAuth(url, init, false)
 }
 
 export async function removeMember(conversationID: number, userID: number): Promise<ApiResult> {
-    const res = await fetch(`${api_url}/${conversationID}/members/${userID}`, {
+    const url = `${api_url}/${conversationID}/members/${userID}`
+    const init = {
         method: "DELETE",
-        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-        },
-    })
-
-    if (!res.ok) {
-        const json = await res.json()
-        return {error: json.error.message}
+            "Content-Type": "application/json"
+        }
     }
-
-    return {error: null}
+    
+    return fetchWithAuth(url, init, false)
 }

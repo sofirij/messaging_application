@@ -18,7 +18,7 @@ export type Attachment = {
 }
 
 export type PaginatedMessage = {
-    data: Message[]
+    messages: Message[]
     next_cursor: number | null
     has_more: boolean
 }

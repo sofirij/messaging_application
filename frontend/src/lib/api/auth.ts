@@ -18,10 +18,10 @@ export async function register(username: string, password: string): Promise<ApiR
 
     if (!res.ok) {
         const json = await res.json()
-        return {error: json.error.message}
+        return {error: json.error.message, status: res.status}
     }
 
-    return {error: null}
+    return {error: null, status: res.status}
 }
 
 export async function login(username: string, password: string): Promise<ApiResult<User>> {
@@ -39,10 +39,10 @@ export async function login(username: string, password: string): Promise<ApiResu
     const json = await res.json()
 
     if (!res.ok) {
-        return {error: json.error.message, data: null}
+        return {error: json.error.message, data: null, status: res.status}
     }
 
-    return {error: null, data: json.data}
+    return {error: null, data: json.data, status: res.status}
 }
 
 export async function logout(): Promise<ApiResult> {
@@ -56,10 +56,10 @@ export async function logout(): Promise<ApiResult> {
 
     if (!res.ok) {
         const json = await res.json()
-        return {error: json.error.message}
+        return {error: json.error.message, status: res.status}
     }
 
-    return {error: null}
+    return {error: null, status: res.status}
 }
 
 export async function refreshToken(): Promise<ApiResult> {
@@ -74,8 +74,8 @@ export async function refreshToken(): Promise<ApiResult> {
 
     if (!res.ok) {
         const json = await res.json()
-        return {error: json.error.message}
+        return {error: json.error.message, status: res.status}
     }
 
-    return {error: null}
+    return {error: null, status: res.status}
 }

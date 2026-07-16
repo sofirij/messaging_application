@@ -2,7 +2,9 @@
 import Input from "@/components/ui/input"
 import Form from "@/components/ui/form"
 import { useLogin, useRegister } from "@/hooks/auth"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useUserContext } from "@/context/userContext"
+import { useRouter } from "next/navigation"
 
 export default function Page() {
     const { handleLogin } = useLogin()
@@ -11,6 +13,17 @@ export default function Page() {
     const [username, setUsername] = useState<string>("")
     const [password, setPassword] = useState<string>("")
     const [confirmPassword, setConfirmPassword] = useState<string>("")
+    const { user, loading } = useUserContext()
+    const router = useRouter()
+
+    useEffect(() => {
+        if (loading) return
+
+        if (user) {
+            router.push("/profile")
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading])
 
     return (
         <main>
