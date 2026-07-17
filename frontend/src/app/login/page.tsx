@@ -30,7 +30,7 @@ export default function Page() {
             {/* tab toggle */}
             <div>
                 <button onClick={() => setMode("login")}>LOGIN</button> 
-                <p>/</p>
+                {"|"}
                 <button onClick={() => setMode("register")}>REGISTER</button>
             </div>
 
