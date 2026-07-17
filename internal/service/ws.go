@@ -129,7 +129,6 @@ type HubService interface {
 	HandleTypingStart(ctx context.Context, client *client, payload ws.TypingPayloadInbound)
 	HandleTypingStop(ctx context.Context, client *client, payload ws.TypingPayloadInbound)
 	HandleMessageRead(ctx context.Context, client *client, payload ws.MessageReadPayload)
-	Stop()
 }
 
 func NewHubService(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, messageService MessageService) HubService {
@@ -143,10 +142,6 @@ func NewHubService(conversationRepo repository.ConversationRepository, userRepo 
 		userRepo:         userRepo,
 		stop:             make(chan struct{}),
 	}
-}
-
-func (h *hub) Stop() {
-	h.stop <- struct{}{}
 }
 
 func (h *hub) Run() {
@@ -172,17 +167,6 @@ func (h *hub) Run() {
 			}
 			h.mu.Unlock()
 			h.broadcastOnlineStatus(conn.ctx, conn.userID, false)
-
-		case <-h.stop:
-			h.mu.Lock()
-			for _, clients := range h.clients {
-				for client := range clients {
-					close(client.send)
-				}
-			}
-			h.mu.Unlock()
-			close(h.register)
-			return
 		}
 	}
 }

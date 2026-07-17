@@ -31,6 +31,7 @@ func (u *UserHandler) createCookie(name string, value string, duration time.Dura
 	cookie.HTTPOnly = true
 	cookie.MaxAge = int(duration.Seconds())
 	cookie.SameSite = "Lax"
+	cookie.Path = "/"
 
 	// todo
 	// set cookie.SameSite = "Strict" in production
@@ -101,7 +102,9 @@ func (u *UserHandler) Logout(c fiber.Ctx) error {
 		return handleServiceError(c, err)
 	}
 
-	c.ClearCookie("access_token", "refresh_token")
+	c.Cookie(u.createCookie("access_token", "", -1*time.Second))
+	c.Cookie(u.createCookie("refresh_token", "", -1*time.Second))
+
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
@@ -113,7 +116,9 @@ func (u *UserHandler) SoftDelete(c fiber.Ctx) error {
 		return handleServiceError(c, err)
 	}
 
-	c.ClearCookie("access_token", "refresh_token")
+	c.Cookie(u.createCookie("access_token", "", -1*time.Second))
+	c.Cookie(u.createCookie("refresh_token", "", -1*time.Second))
+
 	return c.SendStatus(fiber.StatusNoContent)
 }
 

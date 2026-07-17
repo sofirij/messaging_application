@@ -140,13 +140,11 @@ func main() {
 	<-quit
 
 	log.Println("shutting down server...")
+
 	if err := app.Shutdown(); err != nil {
 		log.Fatalf("server shutdown failed, %v\n", err)
 	}
 	log.Println("server shutdown gracefully")
-
-	// shut down hub
-	hubService.Stop()
 }
 
 func notFoundHandler(c fiber.Ctx) error {
