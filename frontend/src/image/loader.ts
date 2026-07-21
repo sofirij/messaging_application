@@ -1,5 +1,3 @@
-"use client"
-
 const url = `http://${process.env.NEXT_PUBLIC_API_URL}/uploads`
 
 type ImageProps = {

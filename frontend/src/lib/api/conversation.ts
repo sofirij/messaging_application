@@ -1,12 +1,11 @@
 import { Conversation, ConversationAddMemberRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest } from "@/types/http/conversation"
-import { AttachmentRequest, Message, MessageCreateRequest } from "@/types/http/message"
-import { ApiResult } from "@/types/http/response"
+import { AttachmentRequest, Message, MessageCreateRequest, PaginatedMessage } from "@/types/http/message"
 import { fetchWithAuth } from "@/lib/api/fetch"
 
 const api_version = "/api/v1"
 const api_url = "http://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/conversations"
 
-export async function getConversationsByUserID(): Promise<ApiResult<Conversation[]>> {
+export async function getConversationsByUserID(): Promise<Conversation[]> {
     const init = {
         method: "GET",
         headers: {
@@ -14,10 +13,18 @@ export async function getConversationsByUserID(): Promise<ApiResult<Conversation
         }
     }
     
-    return fetchWithAuth(api_url, init, true)
+    const res = await fetchWithAuth(api_url, init)
+
+    const json = await res.json()
+
+    if (!res.ok) {
+        throw new Error(json.error.message)
+    }
+
+    return json.data
 }
 
-export async function createConversation(type: string, name: string | null, user_ids: number[]): Promise<ApiResult<Conversation>> {
+export async function createConversation(type: string, name: string | null, user_ids: number[]): Promise<Conversation> {
     const req : ConversationCreateRequest = { type, name, user_ids }
     const init = {
         method: "POST",
@@ -27,10 +34,18 @@ export async function createConversation(type: string, name: string | null, user
         body: JSON.stringify(req)
     }
     
-    return fetchWithAuth(api_url, init, true)
+    const res = await fetchWithAuth(api_url, init)
+
+    const json = await res.json()
+
+    if (!res.ok) {
+        throw new Error(json.error.message)
+    }
+
+    return json.data
 }
 
-export async function getConversationByID(id: number): Promise<ApiResult<Conversation>> {
+export async function getConversationByID(id: number): Promise<Conversation> {
     const url = `${api_url}/${id}`
 
     const init = {
@@ -40,10 +55,18 @@ export async function getConversationByID(id: number): Promise<ApiResult<Convers
         }
     }
     
-    return fetchWithAuth(url, init, true)
+    const res = await fetchWithAuth(url, init)
+
+    const json = await res.json()
+
+    if (!res.ok) {
+        throw new Error(json.error.message)
+    }
+
+    return json.data
 }
 
-export async function deleteConversation(id: number): Promise<ApiResult> {
+export async function deleteConversation(id: number): Promise<void> {
     const url = `${api_url}/${id}`
     const init = {
         method: "DELETE",
@@ -52,10 +75,15 @@ export async function deleteConversation(id: number): Promise<ApiResult> {
         }
     }
 
-    return fetchWithAuth(url, init, false)
+    const res = await fetchWithAuth(url, init)
+
+    if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error.message)
+    }
 }
 
-export async function getMessages(conversationID: number, before: number | null, limit: number): Promise<ApiResult<{messages: Message[], next_cursor: number | null, has_more: boolean }>> {
+export async function getMessages(conversationID: number, before: number | null, limit: number): Promise<PaginatedMessage> {
     const url = new URL(`${api_url}/${conversationID}/messages`)
     url.searchParams.set("limit", String(limit))
     if (before !== null) {
@@ -69,10 +97,18 @@ export async function getMessages(conversationID: number, before: number | null,
         }
     }
 
-    return fetchWithAuth(url, init, true)
+    const res = await fetchWithAuth(url, init)
+
+    const json = await res.json()
+
+    if (!res.ok) {
+        throw new Error(json.error.message)
+    }
+
+    return json.data
 }
 
-export async function createMessage(conversation_id: number, reply_to_id: number | null, body: string | null, attachments: AttachmentRequest[]): Promise<ApiResult<Message>> {
+export async function createMessage(conversation_id: number, reply_to_id: number | null, body: string | null, attachments: AttachmentRequest[]): Promise<Message> {
     const req : MessageCreateRequest = { reply_to_id, body, attachments }
     const url = `${api_url}/${conversation_id}/messages`
     const init = {
@@ -83,10 +119,18 @@ export async function createMessage(conversation_id: number, reply_to_id: number
         body: JSON.stringify(req)
     }
 
-    return fetchWithAuth(url, init, true)
+    const res = await fetchWithAuth(url, init)
+
+    const json = await res.json()
+
+    if (!res.ok) {
+        throw new Error(json.error.message)
+    }
+
+    return json.data
 }
 
-export async function addMembers(conversation_id: number, user_ids: number[]): Promise<ApiResult> {
+export async function addMembers(conversation_id: number, user_ids: number[]): Promise<void> {
     const req : ConversationAddMemberRequest = { user_ids }
     const url = `${api_url}/${conversation_id}/members`
     const init = {
@@ -97,10 +141,15 @@ export async function addMembers(conversation_id: number, user_ids: number[]): P
         body: JSON.stringify(req)
     }
 
-    return fetchWithAuth(url, init, false)
+    const res = await fetchWithAuth(url, init)
+
+    if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error.message)
+    }
 }
 
-export async function updateConversationName(conversationID: number, name: string): Promise<ApiResult> {
+export async function updateConversationName(conversationID: number, name: string): Promise<void> {
     const req : ConversationRenameRequest = {name}
     const url = `${api_url}/${conversationID}/members`
     const init = {
@@ -111,10 +160,15 @@ export async function updateConversationName(conversationID: number, name: strin
         body: JSON.stringify(req)
     }
 
-    return fetchWithAuth(url, init, false)
+    const res = await fetchWithAuth(url, init)
+
+    if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error.message)
+    }
 }
 
-export async function updateConversationAvatar(conversation_id: number, avatar_url: string): Promise<ApiResult> {
+export async function updateConversationAvatar(conversation_id: number, avatar_url: string): Promise<void> {
     const req : ConversationAvatarRequest = { avatar_url }
     const url = `${api_url}/${conversation_id}/avatar`
     const init = {
@@ -125,10 +179,15 @@ export async function updateConversationAvatar(conversation_id: number, avatar_u
         body: JSON.stringify(req)
     }
 
-    return fetchWithAuth(url, init, false)
+    const res = await fetchWithAuth(url, init)
+
+    if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error.message)
+    }
 }
 
-export async function clearMessages(conversation_id: number): Promise<ApiResult> {
+export async function clearMessages(conversation_id: number): Promise<void> {
     const url = `${api_url}/${conversation_id}/messages`
     const init ={
         method: "DELETE",
@@ -137,10 +196,15 @@ export async function clearMessages(conversation_id: number): Promise<ApiResult>
         }
     }
     
-    return fetchWithAuth(url, init, false)
+    const res = await fetchWithAuth(url, init)
+
+    if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error.message)
+    }
 }
 
-export async function removeMember(conversationID: number, userID: number): Promise<ApiResult> {
+export async function removeMember(conversationID: number, userID: number): Promise<void> {
     const url = `${api_url}/${conversationID}/members/${userID}`
     const init = {
         method: "DELETE",
@@ -149,5 +213,10 @@ export async function removeMember(conversationID: number, userID: number): Prom
         }
     }
     
-    return fetchWithAuth(url, init, false)
+    const res = await fetchWithAuth(url, init)
+
+    if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error.message)
+    }
 }

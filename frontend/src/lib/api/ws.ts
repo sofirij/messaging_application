@@ -2,14 +2,13 @@ import { Ticket } from "@/types/ws/ticket"
 import { OutboundTypingStartPayload, OutboundTypingStopPayload } from "@/types/ws/typing"
 import { MessageReadPayload } from "@/types/ws/message"
 import { Event, EventTypingStart, EventTypingStop } from "@/types/ws/event"
-import { ApiResult } from "@/types/http/response"
 import { fetchWithAuth } from "@/lib/api/fetch"
 
 const api_version = "/api/v1"
 const ws_url = "ws://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/ws"
 const ticket_url = "http://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/ws/ticket"
 
-export async function getWSTicket(): Promise<ApiResult<Ticket>> {
+export async function getWSTicket(): Promise<Ticket> {
     const url = `${ticket_url}/ticket`
     const init = {
         method: "GET",
@@ -18,21 +17,23 @@ export async function getWSTicket(): Promise<ApiResult<Ticket>> {
         }
     }
     
-    return fetchWithAuth(url, init, true)
-}
+    const res = await fetchWithAuth(url, init)
 
-export async function getWSConn(): Promise<ApiResult<WebSocket>> {
-    // get ticket for creating websocket connection
-    const res = await getWSTicket()
+    const json = await res.json()
 
-    if (res.error) {
-        return {error: res.error, data: null, status: res.status}
+    if (!res.ok) {
+        throw new Error(json.error.message)
     }
 
-    const ticket = res.data?.ticket ? res.data.ticket : ""
+    return json.data
+}
+
+export async function getWSConn(): Promise<WebSocket> {
+    // get ticket for creating websocket connection
+    const ticket = await getWSTicket()
     
     const url = new URL(ws_url)
-    url.searchParams.set("ticket", ticket)
+    url.searchParams.set("ticket", ticket.ticket)
 
     const ws = new WebSocket(url)
 
@@ -44,7 +45,7 @@ export async function getWSConn(): Promise<ApiResult<WebSocket>> {
     ws.onclose = () => { console.log("conn closed") }
     ws.onerror = (error) => { console.log(error) }
 
-    return {error: null, data: ws, status: 101}
+    return ws
 }
 
 export async function readMessage(ws: WebSocket, conversationID: number, messageID: number): Promise<void> {

@@ -1,10 +1,9 @@
-import { ApiResult } from "@/types/http/response"
 import { fetchWithAuth } from "@/lib/api/fetch"
 
 const api_version = "/api/v1"
 const api_url = "http://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/messages"
 
-export async function editMessage(id: number): Promise<ApiResult> {
+export async function updateMessage(id: number): Promise<void> {
     const url = `${api_url}/${id}`
     const init = {
         method: "PATCH",
@@ -13,10 +12,15 @@ export async function editMessage(id: number): Promise<ApiResult> {
         }
     }
     
-    return fetchWithAuth(url, init, false)
+    const res = await fetchWithAuth(url, init)
+
+    if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error.message)
+    }
 }
 
-export async function deleteMessage(id: number): Promise<ApiResult> {
+export async function deleteMessage(id: number): Promise<void> {
     const url = `${api_url}/${id}`
     const init = {
         method: "PATCH",
@@ -25,5 +29,10 @@ export async function deleteMessage(id: number): Promise<ApiResult> {
         }
     }
     
-    return fetchWithAuth(url, init, false)
+    const res = await fetchWithAuth(url, init)
+
+    if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error.message)
+    }
 }
