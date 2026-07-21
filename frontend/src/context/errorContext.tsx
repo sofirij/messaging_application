@@ -1,5 +1,7 @@
 "use client"
-import { createContext, useContext, useState } from "react"
+import { createContext, useContext, useRef, useState } from "react"
+
+const toastTimeout = 5000
 
 type Toast = {
     id: number
@@ -12,22 +14,21 @@ export type ErrorContextType = {
     removeError: (id: number) => void
 }
 
-export const ErrorContext = createContext<ErrorContextType|null>(null)
+const ErrorContext = createContext<ErrorContextType|null>(null)
 
 export function ErrorProvider({ children }: { children: React.ReactNode }) {
     const [toasts, setToasts] = useState<Toast[]>([])
+    const ref = useRef(0) 
 
     function addError(message: string) {
-        console.log("adding error")
-        const id = Date.now()
-        setToasts(prev => [...prev, { id, message }])
+        const id = ref.current
+        ref.current += 1
 
-        const toastTimeout = 5000
+        setToasts(prev => [...prev, { id: id, message }])
         setTimeout(() => removeError(id), toastTimeout)
     }
 
     function removeError(id: number) {
-        console.log("removing error")
         setToasts(prev => prev.filter(t => t.id !== id))
     }
     

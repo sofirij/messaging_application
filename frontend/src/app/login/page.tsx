@@ -3,27 +3,25 @@ import Input from "@/components/ui/input"
 import Form from "@/components/ui/form"
 import { useLogin, useRegister } from "@/hooks/auth"
 import { useEffect, useState } from "react"
-import { useUserContext } from "@/context/userContext"
+import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
+import { userQueryOptions } from "@/context/queryProvider"
 
 export default function Page() {
+    const router = useRouter()
     const { handleLogin } = useLogin()
     const { handleRegister } = useRegister()
     const [mode, setMode] = useState<"login" | "register">("login")
     const [username, setUsername] = useState<string>("")
     const [password, setPassword] = useState<string>("")
     const [confirmPassword, setConfirmPassword] = useState<string>("")
-    const { user, loading } = useUserContext()
-    const router = useRouter()
+    const { data } = useQuery(userQueryOptions)
 
     useEffect(() => {
-        if (loading) return
-
-        if (user) {
-            router.push("/profile")
+        if (data) {
+            router.push("/home")
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loading])
+    }, [data, router])
 
     return (
         <main>

@@ -1,119 +1,84 @@
 "use client"
-import { useRouter } from "next/navigation"
 import { login, register, logout } from "@/lib/api/auth"
-import { useErrorContext } from "@/context/errorContext"
-import { useUserContext } from "@/context/userContext"
 import { validateUsername, validatePassword } from "@/utils/validation"
-
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { userQueryOptions, userRemoveQueryOptions } from "@/context/queryProvider"
+import { User } from "@/types/http/user"
+import { useRouter } from "next/navigation"
 
 export function useLogin() {
+    const queryClient = useQueryClient()
     const router = useRouter()
-    const { addError } = useErrorContext()
-    const { setUser } = useUserContext()
-
-    function validateLogin(username: string, password: string): string | null {
-        const usernameIssue = validateUsername(username)
-        if (usernameIssue) {
-            return usernameIssue
+    
+    const mutation = useMutation({
+        mutationFn: async ({username, password} : {username: string, password: string}) => {
+            validateLogin(username, password)
+            return await login(username, password)
+        },
+        onSuccess: (user: User) => {
+            queryClient.setQueryData(userQueryOptions.queryKey, user)
+            router.push("/home")
         }
+    })
 
-        return validatePassword(password)
+    function validateLogin(username: string, password: string) {
+        validateUsername(username)
+        validatePassword(password)
     }
 
     async function handleLogin(username: string, password: string) {
-        const err = validateLogin(username, password)
-        if (err) {
-            addError(err)
-            return
-        }
-
-        const res = await login(username, password)
-
-        if (res.error) {
-            addError(res.error)
-            return
-        }
-
-        setUser(res.data)
-        console.log("logged in user")
-        console.log("navigating to profile page")
-        router.push("/profile")
+        mutation.mutate({username, password})
     }
 
-    return { handleLogin }
+    return { handleLogin, loading: mutation.isPending }
 }
 
 export function useRegister() {
+    const queryClient = useQueryClient()
     const router = useRouter()
-    const { setUser } = useUserContext()
-    const { addError } = useErrorContext()
 
-    function validateRegister(username: string, password: string, confirmPassword: string): string | null {
-        const usernameIssue = validateUsername(username)
-        if (usernameIssue) {
-            return usernameIssue
+    const mutation = useMutation({
+        mutationFn: async ({username, password, confirmPassword} : {username: string, password: string, confirmPassword: string}) => {
+            validateRegister(username, password, confirmPassword)
+            await register(username, password)
+            return await login(username, password)
+        },
+        onSuccess: (user: User) => {
+            queryClient.setQueryData(userQueryOptions.queryKey, user)
+            router.push("/home")
         }
+    })
 
-        const passwordIssue = validatePassword(password)
-        if (passwordIssue) {
-            return passwordIssue
-        }
-
-        if (password !== confirmPassword) {
-            return "passwords don't match"
-        }
-
-        return null
+    function validateRegister(username: string, password: string, confirmPassword: string) {
+        validateUsername(username)
+        validatePassword(password)
+        if (password !== confirmPassword) throw new Error("passwords don't match")
     }
 
     async function handleRegister(username: string, password: string, confirmPassword: string) {
-        const err = validateRegister(username, password, confirmPassword)
-        if (err) {
-            addError(err)
-            return
-        }
-
-        const registerRes = await register(username, password)
-
-        if (registerRes.error) {
-            addError(registerRes.error)
-            return
-        }
-
-        const loginRes = await login(username, password)
-
-        if (loginRes.error) {
-            addError(loginRes.error)
-            return
-        }
-
-        setUser(loginRes.data)
-        console.log("logged in user")
-        console.log("navigating to the profile page")
-        router.push("/profile")
+        mutation.mutate({username, password, confirmPassword})
     }
 
-    return { handleRegister }
+    return { handleRegister, loading: mutation.isPending }
 }
 
 export function useLogout() {
+    const queryClient = useQueryClient()
     const router = useRouter()
-    const { addError } = useErrorContext()
-    const { setUser } = useUserContext()
+
+    const mutation = useMutation({
+        mutationFn: async () => {
+            await logout()
+        },
+        onSuccess: () => {
+            queryClient.removeQueries(userRemoveQueryOptions)
+            router.push("/login")
+        }
+    })
 
     async function handleLogout() {
-        const res = await logout()
-
-        if (res.error) {
-            addError(res.error)
-            return
-        }
-
-        setUser(null)
-        console.log("logged out user")
-        console.log("navigating to the login page")
-        router.push("/login")
+        mutation.mutate()
     }
 
-    return { handleLogout }
+    return { handleLogout, loading: mutation.isPending }
 }

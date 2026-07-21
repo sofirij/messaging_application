@@ -1,81 +1,97 @@
 "use client"
 import { useRouter } from "next/navigation"
-import { disableAccount, updateUsername } from "@/lib/api/user"
-import { useErrorContext } from "@/context/errorContext"
+import { disableAccount, updateUserAvatar, updateUsername } from "@/lib/api/user"
 import { validateUsername } from "@/utils/validation"
-import { useUserContext } from "@/context/userContext"
-import { getUser as getUserApi } from "@/lib/api/user"
+import { useQueryClient } from "@tanstack/react-query"
+import { userQueryOptions, userRemoveQueryOptions } from "@/context/queryProvider"
+import { useMutation } from "@tanstack/react-query"
+import { upload } from "@/lib/api/upload"
 
 export function useDisableAccount() {
+    const queryClient = useQueryClient()
     const router = useRouter()
-    const { setUser } = useUserContext()
-    const { addError } = useErrorContext()
+
+    const mutation = useMutation({
+        mutationFn: async () => {
+            await disableAccount()
+        },
+        onSuccess: () => {
+            queryClient.removeQueries(userRemoveQueryOptions)
+            router.push("/login")
+        }
+    })
 
     async function handleDisableAccount() {
-        const res = await disableAccount()
-
-        if (res.error) {
-            addError(res.error)
-            return
-        }
-
-        setUser(null)
-        console.log("disabled account")
-        console.log("navigating to login page")
-        router.push("/login")
+        mutation.mutate()
     }
 
-    return { handleDisableAccount }
+    return { handleDisableAccount, loading: mutation.isPending }
 }
 
-export function useEditUsername() {
-    const { addError } = useErrorContext()
-    const { user, setUser } = useUserContext()
+export function useUpdateUsername() {
+    const queryClient = useQueryClient()
 
-    async function handleEditUsername(username: string) {
-        if (!user) {
-            console.log("user is not set")
-            return
+    const mutation = useMutation({
+        mutationFn: async ({username}: {username: string}) => {
+            validateUsername(username)
+            await updateUsername(username)
+            return username
+        },
+        onSuccess: (username: string) => {
+            const user = queryClient.getQueryData(userQueryOptions.queryKey)
+            if (!user) return
+            queryClient.setQueryData(userQueryOptions.queryKey, {...user, username})
         }
+    })
+    
 
-        if (user.username === username) {
-            addError("username unchanged")
-            return
-        }
-
-        const err = validateUsername(username)
-        if (err) {
-            addError(err)
-            return
-        }
-
-        const res = await updateUsername(username)
-
-        if (res.error) {
-            addError(res.error)
-            return
-        }
-
-        setUser(prev => prev ? {...prev, username: username}: null)
+    async function handleUpdateUsername(username: string) {
+        mutation.mutate({username})
     }
 
-    return { handleEditUsername }
+    return { handleUpdateUsername, loading: mutation.isPending }
 }
 
-export function useGetUser() {
-    const { addError } = useErrorContext()
-    const { setUser } = useUserContext()
+export function useUpdateAvatarURL() {
+    const queryClient = useQueryClient()
 
-    async function getUser() {
-        const res = await getUserApi()
-
-        if (res.error) {
-            addError(res.error)
-            return
+    const mutation = useMutation({
+        mutationFn: async({file}: {file: File}) => {
+            const data = await upload(file)
+            await updateUserAvatar(data.url)
+            return data.url
+        },
+        onSuccess: (url: string) => {
+            const user = queryClient.getQueryData(userQueryOptions.queryKey)
+            if (!user) return
+            queryClient.setQueryData(userQueryOptions.queryKey, {...user, avatar_url: url})
         }
+    })
 
-        setUser(res.data)
+    function handleUpdateAvatarURL(file: File) {
+        mutation.mutate({file})
     }
 
-    return { getUser }
+    return {handleUpdateAvatarURL, loading: mutation.isPending}
+}
+
+export function useClearAvatarURL() {
+    const queryClient = useQueryClient()
+
+    const  mutation = useMutation({
+        mutationFn: async () => {
+            await updateUserAvatar(null)
+        },
+        onSuccess: () => {
+            const user = queryClient.getQueryData(userQueryOptions.queryKey)
+            if (!user) return
+            queryClient.setQueryData(userQueryOptions.queryKey, {...user, avatar_url: null})
+        }
+    })
+
+    function handleClearAvatarURL() {
+        mutation.mutate()
+    }
+
+    return { handleClearAvatarURL, loading: mutation.isPending}
 }

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { ErrorProvider } from "@/context/errorContext";
-import { UserProvider } from "@/context/userContext";
 import ToastContainer from "@/components/ui/toastContainer";
-
+import { QueryProvider } from "@/context/queryProvider";
+import "./globals.css"
 
 export const metadata: Metadata = {
 	title: "Create Next App",
@@ -10,16 +10,15 @@ export const metadata: Metadata = {
 };
 
 
-
 export default function RootLayout({children}: {children: React.ReactNode}) {
 	return (
 		<html lang="en">
 			<body>
 				<ErrorProvider>
-					<ToastContainer />
-					<UserProvider>
+					<QueryProvider>
+						<ToastContainer />
 						{children}
-					</UserProvider>
+					</QueryProvider>
 				</ErrorProvider>
 			</body>
 		</html>

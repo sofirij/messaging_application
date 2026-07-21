@@ -1,24 +1,27 @@
 "use client"
-import { useUserContext } from "@/context/userContext"
 import Image from "next/image"
 import { useLogout } from "@/hooks/auth"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { userQueryOptions } from "@/context/queryProvider"
+import { UserProvider, useUserContext } from "@/context/userContext"
+import Link from "next/link"
 
 const defaultAvatarURL = "fb24fc90-5e53-4972-b880-3edd0f8ccc64.jpg"
 
 function NavBar() {
-    const { user } = useUserContext()
     const { handleLogout } = useLogout()
+    const user = useUserContext()
 
-    const avatarURL = user ? user.avatar_url ? user.avatar_url : defaultAvatarURL : defaultAvatarURL
-    const username = user?.username
+    const avatarURL = user.avatar_url ?? defaultAvatarURL
+    const username = user.username
 
     return (
         <nav>
             <Image src={avatarURL} alt="User profile picture" width={40} height={10} />
-            <a href="/profile">{username}</a> {"|"}
-            <a href="/conversations">Conversations</a> {"|"}
+            <Link href="/profile">{username}</Link> {"|"}
+            <Link href="/conversations">Conversations</Link> {"|"}
             <button onClick={async () => await handleLogout()}>Logout</button>
         </nav>
     )
@@ -26,22 +29,24 @@ function NavBar() {
 
 export default function AuthedLayout({children}: {children: React.ReactNode}) {
     const router = useRouter()
-    const { user, loading } = useUserContext()
+    const { isPending, isError, data} = useQuery(userQueryOptions)
     
     useEffect(() => {
-        if (loading) return
+        if (isPending) return
 
-        if (!user) {
-            console.log("navigating to login page")
+        if (isError || !data) {
             router.push("/login")
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loading])
+    }, [isError, router, data, isPending])
+
+    if (isPending || !data) {
+        return "Loading..."
+    }
 
     return (
-        <>
+        <UserProvider>
             <NavBar />
             {children}
-        </>
+        </UserProvider>
     )
 }
