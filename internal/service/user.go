@@ -238,6 +238,20 @@ func (u *userService) UpdateUsername(ctx context.Context, userID int, req reques
 		return err
 	}
 
+	existingUser, err := u.userRepo.GetByUsername(ctx, req.Username)
+
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+
+	// duplicate username
+	if existingUser != nil {
+		return &Error{
+			Code:    ErrCodeConflict,
+			Message: "username already taken",
+		}
+	}
+
 	_, err = u.userRepo.UpdateUsername(ctx, userID, req.Username)
 
 	if err != nil {
