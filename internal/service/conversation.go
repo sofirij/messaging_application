@@ -115,7 +115,7 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 
 	// if direct conversation set the name to that of the recipient
 	if conversation.Type == direct {
-		setRecipientName(ctx, userID, conversation, c.conversationRepo, c.userRepo)
+		setRecipientNameAndAvatar(ctx, userID, conversation, c.conversationRepo, c.userRepo)
 	}
 
 	resp := response.ConversationResponse{
@@ -222,7 +222,7 @@ func (c *conversationService) GetByUserID(ctx context.Context, userID int) ([]re
 	for i, conversation := range conversations {
 		// if direct conversation set the name to that of the recipient
 		if conversation.Type == direct {
-			setRecipientName(ctx, userID, &conversation, c.conversationRepo, c.userRepo)
+			setRecipientNameAndAvatar(ctx, userID, &conversation, c.conversationRepo, c.userRepo)
 		}
 
 		resp[i] = response.ConversationResponse{
@@ -290,7 +290,7 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 
 	// if direct conversation set the name to that of the recipient
 	if conversation.Type == direct {
-		setRecipientName(ctx, userID, conversation, c.conversationRepo, c.userRepo)
+		setRecipientNameAndAvatar(ctx, userID, conversation, c.conversationRepo, c.userRepo)
 	}
 
 	resp := response.ConversationResponse{
@@ -353,7 +353,7 @@ func userInConversation(ctx context.Context, repo repository.ConversationReposit
 	return err
 }
 
-func setRecipientName(ctx context.Context, userID int, conversation *db.Conversation, conversationRepo repository.ConversationRepository, userRepo repository.UserRepository) error {
+func setRecipientNameAndAvatar(ctx context.Context, userID int, conversation *db.Conversation, conversationRepo repository.ConversationRepository, userRepo repository.UserRepository) error {
 	members, err := conversationRepo.GetMembers(ctx, conversation.ID)
 
 	if err != nil {
@@ -370,6 +370,7 @@ func setRecipientName(ctx context.Context, userID int, conversation *db.Conversa
 
 			name := user.Username
 			conversation.Name = &name
+			conversation.AvatarURL = user.AvatarURL
 		}
 	}
 
