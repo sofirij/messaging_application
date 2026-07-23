@@ -4,7 +4,7 @@ import { useLogout } from "@/hooks/auth"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { userQueryOptions } from "@/context/queryProvider"
+import { userQueryOptions } from "@/query/user"
 import { UserProvider, useUserContext } from "@/context/userContext"
 import Link from "next/link"
 

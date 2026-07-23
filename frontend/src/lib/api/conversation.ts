@@ -1,9 +1,9 @@
 import { Conversation, ConversationAddMemberRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest } from "@/types/http/conversation"
-import { AttachmentRequest, Message, MessageCreateRequest, PaginatedMessage } from "@/types/http/message"
+import { Message, MessageCreateRequest, PaginatedMessage } from "@/types/http/message"
 import { fetchWithAuth } from "@/lib/api/fetch"
 
-const api_version = "/api/v1"
-const api_url = "http://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/conversations"
+const apiVersion = "/api/v1"
+const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/conversations"
 
 export async function getConversationsByUserID(): Promise<Conversation[]> {
     const init = {
@@ -13,7 +13,7 @@ export async function getConversationsByUserID(): Promise<Conversation[]> {
         }
     }
     
-    const res = await fetchWithAuth(api_url, init)
+    const res = await fetchWithAuth(apiURL, init)
 
     const json = await res.json()
 
@@ -24,8 +24,7 @@ export async function getConversationsByUserID(): Promise<Conversation[]> {
     return json.data
 }
 
-export async function createConversation(type: string, name: string | null, user_ids: number[]): Promise<Conversation> {
-    const req : ConversationCreateRequest = { type, name, user_ids }
+export async function createConversation(req: ConversationCreateRequest): Promise<Conversation> {
     const init = {
         method: "POST",
         headers: {
@@ -34,7 +33,7 @@ export async function createConversation(type: string, name: string | null, user
         body: JSON.stringify(req)
     }
     
-    const res = await fetchWithAuth(api_url, init)
+    const res = await fetchWithAuth(apiURL, init)
 
     const json = await res.json()
 
@@ -46,7 +45,7 @@ export async function createConversation(type: string, name: string | null, user
 }
 
 export async function getConversationByID(id: number): Promise<Conversation> {
-    const url = `${api_url}/${id}`
+    const url = `${apiURL}/${id}`
 
     const init = {
         method: "GET",
@@ -67,7 +66,7 @@ export async function getConversationByID(id: number): Promise<Conversation> {
 }
 
 export async function deleteConversation(id: number): Promise<void> {
-    const url = `${api_url}/${id}`
+    const url = `${apiURL}/${id}`
     const init = {
         method: "DELETE",
         headers: {
@@ -84,7 +83,7 @@ export async function deleteConversation(id: number): Promise<void> {
 }
 
 export async function getMessages(conversationID: number, before: number | null, limit: number): Promise<PaginatedMessage> {
-    const url = new URL(`${api_url}/${conversationID}/messages`)
+    const url = new URL(`${apiURL}/${conversationID}/messages`)
     url.searchParams.set("limit", String(limit))
     if (before !== null) {
         url.searchParams.set("before", String(before))
@@ -108,9 +107,8 @@ export async function getMessages(conversationID: number, before: number | null,
     return json.data
 }
 
-export async function createMessage(conversation_id: number, reply_to_id: number | null, body: string | null, attachments: AttachmentRequest[]): Promise<Message> {
-    const req : MessageCreateRequest = { reply_to_id, body, attachments }
-    const url = `${api_url}/${conversation_id}/messages`
+export async function createMessage(conversationID: number, req: MessageCreateRequest): Promise<Message> {
+    const url = `${apiURL}/${conversationID}/messages`
     const init = {
         method: "POST",
         headers: {
@@ -130,9 +128,8 @@ export async function createMessage(conversation_id: number, reply_to_id: number
     return json.data
 }
 
-export async function addMembers(conversation_id: number, user_ids: number[]): Promise<void> {
-    const req : ConversationAddMemberRequest = { user_ids }
-    const url = `${api_url}/${conversation_id}/members`
+export async function addMembers(conversationID: number, req: ConversationAddMemberRequest): Promise<void> {
+    const url = `${apiURL}/${conversationID}/members`
     const init = {
         method: "POST",
         headers: {
@@ -149,9 +146,8 @@ export async function addMembers(conversation_id: number, user_ids: number[]): P
     }
 }
 
-export async function updateConversationName(conversationID: number, name: string): Promise<void> {
-    const req : ConversationRenameRequest = {name}
-    const url = `${api_url}/${conversationID}/members`
+export async function updateConversationName(conversationID: number, req: ConversationRenameRequest): Promise<void> {
+    const url = `${apiURL}/${conversationID}/members`
     const init = {
         method: "PUT",
         headers: {
@@ -168,9 +164,8 @@ export async function updateConversationName(conversationID: number, name: strin
     }
 }
 
-export async function updateConversationAvatar(conversation_id: number, avatar_url: string): Promise<void> {
-    const req : ConversationAvatarRequest = { avatar_url }
-    const url = `${api_url}/${conversation_id}/avatar`
+export async function updateConversationAvatar(conversationID: number, req: ConversationAvatarRequest): Promise<void> {
+    const url = `${apiURL}/${conversationID}/avatar`
     const init = {
         method: "PUT",
         headers: {
@@ -188,7 +183,7 @@ export async function updateConversationAvatar(conversation_id: number, avatar_u
 }
 
 export async function clearMessages(conversation_id: number): Promise<void> {
-    const url = `${api_url}/${conversation_id}/messages`
+    const url = `${apiURL}/${conversation_id}/messages`
     const init ={
         method: "DELETE",
         headers: {
@@ -205,7 +200,7 @@ export async function clearMessages(conversation_id: number): Promise<void> {
 }
 
 export async function removeMember(conversationID: number, userID: number): Promise<void> {
-    const url = `${api_url}/${conversationID}/members/${userID}`
+    const url = `${apiURL}/${conversationID}/members/${userID}`
     const init = {
         method: "DELETE",
         headers: {

@@ -2,8 +2,8 @@
 import { login, register, logout } from "@/lib/api/auth"
 import { validateUsername, validatePassword } from "@/utils/validation"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { userQueryOptions, userRemoveQueryOptions } from "@/context/queryProvider"
-import { User } from "@/types/http/user"
+import { userQueryOptions, userRemoveQueryOptions } from "@/query/user"
+import { User, UserAuthRequest } from "@/types/http/user"
 import { useRouter } from "next/navigation"
 
 export function useLogin() {
@@ -11,9 +11,9 @@ export function useLogin() {
     const router = useRouter()
     
     const mutation = useMutation({
-        mutationFn: async ({username, password} : {username: string, password: string}) => {
-            validateLogin(username, password)
-            return await login(username, password)
+        mutationFn: async (req: UserAuthRequest) => {
+            validateLogin(req.username, req.password)
+            return await login(req)
         },
         onSuccess: (user: User) => {
             queryClient.setQueryData(userQueryOptions.queryKey, user)
@@ -39,9 +39,10 @@ export function useRegister() {
 
     const mutation = useMutation({
         mutationFn: async ({username, password, confirmPassword} : {username: string, password: string, confirmPassword: string}) => {
+            const req : UserAuthRequest = {username, password}
             validateRegister(username, password, confirmPassword)
-            await register(username, password)
-            return await login(username, password)
+            await register(req)
+            return await login(req)
         },
         onSuccess: (user: User) => {
             queryClient.setQueryData(userQueryOptions.queryKey, user)

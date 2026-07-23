@@ -3,9 +3,10 @@ import { useRouter } from "next/navigation"
 import { disableAccount, updateUserAvatar, updateUsername } from "@/lib/api/user"
 import { validateUsername } from "@/utils/validation"
 import { useQueryClient } from "@tanstack/react-query"
-import { userQueryOptions, userRemoveQueryOptions } from "@/context/queryProvider"
+import { userQueryOptions, userRemoveQueryOptions } from "@/query/user"
 import { useMutation } from "@tanstack/react-query"
 import { upload } from "@/lib/api/upload"
+import { UserUsernameRequest } from "@/types/http/user"
 
 export function useDisableAccount() {
     const queryClient = useQueryClient()
@@ -32,10 +33,10 @@ export function useUpdateUsername() {
     const queryClient = useQueryClient()
 
     const mutation = useMutation({
-        mutationFn: async ({username}: {username: string}) => {
-            validateUsername(username)
-            await updateUsername(username)
-            return username
+        mutationFn: async (req: UserUsernameRequest) => {
+            validateUsername(req.username)
+            await updateUsername(req)
+            return req.username
         },
         onSuccess: (username: string) => {
             const user = queryClient.getQueryData(userQueryOptions.queryKey)
@@ -58,7 +59,7 @@ export function useUpdateAvatarURL() {
     const mutation = useMutation({
         mutationFn: async({file}: {file: File}) => {
             const data = await upload(file)
-            await updateUserAvatar(data.url)
+            await updateUserAvatar({avatar_url: data.url})
             return data.url
         },
         onSuccess: (url: string) => {
@@ -80,7 +81,7 @@ export function useClearAvatarURL() {
 
     const  mutation = useMutation({
         mutationFn: async () => {
-            await updateUserAvatar(null)
+            await updateUserAvatar({avatar_url: null})
         },
         onSuccess: () => {
             const user = queryClient.getQueryData(userQueryOptions.queryKey)

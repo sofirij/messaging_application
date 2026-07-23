@@ -11,8 +11,11 @@ type InputProps = {
 export default function Input({label, type, labelClassName, inputClassName, placeholder, onChange, value}: InputProps) {
     return (
         <>
-            <label className={labelClassName}>{label}</label>
-            <input type={type} className={inputClassName} placeholder={placeholder} onChange={onChange} value={value}></input>
+            <label className={labelClassName}>
+                {label}
+                <input type={type} className={inputClassName} placeholder={placeholder} onChange={onChange} value={value}></input>
+            </label>
+            
         </>
     )
 }

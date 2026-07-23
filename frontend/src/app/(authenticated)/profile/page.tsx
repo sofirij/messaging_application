@@ -7,7 +7,6 @@ import Input from "@/components/ui/input"
 import { useUserContext } from "@/context/userContext"
 
 const defaultAvatarURL = "fb24fc90-5e53-4972-b880-3edd0f8ccc64.jpg"
-const large = 100
 
 
 export default function Page() {
@@ -44,7 +43,7 @@ export default function Page() {
             {isExpanded && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setIsExpanded(false)}>
                     <div className="relative bg-white rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
-                        <Image src={avatarURL} alt="User profile picture" width={large} height={large}/>
+                        <Image src={avatarURL} alt="User profile picture" width={100} height={100}/>
                         <div className="absolute bottom-4 right-4 flex gap-2">
                             <button onClick={handleEditClick}>Edit</button>
                             {user.avatar_url && (

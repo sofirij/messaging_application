@@ -1,7 +1,7 @@
 "use client"
 import { useQuery } from "@tanstack/react-query"
 import { createContext, useContext } from "react"
-import { userQueryOptions } from "@/context/queryProvider"
+import { userQueryOptions } from "@/query/user"
 import { User } from "@/types/http/user"
 
 const UserContext = createContext<User|null>(null)

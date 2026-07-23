@@ -5,7 +5,7 @@ import { useLogin, useRegister } from "@/hooks/auth"
 import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
-import { userQueryOptions } from "@/context/queryProvider"
+import { userQueryOptions } from "@/query/user"
 
 export default function Page() {
     const router = useRouter()

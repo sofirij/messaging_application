@@ -17,5 +17,5 @@ export type UserAvatarRequest = {
 }
 
 export type UserUsernameRequest = {
-    username: string | null
+    username: string
 }
