@@ -1,3 +1,11 @@
+import { Message } from "@/types/http/message"
+import { Conversation } from "@/types/http/conversation"
+import { MessageDeletedPayload, MessageEditedPayload, MessageReadPayload, MessageSeenPayload } from "@/types/ws/message"
+import { InboundTypingStartPayload, InboundTypingStopPayload, OutboundTypingStartPayload, OutboundTypingStopPayload } from "@/types/ws/typing"
+import { UserOfflinePayload, UserOnlinePayload } from "@/types/ws/user"
+import { MemberAddedPayload, MemberRemovedPayload } from "@/types/ws/conversation"
+import { ErrorPayload } from "@/types/ws/error"
+
 // outbound
 export const EventTypingStart = "typing.start"
 export const EventTypingStop = "typing.stop"
@@ -15,11 +23,25 @@ export const EventConversationNew = "conversation.new"
 export const EventMessageEdited   = "message.edited"
 export const EventMemberAdded     = "member.added"
 export const EventMemberRemoved   = "member.removed"
-export const EventBroadcastUserStatus = "broadcast_user_status"
 
 export const EventError = "error"
 
-export type Event = {
-    Type: string
-    Payload: any
-}
+export type Event =
+    // outbound
+    | { type: typeof EventTypingStart, payload: OutboundTypingStartPayload }
+    | { type: typeof EventTypingStop, payload: OutboundTypingStopPayload }
+    | { type: typeof EventMessageRead, payload: MessageReadPayload}
+
+    // inbound
+    | { type: typeof EventMessageNew, payload: Message }
+    | { type: typeof EventMessageDeleted, payload: MessageDeletedPayload }
+    | { type: typeof EventTypingStart, payload: InboundTypingStartPayload }
+    | { type: typeof EventTypingStop, payload: InboundTypingStopPayload }
+    | { type: typeof EventMessageSeen, payload: MessageSeenPayload }
+    | { type: typeof EventUserOnline, payload: UserOnlinePayload }
+    | { type: typeof EventUserOffline, payload: UserOfflinePayload }
+    | { type: typeof EventConversationNew, payload: Conversation }
+    | { type: typeof EventMessageEdited, payload: MessageEditedPayload }
+    | { type: typeof EventMemberAdded, payload: MemberAddedPayload }
+    | { type: typeof EventMemberRemoved, payload: MemberRemovedPayload }
+    | { type: typeof EventError, payload: ErrorPayload }
