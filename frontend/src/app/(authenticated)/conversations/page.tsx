@@ -7,6 +7,9 @@ import { useState } from "react";
 import { useCreateConversation } from "@/hooks/conversation";
 import { User } from "@/types/http/user";
 import Image from "next/image";
+import { toggleSelected } from "@/utils/conversation";
+import { ConversationType, conversationGroup, conversationDirect } from "@/types/http/conversation";
+import { ConversationBar } from "@/components/conversations/bar";
 
 const defaultAvatarURL = "fb24fc90-5e53-4972-b880-3edd0f8ccc64.jpg"
 
@@ -18,7 +21,7 @@ export default function Conversations() {
     const [selected, setSelected] = useState(new Set<User>())
     const { handleCreateConversation } = useCreateConversation()
     const userIDs = Array.from(selected).map(user => user.id)
-    const type = isGroup ? "group": "direct"
+    const type : ConversationType = isGroup ? conversationGroup : conversationDirect
     const mustBeGroup = isGroup || selected.size > 1
 
     if (isPending || !data) {
@@ -29,10 +32,9 @@ export default function Conversations() {
         <main>
             {data.length > 0 ? (
                 <div>
+                    <button onClick={() => setCreatingConversation(true)}>New Conversation</button>
                     {data.map((conversation) => (
-                        <div key={conversation.id}>
-                            <p>{conversation.name}</p>
-                        </div>
+                        <ConversationBar key={conversation.id} conversation={conversation}/>
                     ))}
                 </div>
             ) : (
@@ -46,22 +48,23 @@ export default function Conversations() {
                     <div className="relative bg-white rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
                         <label>
                             Type
-                            <select value={mustBeGroup ? "group" : type} onChange={(e) => setIsGroup(e.target.value === "group")}>
-                                <option value={"group"}>Group</option>
-                                <option value={"direct"}>Direct</option>
+                            <select value={mustBeGroup ? conversationGroup : type} onChange={(e) => setIsGroup(e.target.value === conversationGroup)}>
+                                <option value={conversationGroup}>Group</option>
+                                <option value={conversationDirect}>Direct</option>
                             </select>
                             {isGroup && (
                                 <Input label="Group Name" type="text" onChange={(e) => setGroupName(e.target.value)}/>
                             )}
                             <Search selected={selected} setSelected={setSelected}/>
                         </label>
-                        <button onClick={() => handleCreateConversation(type, groupName, userIDs)}>Create</button>
+                        <button onClick={() => {setCreatingConversation(false); handleCreateConversation(type, groupName, userIDs)}}>Create</button>
                         {Array.from(selected).map(user => {
                             const avatarURL = user.avatar_url ?? defaultAvatarURL
                             return (
                                 <div key={user.id}>
                                     <Image src={avatarURL} alt="User profile picture" width={20} height={20} />
                                     <p>{user.username}</p>
+                                    <button onClick={() => toggleSelected(user, setSelected)}>Deselect</button>
                                 </div>
                             )
                         })}

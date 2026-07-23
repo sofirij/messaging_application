@@ -5,6 +5,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import Input from "@/components/ui/input"
 import Image from "next/image"
 import { User } from "@/types/http/user"
+import { toggleSelected } from "@/utils/conversation"
 
 type InputProps = {
     selected: Set<User>,
@@ -15,17 +16,6 @@ const defaultAvatarURL = "fb24fc90-5e53-4972-b880-3edd0f8ccc64.jpg"
 const queryDelay = 300
 
 export function Search({selected, setSelected}: InputProps) {
-    function toggleSelected(user: User) {
-        setSelected(prev => {
-            const next = new Set(prev)
-            if (next.has(user)) {
-                next.delete(user)
-            } else {
-                next.add(user)
-            }
-            return next
-        })
-    }
 
     const [query, setQuery] = useState("")
     const [debouncedQuery, setDebouncedQuery] = useState("")
@@ -51,7 +41,7 @@ export function Search({selected, setSelected}: InputProps) {
                     {data.map(user => {
                         const avatarURL = user.avatar_url ?? defaultAvatarURL
                         return (
-                            <div key={user.id} onClick={() => toggleSelected(user)}>
+                            <div key={user.id} onClick={() => toggleSelected(user, setSelected)}>
                                 <Image src={avatarURL} alt="User profile picture" width={20} height={20} />
                                 <p>{user.username}</p>
                                 {selected.has(user) && (
