@@ -1,1 +1,0 @@
-export type ApiResult<T = void> = {error: string | null, data: T | null, status: number}

@@ -1,9 +1,13 @@
+export const conversationGroup = "group"
+export const conversationDirect = "direct"
+export type ConversationType = typeof conversationGroup  | typeof conversationDirect
+
 export type Conversation = {
     id: number
     name: string
     avatar_url: string | null
-    type: 'group' | 'direct'
-    last_message_id: number
+    type: ConversationType
+    last_message_id: number | null
     created_at: string
     created_by: number
     last_message_read: number | null
@@ -18,7 +22,7 @@ export type Member = {
 }
 
 export type ConversationCreateRequest = {
-    type: string
+    type: ConversationType
     name: string | null
     user_ids: number[]
 }
