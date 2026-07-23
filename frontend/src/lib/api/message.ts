@@ -1,15 +1,17 @@
 import { fetchWithAuth } from "@/lib/api/fetch"
+import { MessageEditRequest } from "@/types/http/message"
 
-const api_version = "/api/v1"
-const api_url = "http://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/messages"
+const apiVersion = "/api/v1"
+const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/messages"
 
-export async function updateMessage(id: number): Promise<void> {
-    const url = `${api_url}/${id}`
+export async function updateMessage(id: number, req: MessageEditRequest): Promise<void> {
+    const url = `${apiURL}/${id}`
     const init = {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json"
-        }
+        },
+        body: JSON.stringify(req)
     }
     
     const res = await fetchWithAuth(url, init)
@@ -21,7 +23,7 @@ export async function updateMessage(id: number): Promise<void> {
 }
 
 export async function deleteMessage(id: number): Promise<void> {
-    const url = `${api_url}/${id}`
+    const url = `${apiURL}/${id}`
     const init = {
         method: "PATCH",
         headers: {

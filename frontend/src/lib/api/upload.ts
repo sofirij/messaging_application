@@ -1,14 +1,14 @@
 import { Upload } from "@/types/http/upload"
 import { fetchWithAuth } from "@/lib/api/fetch"
 
-const api_version = "/api/v1"
-const api_url = "http://"+process.env.NEXT_PUBLIC_API_URL+api_version
+const apiVersion = "/api/v1"
+const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion
 
 export async function upload(file: File): Promise<Upload> {
     const form = new FormData()
     form.append("file", file)
 
-    const url = `${api_url}/upload`
+    const url = `${apiURL}/upload`
     const init = {
         method: "POST",
         body: form
@@ -31,7 +31,7 @@ export async function uploadMany(files: File[]): Promise<Upload[]> {
         form.append("file", file)
     }
 
-    const url = `${api_url}/upload-many`
+    const url = `${apiURL}/upload-many`
     const init = {
         method: "POST",
         body: form

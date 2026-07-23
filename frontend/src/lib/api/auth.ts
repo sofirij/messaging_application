@@ -1,12 +1,10 @@
 import { UserAuthRequest, User } from "@/types/http/user"
 
-const api_version = "/api/v1"
-const api_url = "http://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/auth"
+const apiVersion = "/api/v1"
+const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/auth"
 
-export async function register(username: string, password: string): Promise<void> {
-    const req: UserAuthRequest = {username, password}
-
-    const res = await fetch(`${api_url}/register`, {
+export async function register(req: UserAuthRequest): Promise<void> {
+    const res = await fetch(`${apiURL}/register`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -21,10 +19,8 @@ export async function register(username: string, password: string): Promise<void
     }
 }
 
-export async function login(username: string, password: string): Promise<User> {
-    const req: UserAuthRequest = {username, password}
-
-    const res = await fetch(`${api_url}/login`, {
+export async function login(req: UserAuthRequest): Promise<User> {
+    const res = await fetch(`${apiURL}/login`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -43,7 +39,7 @@ export async function login(username: string, password: string): Promise<User> {
 }
 
 export async function logout(): Promise<void> {
-    const res = await fetch(`${api_url}/logout`, {
+    const res = await fetch(`${apiURL}/logout`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -58,7 +54,7 @@ export async function logout(): Promise<void> {
 }
 
 export async function refreshToken(): Promise<void> {
-    const res = await fetch(`${api_url}/refresh`, {
+    const res = await fetch(`${apiURL}/refresh`, {
         method: "POST",
         credentials: "include",
         headers: {

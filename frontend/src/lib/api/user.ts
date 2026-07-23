@@ -1,11 +1,11 @@
 import { User, UserAvatarRequest, UserUsernameRequest } from "@/types/http/user"
 import { fetchWithAuth } from "@/lib/api/fetch"
 
-const api_version = "/api/v1"
-const api_url = "http://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/users"
+const apiVersion = "/api/v1"
+const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/users"
 
 export async function getUser(): Promise<User> {
-    const url = `${api_url}/me`
+    const url = `${apiURL}/me`
     const init = {
         method: "GET",
         headers: {
@@ -25,7 +25,7 @@ export async function getUser(): Promise<User> {
 }
 
 export async function disableAccount(): Promise<void> {
-    const url = `${api_url}/me`
+    const url = `${apiURL}/me`
     const init = {
         method: "DELETE",
         headers: {
@@ -41,9 +41,8 @@ export async function disableAccount(): Promise<void> {
     }
 }
 
-export async function updateUserAvatar(avatar_url: string | null): Promise<void> {
-    const req: UserAvatarRequest = { avatar_url }
-    const url = `${api_url}/me/avatar`
+export async function updateUserAvatar(req: UserAvatarRequest): Promise<void> {
+    const url = `${apiURL}/me/avatar`
     const init = {
         method: "PUT",
         headers: {
@@ -60,9 +59,8 @@ export async function updateUserAvatar(avatar_url: string | null): Promise<void>
     }
 }
 
-export async function updateUsername(username: string): Promise<void> {
-    const req: UserUsernameRequest = {username}
-    const url = `${api_url}/me/username`
+export async function updateUsername(req: UserUsernameRequest): Promise<void> {
+    const url = `${apiURL}/me/username`
     const init = {
         method: "PUT",
         headers: {
@@ -80,9 +78,11 @@ export async function updateUsername(username: string): Promise<void> {
 }
 
 export async function searchUsername(query: string): Promise<User[]> {
-    const url = `${api_url}/search?q=${query}`
+    if (query === "") return []
+
+    const url = `${apiURL}/search?q=${query}`
     const init = {
-        method: "PUT",
+        method: "GET",
         headers: {
             "Content-Type": "application/json"
         }

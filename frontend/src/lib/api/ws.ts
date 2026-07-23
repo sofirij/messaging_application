@@ -1,15 +1,15 @@
 import { Ticket } from "@/types/ws/ticket"
 import { OutboundTypingStartPayload, OutboundTypingStopPayload } from "@/types/ws/typing"
 import { MessageReadPayload } from "@/types/ws/message"
-import { Event, EventTypingStart, EventTypingStop } from "@/types/ws/event"
+import { Event, EventMessageRead, EventTypingStart, EventTypingStop } from "@/types/ws/event"
 import { fetchWithAuth } from "@/lib/api/fetch"
 
-const api_version = "/api/v1"
-const ws_url = "ws://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/ws"
-const ticket_url = "http://"+process.env.NEXT_PUBLIC_API_URL+api_version+"/ws/ticket"
+const apiVersion = "/api/v1"
+const wsURL = "ws://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/ws"
+const ticketURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/ws/ticket"
 
 export async function getWSTicket(): Promise<Ticket> {
-    const url = `${ticket_url}/ticket`
+    const url = `${ticketURL}/ticket`
     const init = {
         method: "GET",
         headers: {
@@ -32,7 +32,7 @@ export async function getWSConn(): Promise<WebSocket> {
     // get ticket for creating websocket connection
     const ticket = await getWSTicket()
     
-    const url = new URL(ws_url)
+    const url = new URL(wsURL)
     url.searchParams.set("ticket", ticket.ticket)
 
     const ws = new WebSocket(url)
@@ -48,10 +48,10 @@ export async function getWSConn(): Promise<WebSocket> {
     return ws
 }
 
-export async function readMessage(ws: WebSocket, conversationID: number, messageID: number): Promise<void> {
-    const req : MessageReadPayload = {
-        conversation_id: conversationID,
-        message_id: messageID
+export async function readMessage(ws: WebSocket, payload: MessageReadPayload): Promise<void> {
+    const req : Event = {
+        type: EventMessageRead,
+        payload: payload
     }
 
     ws.send(JSON.stringify(req))
@@ -63,8 +63,8 @@ export async function startTyping(ws: WebSocket, conversationID: number): Promis
     }
     
     const req : Event = {
-        Type: EventTypingStart,
-        Payload: payload
+        type: EventTypingStart,
+        payload: payload
     }
 
     ws.send(JSON.stringify(req))
@@ -76,8 +76,8 @@ export async function stopTyping(ws: WebSocket, conversationID: number): Promise
     }
 
     const req : Event = {
-        Type: EventTypingStop,
-        Payload: payload
+        type: EventTypingStop,
+        payload: payload
     }
 
     ws.send(JSON.stringify(req))
