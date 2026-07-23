@@ -36,6 +36,12 @@ type conversationService struct {
 }
 
 func (c *conversationService) Create(ctx context.Context, userID int, req request.ConversationCreateRequest) (*response.ConversationResponse, error) {
+	for i, val := range req.UserIDs {
+		if val == userID {
+			req.UserIDs = append(req.UserIDs[:i], req.UserIDs[i+1:]...)
+		}
+	}
+
 	// invalid conversation type
 	if req.Type != direct && req.Type != group {
 		return nil, &Error{

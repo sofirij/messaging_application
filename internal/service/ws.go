@@ -311,7 +311,7 @@ func (h *hub) broadcastOnlineStatus(ctx context.Context, userID int, online bool
 	conversations, err := h.conversationRepo.GetByUserID(ctx, userID)
 
 	if err != nil {
-		broadcastError(h, userID, ws.EventBroadcastUserStatus, err)
+		broadcastError(h, userID, "broadcast_user_status", err)
 		return
 	}
 
