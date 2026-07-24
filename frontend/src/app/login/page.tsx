@@ -12,9 +12,9 @@ export default function Page() {
     const { handleLogin } = useLogin()
     const { handleRegister } = useRegister()
     const [mode, setMode] = useState<"login" | "register">("login")
-    const [username, setUsername] = useState<string>("")
-    const [password, setPassword] = useState<string>("")
-    const [confirmPassword, setConfirmPassword] = useState<string>("")
+    const [username, setUsername] = useState("")
+    const [password, setPassword] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
     const { data } = useQuery(userQueryOptions)
 
     useEffect(() => {

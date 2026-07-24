@@ -1,8 +1,9 @@
 "use client"
-import { Conversation } from "@/types/http/conversation"
+import { Conversation, conversationDirect } from "@/types/http/conversation"
 import Image from "next/image"
 import { useState } from "react"
-import { useDeleteConversation } from "@/hooks/conversation"
+import { useDeleteConversation, useRemoveMember } from "@/hooks/conversation"
+import { useUserContext } from "@/context/userContext"
 
 const defaultAvatarURL = "fb24fc90-5e53-4972-b880-3edd0f8ccc64.jpg"
 
@@ -14,6 +15,8 @@ export function ConversationBar({conversation}: InputProps) {
     const avatarURL = conversation.avatar_url ?? defaultAvatarURL
     const [clickedOptions, setClickedOptions] = useState(false)
     const { handleDeleteConversation } = useDeleteConversation()
+    const { handleRemoveMember } = useRemoveMember()
+    const user = useUserContext()
 
     let actionMessage: string
     if (!conversation.last_message_id) {
@@ -36,7 +39,11 @@ export function ConversationBar({conversation}: InputProps) {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setClickedOptions(false)}>
                     <div className="relative bg-white rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
                         <button>Clear messages</button>
-                        <button onClick={() => handleDeleteConversation(conversation.id)}>Delete</button>
+                        {conversation.type === conversationDirect ? (
+                            <button onClick={() => handleDeleteConversation(conversation.id)}>Delete</button>
+                        ): (
+                            <button onClick={() => handleRemoveMember(user.id, conversation.id)}>Leave Group</button>
+                        )}
                     </div>
                 </div>
             )}

@@ -17,7 +17,7 @@ export default function Conversations() {
     const { data, isPending } = useQuery(conversationQueryOptions)
     const [creatingConversation, setCreatingConversation] = useState(false)
     const [isGroup, setIsGroup] = useState(false)
-    const [groupName, setGroupName] = useState<string|null>(null)
+    const [groupName, setGroupName] = useState("")
     const [selected, setSelected] = useState(new Set<User>())
     const { handleCreateConversation } = useCreateConversation()
     const userIDs = Array.from(selected).map(user => user.id)
@@ -26,6 +26,13 @@ export default function Conversations() {
 
     if (isPending || !data) {
         return "Loading..."
+    }
+
+    function createConversation() {
+        handleCreateConversation(type, groupName, userIDs, () => {
+            setCreatingConversation(false)
+            setSelected(new Set())
+        })
     }
 
     return (
@@ -57,7 +64,7 @@ export default function Conversations() {
                             )}
                             <Search selected={selected} setSelected={setSelected}/>
                         </label>
-                        <button onClick={() => {setCreatingConversation(false); handleCreateConversation(type, groupName, userIDs)}}>Create</button>
+                        <button onClick={createConversation}>Create</button>
                         {Array.from(selected).map(user => {
                             const avatarURL = user.avatar_url ?? defaultAvatarURL
                             return (

@@ -1,4 +1,4 @@
-import { createConversation, deleteConversation } from "@/lib/api/conversation";
+import { createConversation, deleteConversation, removeMember } from "@/lib/api/conversation";
 import { conversationQueryOptions } from "@/query/conversation";
 import { Conversation, ConversationCreateRequest, ConversationType } from "@/types/http/conversation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -18,8 +18,10 @@ export function useCreateConversation() {
         }
     })
 
-    function handleCreateConversation(type: ConversationType, name: string | null, user_ids: number[]) {
-        mutation.mutate({type, name, user_ids})
+    function handleCreateConversation(type: ConversationType, name: string | null, user_ids: number[], onSuccess: () => void) {
+        mutation.mutate({type, name, user_ids}, {onSuccess: () => {
+            onSuccess()
+        }})
     }
 
     return { handleCreateConversation, loading: mutation.isPending }
@@ -45,4 +47,26 @@ export function useDeleteConversation() {
     }
 
     return { handleDeleteConversation, loading: mutation.isPending }
+}
+
+export function useRemoveMember() {
+    const queryClient = useQueryClient()
+
+    const mutation = useMutation({
+        mutationFn: async({conversationID, userID}: {conversationID: number, userID: number}) => {
+            await removeMember(conversationID, userID)
+            return conversationID
+        },
+        onSuccess: (id: number) => {
+            const conversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
+            if (!conversations) return
+            queryClient.setQueryData(conversationQueryOptions.queryKey, conversations.filter(conversation => conversation.id !== id))
+        }
+    })
+
+    function handleRemoveMember(userID: number, conversationID: number) {
+        mutation.mutate({conversationID, userID})
+    }
+
+    return { handleRemoveMember, loading: mutation.isPending }
 }
