@@ -37,8 +37,8 @@ func main() {
 
 	app := fiber.New(fiber.Config{
 		AppName:      "MyApp",
-		IdleTimeout:  30 * time.Second,
-		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  5 * time.Second,
+		WriteTimeout: 100 * time.Second,
 		ReadTimeout:  100 * time.Second,
 		BodyLimit:    100 * 1024 * 1024,
 	})
@@ -105,21 +105,6 @@ func main() {
 	router.RegisterUploadRoutes(v1, uploadHandler, cfg.JWTSecret)
 	router.RegisterAuthRoutes(v1, userHandler)
 
-	// frontend assets
-	app.Get("/login", static.New(frontendAssetDir, static.Config{
-		Browse: false,
-		Compress: true,
-		CacheDuration: assetCacheDuration,
-		NotFoundHandler: notFoundHandler,
-	}))
-
-	app.Get("/*", middleware.JWT(cfg.JWTSecret), static.New(frontendAssetDir, static.Config{
-		Browse: false,
-		Compress: true,
-		CacheDuration: assetCacheDuration,
-		NotFoundHandler: notFoundHandler,
-	}))
-
 	// start hubservice
 	go hubService.Run()
 
@@ -141,9 +126,12 @@ func main() {
 
 	log.Println("shutting down server...")
 
-	if err := app.Shutdown(); err != nil {
+	hubService.Stop()
+
+	if err := app.ShutdownWithTimeout(pongTimeout + 1 * time.Second); err != nil {
 		log.Fatalf("server shutdown failed, %v\n", err)
 	}
+
 	log.Println("server shutdown gracefully")
 }
 

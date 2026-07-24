@@ -121,6 +121,7 @@ type hub struct {
 
 type HubService interface {
 	Run()
+	Stop()
 	Register(client *client)
 	Unregister(client *client)
 	IsOnline(userID int) bool
@@ -167,8 +168,16 @@ func (h *hub) Run() {
 			}
 			h.mu.Unlock()
 			h.broadcastOnlineStatus(conn.ctx, conn.userID, false)
+
+		case <-h.stop:
+			close(h.register)
+			return
 		}
 	}
+}
+
+func (h *hub) Stop() {
+	h.stop <- struct{}{}
 }
 
 func (h *hub) Register(client *client) {
