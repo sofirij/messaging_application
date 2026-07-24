@@ -22,3 +22,6 @@ type ConversationMember struct {
 	DeletedAt      *time.Time `db:"deleted_at"`
 	AfterCursor    *int       `db:"after_cursor"`
 }
+
+var DirectConversation = "direct"
+var GroupConversation = "group"

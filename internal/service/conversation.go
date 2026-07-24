@@ -13,11 +13,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const (
-	direct = "direct"
-	group  = "group"
-)
-
 type ConversationService interface {
 	Create(ctx context.Context, userID int, req request.ConversationCreateRequest) (*response.ConversationResponse, error)
 	ClearMessages(ctx context.Context, userID, conversationID int) error
@@ -43,7 +38,7 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 	}
 
 	// invalid conversation type
-	if req.Type != direct && req.Type != group {
+	if req.Type != db.DirectConversation && req.Type != db.GroupConversation {
 		return nil, &Error{
 			Code:    ErrCodeBadRequest,
 			Message: "invalid conversation type",
@@ -58,16 +53,18 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 		}
 	}
 
-	// missing group name
-	if req.Name == nil && req.Type == group {
-		return nil, &Error{
-			Code:    ErrCodeBadRequest,
-			Message: "missing group name",
+	// invalid group name
+	if req.Type == db.GroupConversation {
+		if req.Name == nil || len(*req.Name) < 3 {
+			return nil, &Error{
+				Code:    ErrCodeBadRequest,
+				Message: "invalid group name",
+			}
 		}
 	}
 
 	// should not add more than one member to a conversation
-	if len(req.UserIDs) > 1 && req.Type == direct {
+	if len(req.UserIDs) > 1 && req.Type == db.DirectConversation {
 		return nil, &Error{
 			Code:    ErrCodeBadRequest,
 			Message: "too many user ids",
@@ -75,9 +72,9 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 	}
 
 	// if direct conversation, ensure to not create duplicate conversation
-	if req.Type == direct {
+	if req.Type == db.DirectConversation {
 		memberID := req.UserIDs[0]
-		userConversations, err := c.conversationRepo.GetByUserID(ctx, userID)
+		userConversations, err := c.conversationRepo.GetAllByUserID(ctx, userID)
 
 		if err != nil {
 			return nil, err
@@ -89,18 +86,35 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 			conversationMap[conversation.ID] = true
 		}
 
-		memberConversations, err := c.conversationRepo.GetByUserID(ctx, memberID)
+		memberConversations, err := c.conversationRepo.GetAllByUserID(ctx, memberID)
 
 		if err != nil {
 			return nil, err
 		}
 
+		// resume and return the previously created conversation
 		for _, conversation := range memberConversations {
 			if conversationMap[conversation.ID] {
-				return nil, &Error{
-					Code:    ErrCodeConflict,
-					Message: "duplicate conversation",
+				_, err = c.conversationRepo.ResumeMember(ctx, conversation.ID, userID)
+
+				if err != nil {
+					return nil, err
 				}
+
+				setRecipientNameAndAvatar(ctx, userID, &conversation, c.conversationRepo, c.userRepo)
+
+				resp := response.ConversationResponse{
+					ID:              conversation.ID,
+					Name:            *conversation.Name,
+					AvatarURL:       conversation.AvatarURL,
+					Type:            conversation.Type,
+					LastMessageID:   conversation.LastMessageID,
+					CreatedAt:       conversation.CreatedAt,
+					CreatedBy:       conversation.CreatedBy,
+					LastMessageRead: conversation.LastMessageRead,
+				}
+
+				return &resp, nil
 			}
 		}
 	}
@@ -114,7 +128,7 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 	}
 
 	// if direct conversation set the name to that of the recipient
-	if conversation.Type == direct {
+	if conversation.Type == db.DirectConversation {
 		setRecipientNameAndAvatar(ctx, userID, conversation, c.conversationRepo, c.userRepo)
 	}
 
@@ -149,7 +163,13 @@ func (c *conversationService) ClearMessages(ctx context.Context, userID, convers
 }
 
 func (c *conversationService) SoftDelete(ctx context.Context, userID, conversationID int) error {
-	err := c.ClearMessages(ctx, userID, conversationID)
+	err := userInConversation(ctx, c.conversationRepo, conversationID, userID)
+
+	if err != nil {
+		return err
+	}
+
+	err = c.ClearMessages(ctx, userID, conversationID)
 
 	if err != nil {
 		return err
@@ -177,7 +197,7 @@ func (c *conversationService) AddMember(ctx context.Context, userID, conversatio
 		return err
 	}
 
-	if conversation.Type == direct {
+	if conversation.Type == db.DirectConversation {
 		return &Error{
 			Code:    ErrCodeBadRequest,
 			Message: "cannot add to direct conversation",
@@ -194,13 +214,19 @@ func (c *conversationService) RemoveMember(ctx context.Context, userID, conversa
 		return err
 	}
 
+	err = userInConversation(ctx, c.conversationRepo, conversationID, memberID)
+
+	if err != nil {
+		return err
+	}
+
 	conversation, err := c.conversationRepo.GetByID(ctx, conversationID)
 
 	if err != nil {
 		return err
 	}
 
-	if conversation.Type == direct {
+	if conversation.Type == db.DirectConversation {
 		return &Error{
 			Code:    ErrCodeBadRequest,
 			Message: "cannot remove member from direct conversation",
@@ -221,7 +247,7 @@ func (c *conversationService) GetByUserID(ctx context.Context, userID int) ([]re
 
 	for i, conversation := range conversations {
 		// if direct conversation set the name to that of the recipient
-		if conversation.Type == direct {
+		if conversation.Type == db.DirectConversation {
 			setRecipientNameAndAvatar(ctx, userID, &conversation, c.conversationRepo, c.userRepo)
 		}
 
@@ -289,7 +315,7 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 	}
 
 	// if direct conversation set the name to that of the recipient
-	if conversation.Type == direct {
+	if conversation.Type == db.DirectConversation {
 		setRecipientNameAndAvatar(ctx, userID, conversation, c.conversationRepo, c.userRepo)
 	}
 

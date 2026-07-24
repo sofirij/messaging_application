@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"app/internal/model/db"
 	"app/internal/model/request"
 	"app/internal/model/response"
 	"app/internal/model/ws"
@@ -48,7 +49,7 @@ func TestWSConversation_Create(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{userID}, // user2's id
 	}
 
@@ -113,7 +114,7 @@ func TestWSConversation_AddMember(t *testing.T) {
 	convName := "randomname"
 
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "group",
+		Type:    db.GroupConversation,
 		Name:    &convName,
 		UserIDs: []int{userID},
 	}
@@ -187,11 +188,11 @@ func TestWSConversation_RemoveMember(t *testing.T) {
 	// get user2's id
 	userID := getUserID(t, app, accessCookie2)
 
-	// user1 creates group conversation with user2
+	// user1 creates db.GroupConversation conversation with user2
 	convName := "randomname"
 
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "group",
+		Type:    db.GroupConversation,
 		Name:    &convName,
 		UserIDs: []int{userID},
 	}
@@ -259,7 +260,7 @@ func TestWSConversation_TypingStart(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{userID}, // user2's id
 	}
 
@@ -333,7 +334,7 @@ func TestWSConversation_TypingStop(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{userID}, // user2's id
 	}
 

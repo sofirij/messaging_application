@@ -24,6 +24,8 @@ type ConversationRepository interface {
 	RemoveMember(ctx context.Context, conversationID, userID int) error
 	SoftDeleteMember(ctx context.Context, conversationID, userID int) error
 	ClearMessages(ctx context.Context, conversationID, userID int) error
+	ResumeMember(ctx context.Context, conversationID, userID int) (*db.ConversationMember, error)
+	GetAllByUserID(ctx context.Context, userID int) ([]db.Conversation, error)
 }
 
 type conversationRepository struct {
@@ -287,6 +289,44 @@ func (c *conversationRepository) UpdateLastMessageRead(ctx context.Context, conv
 	}
 
 	return &conversation, nil
+}
+
+func (c *conversationRepository) ResumeMember(ctx context.Context, conversationID, userID int) (*db.ConversationMember, error) {
+	query := `
+		UPDATE conversation_members
+		SET deleted_at = NULL,
+			after_cursor = (
+				SELECT last_message_id FROM conversations
+				WHERE id = $1
+			)
+		WHERE conversation_id = $1
+		AND user_id = $2
+		RETURNING *
+	`
+
+	var member db.ConversationMember
+
+	err := pgxscan.Get(ctx, c.db, &member, query, conversationID, userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &member, nil
+}
+
+func (c *conversationRepository) GetAllByUserID(ctx context.Context, userID int) ([]db.Conversation, error) {
+	query := `
+		SELECT c.* FROM conversations AS c
+		JOIN conversation_members AS cm ON c.id = cm.conversation_id
+		WHERE cm.user_id = $1
+	`
+
+	var conversations []db.Conversation
+
+	err := pgxscan.Select(ctx, c.db, &conversations, query, userID)
+
+	return conversations, err
 }
 
 func NewConversationRepository(db *pgxpool.Pool) ConversationRepository {

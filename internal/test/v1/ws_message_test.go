@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"app/internal/model/db"
 	"app/internal/model/request"
 	"app/internal/model/response"
 	"app/internal/model/ws"
@@ -48,7 +49,7 @@ func TestWSMessage_Create(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
@@ -109,7 +110,7 @@ func TestWSMessage_Delete(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
@@ -199,7 +200,7 @@ func TestWSMessage_Edit(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
@@ -298,7 +299,7 @@ func TestWSMessage_Read(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{user2ID}, // user2's id
 	}
 

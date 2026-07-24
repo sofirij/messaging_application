@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"app/internal/model/db"
 	"app/internal/model/request"
 	"app/internal/model/response"
 
@@ -64,7 +65,7 @@ func TestConversation_CreateDirect(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{userID}, // user2's id
 	}
 
@@ -100,62 +101,6 @@ func TestConversation_CreateDirect(t *testing.T) {
 	}
 }
 
-func TestConversation_CreateDuplicateDirect(t *testing.T) {
-	app := setupApp(t)
-	defer truncateTables(t)
-
-	user1 := request.UserAuthRequest{
-		Username: "testuser1",
-		Password: "password123",
-	}
-
-	user2 := request.UserAuthRequest{
-		Username: "testuser2",
-		Password: "password123",
-	}
-
-	body, err := json.Marshal(user1)
-	require.NoError(t, err)
-
-	register(t, app, user1)
-	register(t, app, user2)
-
-	_, accessCookie1, _ := login(t, app, user1)
-	_, accessCookie2, _ := login(t, app, user2)
-
-	// get the id for user 2
-	userID := getUserID(t, app, accessCookie2)
-
-	// user1 creates a direct conversation with user2
-	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
-		UserIDs: []int{userID}, // user2's id
-	}
-
-	createConversation(t, app, accessCookie1, bodyStruct)
-
-	// get the id of user1
-	userID = getUserID(t, app, accessCookie1)
-
-	// user2 creates a direct conversation with user1
-	bodyStruct = request.ConversationCreateRequest{
-		Type:    "direct",
-		UserIDs: []int{userID}, // user1's id
-	}
-
-	body, err = json.Marshal(bodyStruct)
-	require.NoError(t, err)
-
-	req4 := httptest.NewRequest(http.MethodPost, "/api/v1/conversations", bytes.NewReader(body))
-	req4.Header.Set("Content-Type", "application/json")
-	req4.AddCookie(accessCookie2)
-
-	resp4, err := app.Test(req4)
-
-	require.NoError(t, err)
-	assert.Equal(t, http.StatusConflict, resp4.StatusCode)
-}
-
 func TestConversation_CreateGroup(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
@@ -183,7 +128,7 @@ func TestConversation_CreateGroup(t *testing.T) {
 	groupName := "somegroup"
 
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "group",
+		Type:    db.GroupConversation,
 		Name:    &groupName,
 		UserIDs: []int{userID}, // user2's id
 	}
@@ -251,7 +196,7 @@ func TestConversation_UserNotInConversation(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{userID}, // user2's id
 	}
 
@@ -305,7 +250,7 @@ func TestConversation_AddMember(t *testing.T) {
 	convName := "randomname"
 
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "group",
+		Type:    db.GroupConversation,
 		Name:    &convName,
 		UserIDs: []int{userID},
 	}
@@ -391,7 +336,7 @@ func TestConversation_AddMemberToDirect(t *testing.T) {
 	convName := "randomname"
 
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		Name:    &convName,
 		UserIDs: []int{userID},
 	}
@@ -445,7 +390,7 @@ func TestConversation_RemoveMember(t *testing.T) {
 	convName := "randomname"
 
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "group",
+		Type:    db.GroupConversation,
 		Name:    &convName,
 		UserIDs: []int{userID},
 	}
@@ -512,7 +457,7 @@ func TestConversation_ClearMessages(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{userID}, // user2's id
 	}
 
@@ -577,7 +522,7 @@ func TestConversation_Delete(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{userID}, // user2's id
 	}
 
@@ -657,7 +602,7 @@ func TestConversation_GetAfterDelete(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{userID}, // user2's id
 	}
 
@@ -696,4 +641,52 @@ func TestConversation_GetAfterDelete(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp2.StatusCode)
 
 	assert.Equal(t, 1, len(result2.Data))
+}
+
+func TestConversation_CreateAfterDelete(t *testing.T) {
+	app := setupApp(t)
+	defer truncateTables(t)
+
+	user1 := request.UserAuthRequest{
+		Username: "testuser1",
+		Password: "password123",
+	}
+
+	user2 := request.UserAuthRequest{
+		Username: "testuser2",
+		Password: "password123",
+	}
+
+	register(t, app, user1)
+	register(t, app, user2)
+
+	_, accessCookie1, _ := login(t, app, user1)
+	_, accessCookie2, _ := login(t, app, user2)
+
+	// get the id for user 2
+	userID := getUserID(t, app, accessCookie2)
+
+	// user1 creates a direct conversation with user2
+	bodyStruct := request.ConversationCreateRequest{
+		Type:    db.DirectConversation,
+		UserIDs: []int{userID}, // user2's id
+	}
+
+	result1 := createConversation(t, app, accessCookie1, bodyStruct)
+
+	conversationID := result1.Data.ID
+
+	// user1 deletes conversation
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(accessCookie1)
+
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+	// user1 tries to create the same conversation but it should return the old one
+	result2 := createConversation(t, app, accessCookie1, bodyStruct)
+	assert.Equal(t, result1.Data.ID, result2.Data.ID)
 }

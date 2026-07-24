@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"app/internal/model/db"
 	"app/internal/model/request"
 	"app/internal/model/response"
 
@@ -79,7 +80,7 @@ func TestMessage_Create(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
@@ -117,7 +118,7 @@ func TestMessage_Edit(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
@@ -205,7 +206,7 @@ func TestMessage_EditForbidden(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
@@ -280,7 +281,7 @@ func TestMessage_Delete(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
@@ -357,7 +358,7 @@ func TestMessage_GetPagination(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{user2ID}, // user2's id
 	}
 

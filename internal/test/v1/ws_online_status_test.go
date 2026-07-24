@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"app/internal/model/db"
 	"app/internal/model/request"
 	"app/internal/model/ws"
 
@@ -39,7 +40,7 @@ func TestWSOnlineStatus_Online(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{userID}, // user2's id
 	}
 
@@ -100,7 +101,7 @@ func TestWSOnlineStatus_Offline(t *testing.T) {
 
 	// user1 creates a direct conversation with user2
 	bodyStruct := request.ConversationCreateRequest{
-		Type:    "direct",
+		Type:    db.DirectConversation,
 		UserIDs: []int{userID}, // user2's id
 	}
 
