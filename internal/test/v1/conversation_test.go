@@ -39,7 +39,25 @@ func createConversation(t *testing.T, app *fiber.App, accessCookie *http.Cookie,
 	return conversation
 }
 
-// indirectly tests the happy path for GetByID
+func getMembers(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conversationID int) []response.UserResponse {
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/members", conversationID), nil)
+	req.AddCookie(accessCookie)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var users response.Response[[]response.UserResponse]
+
+	err = json.NewDecoder(resp.Body).Decode(&users)
+	require.NoError(t, err)
+
+	return users.Data
+}
+
+// indirectly tests the happy path for GetByID and GetMembers
 func TestConversation_CreateDirect(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
@@ -73,24 +91,13 @@ func TestConversation_CreateDirect(t *testing.T) {
 
 	// ensure that the only 2 members in the conversation are user1 and user2
 	require.NotZero(t, result.Data.ID)
-
 	conversationID := result.Data.ID
 
-	req3 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
-	req3.Header.Set("Content-Type", "application/json")
-	req3.AddCookie(accessCookie1)
+	members := getMembers(t, app, accessCookie1, conversationID)
 
-	resp3, err := app.Test(req3)
+	assert.Equal(t, 2, len(members))
 
-	require.NoError(t, err)
-
-	err = json.NewDecoder(resp3.Body).Decode(&result)
-
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp3.StatusCode)
-	assert.Equal(t, 2, len(result.Data.Members)) // there should be exactly 2 members in the conversation
-
-	for _, member := range result.Data.Members {
+	for _, member := range members {
 		switch member.Username {
 		case user1.Username:
 		case user2.Username:
@@ -139,21 +146,10 @@ func TestConversation_CreateGroup(t *testing.T) {
 	conversationID := result.Data.ID
 
 	// ensure that the only 2 members in the conversation are user1 and user2
-	req3 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
-	req3.Header.Set("Content-Type", "application/json")
-	req3.AddCookie(accessCookie1)
+	members := getMembers(t, app, accessCookie1, conversationID)
+	assert.Equal(t, 2, len(members)) // there should be 2 members in the conversation
 
-	resp3, err := app.Test(req3)
-
-	require.NoError(t, err)
-
-	err = json.NewDecoder(resp3.Body).Decode(&result)
-
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp3.StatusCode)
-	assert.Equal(t, 2, len(result.Data.Members)) // there should be 2 members in the conversation
-
-	for _, member := range result.Data.Members {
+	for _, member := range members {
 		switch member.Username {
 		case user1.Username:
 		case user2.Username:
@@ -277,20 +273,9 @@ func TestConversation_AddMember(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	// ensure conversation has the right members
-	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
-	req2.AddCookie(accessCookie1)
-	req2.Header.Set("Content-Type", "application/json")
+	members := getMembers(t, app, accessCookie1, conversationID)
 
-	resp2, err := app.Test(req2)
-
-	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp2.StatusCode)
-
-	err = json.NewDecoder(resp2.Body).Decode(&result)
-
-	require.NoError(t, err)
-
-	for _, member := range result.Data.Members {
+	for _, member := range members {
 		switch member.Username {
 		case user1.Username:
 		case user2.Username:
@@ -409,20 +394,9 @@ func TestConversation_RemoveMember(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	// ensure that user2 is removed
-	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d", conversationID), nil)
-	req2.Header.Set("Content-Type", "application/json")
-	req2.AddCookie(accessCookie1)
+	members := getMembers(t, app, accessCookie1, conversationID)
 
-	resp2, err := app.Test(req2)
-
-	require.NoError(t, err)
-
-	err = json.NewDecoder(resp2.Body).Decode(&result)
-
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp2.StatusCode)
-
-	for _, member := range result.Data.Members {
+	for _, member := range members {
 		switch member.Username {
 		case user1.Username:
 			continue

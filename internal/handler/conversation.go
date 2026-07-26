@@ -250,3 +250,26 @@ func (h *ConversationHandler) ClearMessages(c fiber.Ctx) error {
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
+
+func (h *ConversationHandler) GetMembers(c fiber.Ctx) error {
+	convIDString := c.Params("id", "")
+	conversationID, err := strconv.Atoi(convIDString)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrorResponse{
+			Error: response.ErrorDetail{Message: "invalid conversation id"},
+		})
+	}
+
+	userID := c.Locals("user_id").(int)
+
+	resp, err := h.conversationService.GetMembers(c.Context(), userID, conversationID)
+
+	if err != nil {
+		return handleServiceError(c, err)
+	}
+
+	return c.JSON(response.Response[[]response.UserResponse]{
+		Data: resp,
+	})
+}

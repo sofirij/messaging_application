@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"app/internal/config"
 	"app/internal/model/db"
 	"app/internal/model/request"
 	"app/internal/model/response"
@@ -17,6 +16,7 @@ type ConversationService interface {
 	Create(ctx context.Context, userID int, req request.ConversationCreateRequest) (*response.ConversationResponse, error)
 	ClearMessages(ctx context.Context, userID, conversationID int) error
 	SoftDelete(ctx context.Context, userID, conversationID int) error
+	GetMembers(ctx context.Context, userID, conversationID int) ([]response.UserResponse, error)
 	AddMember(ctx context.Context, userID, conversationID int, req request.ConversationAddMemberRequest) error
 	RemoveMember(ctx context.Context, userID, conversationID, memberID int) error
 	GetByUserID(ctx context.Context, userID int) ([]response.ConversationResponse, error)
@@ -28,6 +28,7 @@ type ConversationService interface {
 type conversationService struct {
 	conversationRepo repository.ConversationRepository
 	userRepo         repository.UserRepository
+	hub 			HubService
 }
 
 func (c *conversationService) Create(ctx context.Context, userID int, req request.ConversationCreateRequest) (*response.ConversationResponse, error) {
@@ -303,17 +304,6 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 		userMap[user.ID] = user
 	}
 
-	memberResp := make([]response.MemberResponse, len(members))
-
-	for i, member := range members {
-		memberResp[i] = response.MemberResponse{
-			ID:        member.UserID,
-			Username:  userMap[member.UserID].Username,
-			AvatarURL: userMap[member.UserID].AvatarURL,
-			JoinedAt:  member.JoinedAt,
-		}
-	}
-
 	// if direct conversation set the name to that of the recipient
 	if conversation.Type == db.DirectConversation {
 		setRecipientNameAndAvatar(ctx, userID, conversation, c.conversationRepo, c.userRepo)
@@ -328,7 +318,6 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 		CreatedAt:       conversation.CreatedAt,
 		CreatedBy:       conversation.CreatedBy,
 		LastMessageRead: conversation.LastMessageRead,
-		Members:         memberResp,
 	}
 
 	return &resp, nil
@@ -339,6 +328,19 @@ func (c *conversationService) UpdateName(ctx context.Context, userID, conversati
 
 	if err != nil {
 		return err
+	}
+
+	conversation, err := c.conversationRepo.GetByID(ctx, conversationID)
+
+	if err != nil {
+		return err
+	}
+
+	if conversation.Type == db.DirectConversation {
+		return &Error{
+			Code:    ErrCodeBadRequest,
+			Message: "cannot update name of direct conversation",
+		}
 	}
 
 	_, err = c.conversationRepo.UpdateName(ctx, conversationID, req.Name)
@@ -353,15 +355,68 @@ func (c *conversationService) UpdateAvatarURL(ctx context.Context, userID, conve
 		return err
 	}
 
+	conversation, err := c.conversationRepo.GetByID(ctx, conversationID)
+
+	if err != nil {
+		return err
+	}
+
+	if conversation.Type == db.DirectConversation {
+		return &Error{
+			Code:    ErrCodeBadRequest,
+			Message: "cannot update picture of direct conversation",
+		}
+	}
+
 	_, err = c.conversationRepo.UpdateAvatarURL(ctx, conversationID, req.AvatarURL)
 
 	return err
 }
 
-func NewConversationService(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, cfg *config.Config) ConversationService {
+func (c *conversationService) GetMembers(ctx context.Context, userID int, conversationID int) ([]response.UserResponse, error){
+	err := userInConversation(ctx, c.conversationRepo, conversationID, userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	members, err := c.conversationRepo.GetMembers(ctx, conversationID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	memberIDs := make([]int, len(members))
+	for i, member := range members {
+		memberIDs[i] = member.UserID
+	}
+
+	users, err := c.userRepo.GetByIDs(ctx, memberIDs)
+
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]response.UserResponse, len(members))
+	for i, user := range users {
+		resp[i] = response.UserResponse{
+			ID: user.ID,
+			Username: user.Username,
+			AvatarURL: user.AvatarURL,
+			IsOnline: c.hub.IsOnline(user.ID),
+			LastSeenAt: user.LastSeenAt,
+			CreatedAt: user.CreatedAt,
+		}
+	}
+
+	return resp, nil
+}
+
+func NewConversationService(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, hub HubService) ConversationService {
 	return &conversationService{
 		conversationRepo: conversationRepo,
 		userRepo:         userRepo,
+		hub: hub,
 	}
 }
 

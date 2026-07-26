@@ -281,7 +281,7 @@ func (u *userService) GetByID(ctx context.Context, userID int) (*response.UserRe
 }
 
 func (u *userService) SearchByUsername(ctx context.Context, userID int, query string) ([]response.UserResponse, error) {
-	users, err := u.userRepo.SearchByUsername(ctx, userID, query, queryLimit)
+	users, err := u.userRepo.SearchByUsername(ctx, query, queryLimit)
 
 	if err != nil {
 		return nil, err

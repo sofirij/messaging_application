@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"fmt"
 
 	"app/internal/model/request"
 	"app/internal/model/response"
@@ -51,7 +52,7 @@ func TestUser_Search(t *testing.T) {
 	_, accessCookie1, _ := login(t, app, user1)
 
 	// user1 searches for user2
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/search?q=user", nil)
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/users/search?q=%s", user2.Username), nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie1)
 
