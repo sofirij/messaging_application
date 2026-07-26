@@ -7,14 +7,13 @@ import { useQuery } from "@tanstack/react-query"
 import { userQueryOptions } from "@/query/user"
 import { UserProvider, useUserContext } from "@/context/userContext"
 import Link from "next/link"
-
-const defaultAvatarURL = "fb24fc90-5e53-4972-b880-3edd0f8ccc64.jpg"
+import { defaultAvatarURL } from "@/constants/defaults"
 
 function NavBar() {
     const { handleLogout } = useLogout()
     const user = useUserContext()
 
-    const avatarURL = user.avatar_url ?? defaultAvatarURL
+    const avatarURL = user.avatar_url ?? defaultAvatarURL 
     const username = user.username
 
     return (

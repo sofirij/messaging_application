@@ -5,8 +5,7 @@ import { useRef, useState } from "react"
 import Image from "next/image"
 import Input from "@/components/ui/input"
 import { useUserContext } from "@/context/userContext"
-
-const defaultAvatarURL = "fb24fc90-5e53-4972-b880-3edd0f8ccc64.jpg"
+import { defaultAvatarURL } from "@/constants/defaults"
 
 
 export default function Page() {
