@@ -38,7 +38,7 @@ func main() {
 	app := fiber.New(fiber.Config{
 		AppName:      "MyApp",
 		IdleTimeout:  5 * time.Second,
-		WriteTimeout: 100 * time.Second,
+		WriteTimeout: 5 * time.Second,
 		ReadTimeout:  100 * time.Second,
 		BodyLimit:    100 * 1024 * 1024,
 	})
@@ -85,7 +85,7 @@ func main() {
 	messageService := service.NewMessageService(messageRepo, conversationRepo)
 	hubService := service.NewHubService(conversationRepo, userRepo, messageService)
 	userService := service.NewUserService(userRepo, hubService, cfg)
-	conversationService := service.NewConversationService(conversationRepo, userRepo, cfg)
+	conversationService := service.NewConversationService(conversationRepo, userRepo, hubService)
 	uploadService := service.NewUploadService(cfg)
 	ticketService := service.NewTicketService(storage)
 
