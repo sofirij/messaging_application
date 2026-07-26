@@ -11,14 +11,6 @@ export type Conversation = {
     created_at: string
     created_by: number
     last_message_read: number | null
-    members?: Member[]
-}
-
-export type Member = {
-    id: number
-    username: string
-    avatar_url: string | null
-    joined_at: string
 }
 
 export type ConversationCreateRequest = {

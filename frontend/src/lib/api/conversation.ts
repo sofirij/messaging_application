@@ -1,11 +1,12 @@
 import { Conversation, ConversationAddMemberRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest } from "@/types/http/conversation"
 import { Message, MessageCreateRequest, PaginatedMessage } from "@/types/http/message"
 import { fetchWithAuth } from "@/lib/api/fetch"
+import { User } from "@/types/http/user"
 
 const apiVersion = "/api/v1"
 const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/conversations"
 
-export async function getConversationsByUserID(): Promise<Conversation[]> {
+export async function getConversations(): Promise<Conversation[]> {
     const init = {
         method: "GET",
         headers: {
@@ -44,7 +45,7 @@ export async function createConversation(req: ConversationCreateRequest): Promis
     return json.data
 }
 
-export async function getConversationByID(id: number): Promise<Conversation> {
+export async function getConversation(id: number): Promise<Conversation> {
     const url = `${apiURL}/${id}`
 
     const init = {
@@ -214,4 +215,24 @@ export async function removeMember(conversationID: number, userID: number): Prom
         const json = await res.json()
         throw new Error(json.error.message)
     }
+}
+
+export async function getMembers(conversationID: number): Promise<User[]> {
+    const url = `${apiURL}/${conversationID}/members`
+    const init = {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    }
+    
+    const res = await fetchWithAuth(url, init)
+
+    const json = await res.json()
+
+    if (!res.ok) {
+        throw new Error(json.error.message)
+    }
+
+    return json.data
 }
