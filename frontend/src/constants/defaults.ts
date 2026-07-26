@@ -1,0 +1,1 @@
+export const defaultAvatarURL = "fb24fc90-5e53-4972-b880-3edd0f8ccc64.jpg"

@@ -6,17 +6,18 @@ import Input from "@/components/ui/input"
 import Image from "next/image"
 import { User } from "@/types/http/user"
 import { toggleSelected } from "@/utils/conversation"
+import { defaultAvatarURL } from "@/constants/defaults"
+import { useUserContext } from "@/context/userContext"
 
 type InputProps = {
     selected: Set<User>,
     setSelected: Dispatch<SetStateAction<Set<User>>>
 }
 
-const defaultAvatarURL = "fb24fc90-5e53-4972-b880-3edd0f8ccc64.jpg"
 const queryDelay = 300
 
 export function Search({selected, setSelected}: InputProps) {
-
+    const me = useUserContext()
     const [query, setQuery] = useState("")
     const [debouncedQuery, setDebouncedQuery] = useState("")
 
@@ -38,7 +39,7 @@ export function Search({selected, setSelected}: InputProps) {
                 </div>
             ): (
                 <div>
-                    {data.map(user => {
+                    {data.filter(user => user.id !== me.id).map(user => {
                         const avatarURL = user.avatar_url ?? defaultAvatarURL
                         return (
                             <div key={user.id} onClick={() => toggleSelected(user, setSelected)}>

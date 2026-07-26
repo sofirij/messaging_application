@@ -10,11 +10,10 @@ import Image from "next/image";
 import { toggleSelected } from "@/utils/conversation";
 import { ConversationType, conversationGroup, conversationDirect } from "@/types/http/conversation";
 import { ConversationBar } from "@/components/conversations/bar";
-
-const defaultAvatarURL = "fb24fc90-5e53-4972-b880-3edd0f8ccc64.jpg"
+import { defaultAvatarURL } from "@/constants/defaults";
 
 export default function Conversations() {
-    const { data, isPending } = useQuery(conversationQueryOptions)
+    const { data: conversations, isPending } = useQuery(conversationQueryOptions)
     const [creatingConversation, setCreatingConversation] = useState(false)
     const [isGroup, setIsGroup] = useState(false)
     const [groupName, setGroupName] = useState("")
@@ -24,7 +23,7 @@ export default function Conversations() {
     const type : ConversationType = isGroup ? conversationGroup : conversationDirect
     const mustBeGroup = isGroup || selected.size > 1
 
-    if (isPending || !data) {
+    if (isPending || !conversations) {
         return "Loading..."
     }
 
@@ -37,11 +36,11 @@ export default function Conversations() {
 
     return (
         <main>
-            {data.length > 0 ? (
+            {conversations.order.length > 0 ? (
                 <div>
                     <button onClick={() => setCreatingConversation(true)}>New Conversation</button>
-                    {data.map((conversation) => (
-                        <ConversationBar key={conversation.id} conversation={conversation}/>
+                    {conversations.order.map((id) => (
+                        <ConversationBar key={id} conversation={conversations.data[id]}/>
                     ))}
                 </div>
             ) : (

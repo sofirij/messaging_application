@@ -4,8 +4,7 @@ import Image from "next/image"
 import { useState } from "react"
 import { useDeleteConversation, useRemoveMember } from "@/hooks/conversation"
 import { useUserContext } from "@/context/userContext"
-
-const defaultAvatarURL = "fb24fc90-5e53-4972-b880-3edd0f8ccc64.jpg"
+import { defaultAvatarURL } from "@/constants/defaults"
 
 type InputProps = {
     conversation: Conversation
@@ -38,7 +37,6 @@ export function ConversationBar({conversation}: InputProps) {
             {clickedOptions && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setClickedOptions(false)}>
                     <div className="relative bg-white rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
-                        <button>Clear messages</button>
                         {conversation.type === conversationDirect ? (
                             <button onClick={() => handleDeleteConversation(conversation.id)}>Delete</button>
                         ): (
