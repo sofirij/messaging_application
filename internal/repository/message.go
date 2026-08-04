@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"slices"
 
 	"app/internal/model/db"
 	"app/internal/model/request"
@@ -13,7 +14,8 @@ import (
 type MessageRepository interface {
 	CreateWithAttachments(ctx context.Context, conversationID, senderID int, replyToID *int, body *string, attachments []request.MessageAttachment) (*db.Message, []db.MessageAttachment, error)
 	GetByID(ctx context.Context, messageID int) (*db.Message, error)
-	GetByConversationID(ctx context.Context, conversationID int, after, before *int, limit int) ([]db.Message, error)
+	GetAtIDByConversationID(ctx context.Context, conversationID int, at int, after *int, limit int) ([]db.Message, *int, *int, error)
+	GetBeforeIDByConversationID(ctx context.Context, conversationID int, before, after *int, limit int) ([]db.Message, *int, *int, error)
 	GetAttachmentsByMessageIDs(ctx context.Context, messageIDs []int) ([]db.MessageAttachment, error)
 	UpdateBody(ctx context.Context, messageID int, body string) (*db.Message, error)
 	SoftDelete(ctx context.Context, messageID int) (*db.Message, error)
@@ -130,7 +132,62 @@ func (m *messageRepository) GetAttachmentsByMessageIDs(ctx context.Context, mess
 	return attachments, err
 }
 
-func (m *messageRepository) GetByConversationID(ctx context.Context, conversationID int, after, before *int, limit int) ([]db.Message, error) {
+func (m *messageRepository) GetAtIDByConversationID(ctx context.Context, conversationID int, at int, after *int, limit int) ([]db.Message, *int, *int, error) {
+	query := `
+		SELECT * FROM messages
+		WHERE conversation_id = $1
+		AND id >= $2
+		AND ($3::int IS NULL OR id >= $3)
+		ORDER BY id ASC
+		LIMIT $4
+	`
+
+	var messages []db.Message
+
+	err := pgxscan.Select(ctx, m.db, &messages, query, conversationID, at, after, limit)
+
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	query = `
+		SELECT
+			(
+				SELECT id FROM messages
+				WHERE conversation_id = $1 
+				AND id < $2
+				ORDER BY id DESC LIMIT 1
+			) AS previous_cursor,
+			(
+				SELECT id FROM messages
+				WHERE conversation_id = $1
+				AND id > $3
+				ORDER BY id ASC LIMIT 1
+			) AS next_cursor
+	`
+
+	var last int
+	if len(messages) > 0 {
+		last = messages[len(messages)-1].ID
+	} else {
+		last = at
+	}
+
+	var boundary struct {
+		PreviousCursor *int `db:"previous_cursor"`
+		NextCursor     *int `db:"next_cursor"`
+	}
+
+	err = pgxscan.Get(ctx, m.db, &boundary, query, conversationID, at, last)
+
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return messages, boundary.PreviousCursor, boundary.NextCursor, nil
+}
+
+func (m *messageRepository) GetBeforeIDByConversationID(ctx context.Context, conversationID int, before, after *int, limit int) ([]db.Message, *int, *int, error) {
 	query := `
 		SELECT * FROM messages
 		WHERE conversation_id = $1
@@ -144,7 +201,42 @@ func (m *messageRepository) GetByConversationID(ctx context.Context, conversatio
 
 	err := pgxscan.Select(ctx, m.db, &messages, query, conversationID, before, after, limit)
 
-	return messages, err
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	slices.Reverse(messages)
+
+	query = `
+		SELECT
+			(
+				SELECT id FROM messages
+				WHERE conversation_id = $1
+				AND ($2::int IS NOT NULL AND id > $2)
+				ORDER BY id ASC LIMIT 1
+			) AS next_cursor
+	`
+
+	var first *int
+	var last *int
+	if len(messages) > 0 {
+		first = &messages[0].ID
+		last = &messages[len(messages)-1].ID
+	} else {
+		last = after
+	}
+
+	var boundary struct {
+		NextCursor *int `db:"next_cursor"`
+	}
+
+	err = pgxscan.Get(ctx, m.db, &boundary, query, conversationID, last)
+
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return messages, first, boundary.NextCursor, nil
 }
 
 func (m *messageRepository) GetByID(ctx context.Context, messageID int) (*db.Message, error) {

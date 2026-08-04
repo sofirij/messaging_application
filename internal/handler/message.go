@@ -126,16 +126,33 @@ func (m *MessageHandler) SoftDelete(c fiber.Ctx) error {
 
 func (m *MessageHandler) GetByConversationID(c fiber.Ctx) error {
 	var before *int
-
-	cursorString := c.Query("before", "")
-	if cursorString != "" {
-		cursor, err := strconv.Atoi(cursorString)
+	beforeCursorString := c.Query("before", "")
+	if beforeCursorString != "" {
+		cursor, err := strconv.Atoi(beforeCursorString)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(response.ErrorResponse{
 				Error: response.ErrorDetail{Message: "invalid before cursor"},
 			})
 		}
 		before = &cursor
+	}
+
+	var at *int
+	atCursorString := c.Query("at", "")
+	if atCursorString != "" {
+		cursor, err := strconv.Atoi(atCursorString)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(response.ErrorResponse{
+				Error: response.ErrorDetail{Message: "invalid after cursor"},
+			})
+		}
+		at = &cursor
+	}
+
+	if before != nil && at != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(response.ErrorResponse{
+			Error: response.ErrorDetail{Message: "cannot use both 'before' and 'at' query parameter at the same time"},
+		})
 	}
 
 	limitString := c.Query("limit", "20")
@@ -156,7 +173,7 @@ func (m *MessageHandler) GetByConversationID(c fiber.Ctx) error {
 	}
 
 	userID := c.Locals("user_id").(int)
-	resp, err := m.messageService.GetByConversationID(c.Context(), userID, conversationID, before, limit)
+	resp, err := m.messageService.GetByConversationID(c.Context(), userID, conversationID, before, at, limit)
 
 	if err != nil {
 		return handleServiceError(c, err)

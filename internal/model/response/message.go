@@ -16,15 +16,15 @@ type MessageResponse struct {
 }
 
 type PaginatedMessageResponse struct {
-	Messages   []MessageResponse `json:"messages"`
-	NextCursor *int              `json:"next_cursor"`
-	HasMore    bool              `json:"has_more"`
+	Messages       []MessageResponse `json:"messages"`
+	NextCursor     *int              `json:"next_cursor"`
+	PreviousCursor *int              `json:"previous_cursor"`
 }
 
 type ReplyMetadata struct {
-	ID             int     `json:"id"`
-	SenderID       int     `json:"sender_id"`
-	Body           *string `json:"body"`
+	ID       int     `json:"id"`
+	SenderID int     `json:"sender_id"`
+	Body     *string `json:"body"`
 }
 
 type MessageAttachment struct {

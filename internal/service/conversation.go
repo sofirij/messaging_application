@@ -28,7 +28,7 @@ type ConversationService interface {
 type conversationService struct {
 	conversationRepo repository.ConversationRepository
 	userRepo         repository.UserRepository
-	messageRepo 	 repository.MessageRepository
+	messageRepo      repository.MessageRepository
 	hub              HubService
 }
 
@@ -37,7 +37,7 @@ func NewConversationService(conversationRepo repository.ConversationRepository, 
 		conversationRepo: conversationRepo,
 		userRepo:         userRepo,
 		hub:              hub,
-		messageRepo: messageRepo,
+		messageRepo:      messageRepo,
 	}
 }
 
@@ -113,7 +113,7 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 				}
 
 				setRecipientNameAndAvatar(ctx, userID, &conversation, c.conversationRepo, c.userRepo)
-				
+
 				lastMessageSent, err := getLastMessageSent(ctx, c.messageRepo, conversation.ID)
 
 				if err != nil {

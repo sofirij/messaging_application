@@ -458,17 +458,18 @@ func TestMessage_GetPagination(t *testing.T) {
 	conversation := createConversation(t, app, accessCookie1, bodyStruct)
 	conversationID := conversation.ID
 
-	text := "this is the original text"
-	nextCycleText := "this it the text after the first cycle of get messages"
+	otherText := "this is the other text"
+	firstText := "this is the first text"
 
-	// user1 send messages
-	createMessage(t, app, accessCookie1, conversationID, nextCycleText)
+	// user1 sends 2 batches of messages each batch has a limit of 20 messages
+	createMessage(t, app, accessCookie1, conversationID, firstText)
 	limit := 20
 	for range limit {
-		createMessage(t, app, accessCookie1, conversationID, text)
+		createMessage(t, app, accessCookie1, conversationID, otherText)
 	}
 
-	// get the first batch of messages
+	// test the 'before' query parameter
+	// get the last 20 messages
 	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages?limit=20", conversationID), nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(accessCookie1)
@@ -479,16 +480,17 @@ func TestMessage_GetPagination(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result2 response.Response[*response.PaginatedMessageResponse]
+	var result response.Response[response.PaginatedMessageResponse]
 
-	err = json.NewDecoder(resp.Body).Decode(&result2)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
 
-	lastMessageID := *result2.Data.NextCursor
+	require.Nil(t, result.Data.NextCursor)
+	require.NotNil(t, result.Data.PreviousCursor)
 
-	// get the last batch
-	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages?before=%d&limit=1", conversationID, lastMessageID), nil)
+	// get the first message
+	req2 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages?before=%d&limit=1", conversationID, *result.Data.PreviousCursor), nil)
 	req2.Header.Set("Content-Type", "application/json")
 	req2.AddCookie(accessCookie1)
 
@@ -498,10 +500,33 @@ func TestMessage_GetPagination(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, resp2.StatusCode)
 
+	var result2 response.Response[response.PaginatedMessageResponse]
+
 	err = json.NewDecoder(resp2.Body).Decode(&result2)
 
 	require.NoError(t, err)
 
 	require.NotNil(t, result2.Data.Messages[0].Body)
-	require.Equal(t, nextCycleText, *result2.Data.Messages[0].Body)
+	require.Equal(t, firstText, *result2.Data.Messages[0].Body)
+
+	// test the 'at' query parameter
+	// get the first 20 messages
+	req3 := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/conversations/%d/messages?limit=20&at=%d", conversationID, result2.Data.Messages[0].ID), nil)
+	req3.Header.Set("Content-Type", "application/json")
+	req3.AddCookie(accessCookie1)
+
+	resp3, err := app.Test(req3)
+
+	require.NoError(t, err)
+
+	var result3 response.Response[response.PaginatedMessageResponse]
+
+	err = json.NewDecoder(resp3.Body).Decode(&result3)
+
+	require.NoError(t, err)
+
+	require.Equal(t, http.StatusOK, resp3.StatusCode)
+	require.Equal(t, result2.Data.Messages[0].ID, result3.Data.Messages[0].ID)
+	require.Nil(t, result3.Data.PreviousCursor)
+	require.NotNil(t, result3.Data.NextCursor)
 }

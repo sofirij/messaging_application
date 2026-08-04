@@ -560,7 +560,6 @@ func TestConversation_GetByID(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	
 	listening := listen(t, app)
 	defer app.Shutdown()
 

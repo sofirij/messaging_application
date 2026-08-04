@@ -381,11 +381,11 @@ func TestWSMessage_Read(t *testing.T) {
 			break
 		}
 		/*
-		if event.Type == "error" {
-			t.Log(event.Type)
-			var payload ws.ErrorPayload
-			json.Unmarshal(event.Payload, &payload)
-			t.Logf("%v\n", payload)
-		}*/
+			if event.Type == "error" {
+				t.Log(event.Type)
+				var payload ws.ErrorPayload
+				json.Unmarshal(event.Payload, &payload)
+				t.Logf("%v\n", payload)
+			}*/
 	}
 }
