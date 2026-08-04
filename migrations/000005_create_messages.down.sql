@@ -1,3 +1,3 @@
 DROP INDEX idx_messages_conversation_id;
-ALTER TABLE conversations DROP CONSTRAINT fk_conversations_last_message_id;
+ALTER TABLE conversation_members DROP CONSTRAINT fk_conversation_members_last_message_read;
 DROP TABLE messages;

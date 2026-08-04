@@ -19,7 +19,7 @@ type ConversationRepository interface {
 	GetMember(ctx context.Context, conversationID int, userID int) (*db.ConversationMember, error)
 	UpdateName(ctx context.Context, conversationID int, name string) (*db.Conversation, error)
 	UpdateAvatarURL(ctx context.Context, conversationID int, avatarURL *string) (*db.Conversation, error)
-	UpdateLastMessageRead(ctx context.Context, conversationID, messageID int) (*db.Conversation, error)
+	UpdateLastMessageRead(ctx context.Context, userID, conversationID, messageID int) error
 	AddMembers(ctx context.Context, conversationID int, userIDs []int) error
 	RemoveMember(ctx context.Context, conversationID, userID int) error
 	SoftDeleteMember(ctx context.Context, conversationID, userID int) error
@@ -35,7 +35,8 @@ type conversationRepository struct {
 func (c *conversationRepository) SoftDeleteMember(ctx context.Context, conversationID, userID int) error {
 	query := `
 		UPDATE conversation_members
-		SET deleted_at = NOW()
+		SET deleted_at = NOW(),
+		last_message_read = NULL
 		WHERE conversation_id = $1
 		AND user_id = $2
 	`
@@ -149,16 +150,21 @@ func (c *conversationRepository) GetByID(ctx context.Context, conversationID int
 func (c *conversationRepository) GetByUserID(ctx context.Context, userID int) ([]db.Conversation, error) {
 	query := `
 		SELECT c.* FROM conversations AS c
-		JOIN conversation_members AS cm ON c.id = cm.conversation_id
+		JOIN conversation_members AS cm on c.id = cm.conversation_id
+		LEFT JOIN LATERAL (
+			SELECT id FROM messages
+			WHERE conversation_id = c.id
+			ORDER BY id DESC LIMIT 1
+		) AS last_msg ON true
 		WHERE cm.user_id = $1
 		AND (
 			cm.deleted_at IS NULL
 			OR (
-				c.last_message_id IS NOT NULL
-				AND (cm.after_cursor IS NULL OR c.last_message_id > cm.after_cursor)
+				last_msg.id IS NOT NULL
+				AND (cm.after_cursor IS NULL OR last_msg.id > cm.after_cursor)
 			)
 		)
-		ORDER BY c.last_message_id DESC NULLS LAST
+		ORDER BY last_msg.id DESC NULLS LAST
 	`
 
 	var conversations []db.Conversation
@@ -266,29 +272,22 @@ func (c *conversationRepository) UpdateName(ctx context.Context, conversationID 
 	return &conversation, err
 }
 
-func (c *conversationRepository) UpdateLastMessageRead(ctx context.Context, conversationID, messageID int) (*db.Conversation, error) {
+func (c *conversationRepository) UpdateLastMessageRead(ctx context.Context, userID, conversationID, messageID int) error {
 	query := `
-		UPDATE conversations
+		UPDATE conversation_members
 		SET last_message_read = $1
-		WHERE id = $2
-		AND (last_message_read IS NULL OR last_message_read < $1)
-		AND EXISTS (
-			SELECT 1 FROM messages
-			WHERE id = $1
-			AND conversation_id = $2
-		)
-		RETURNING *
+		WHERE user_id = $2
+		AND conversation_id = $3
+		AND ( last_message_read IS NULL OR last_message_read < $1 )
 	`
 
-	var conversation db.Conversation
-
-	err := pgxscan.Get(ctx, c.db, &conversation, query, messageID, conversationID)
+	_, err := c.db.Exec(ctx, query, messageID, userID, conversationID)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &conversation, nil
+	return nil
 }
 
 func (c *conversationRepository) ResumeMember(ctx context.Context, conversationID, userID int) (*db.ConversationMember, error) {
@@ -296,8 +295,9 @@ func (c *conversationRepository) ResumeMember(ctx context.Context, conversationI
 		UPDATE conversation_members
 		SET deleted_at = NULL,
 			after_cursor = (
-				SELECT last_message_id FROM conversations
-				WHERE id = $1
+				SELECT id FROM messages
+				WHERE conversation_id = $1
+				ORDER BY id DESC LIMIT 1
 			)
 		WHERE conversation_id = $1
 		AND user_id = $2

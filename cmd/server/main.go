@@ -50,11 +50,12 @@ func main() {
 
 	// serve static files
 	app.Get("/uploads/*", static.New(cfg.UploadDir, static.Config{
-		Browse:        false,
-		Compress:      true,
-		MaxAge:        int(assetMaxAge.Seconds()),
-		CacheDuration: assetCacheDuration,
+		Browse:          false,
+		Compress:        true,
+		MaxAge:          int(assetMaxAge.Seconds()),
+		CacheDuration:   assetCacheDuration,
 		NotFoundHandler: notFoundHandler,
+		ByteRange:       true,
 	}))
 
 	// initialize db connection
@@ -85,7 +86,7 @@ func main() {
 	messageService := service.NewMessageService(messageRepo, conversationRepo)
 	hubService := service.NewHubService(conversationRepo, userRepo, messageService)
 	userService := service.NewUserService(userRepo, hubService, cfg)
-	conversationService := service.NewConversationService(conversationRepo, userRepo, hubService)
+	conversationService := service.NewConversationService(conversationRepo, userRepo, messageRepo, hubService)
 	uploadService := service.NewUploadService(cfg)
 	ticketService := service.NewTicketService(storage)
 
@@ -128,7 +129,7 @@ func main() {
 
 	hubService.Stop()
 
-	if err := app.ShutdownWithTimeout(pongTimeout + 1 * time.Second); err != nil {
+	if err := app.ShutdownWithTimeout(pongTimeout + 1*time.Second); err != nil {
 		log.Fatalf("server shutdown failed, %v\n", err)
 	}
 
@@ -138,6 +139,6 @@ func main() {
 func notFoundHandler(c fiber.Ctx) error {
 	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 		"error": "asset not found",
-		"path": c.Path(),
+		"path":  c.Path(),
 	})
 }

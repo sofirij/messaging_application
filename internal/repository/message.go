@@ -17,6 +17,8 @@ type MessageRepository interface {
 	GetAttachmentsByMessageIDs(ctx context.Context, messageIDs []int) ([]db.MessageAttachment, error)
 	UpdateBody(ctx context.Context, messageID int, body string) (*db.Message, error)
 	SoftDelete(ctx context.Context, messageID int) (*db.Message, error)
+	GetByIDs(ctx context.Context, messageIDs []int) ([]db.Message, error)
+	GetLastInConversation(ctx context.Context, conversationID int) (*db.Message, error)
 }
 
 type messageRepository struct {
@@ -65,18 +67,6 @@ func (m *messageRepository) CreateWithAttachments(ctx context.Context, conversat
 		}
 
 		messageAttachments[i] = attachment
-	}
-
-	query = `
-		UPDATE conversations
-		SET last_message_id = $1
-		WHERE id = $2
-	`
-
-	_, err = tx.Exec(ctx, query, message.ID, conversationID)
-
-	if err != nil {
-		return nil, nil, err
 	}
 
 	if err = tx.Commit(ctx); err != nil {
@@ -186,6 +176,41 @@ func (m *messageRepository) UpdateBody(ctx context.Context, messageID int, body 
 	var message db.Message
 
 	err := pgxscan.Get(ctx, m.db, &message, query, body, messageID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &message, nil
+}
+
+func (m *messageRepository) GetByIDs(ctx context.Context, messageIDs []int) ([]db.Message, error) {
+	query := `
+		SELECT * FROM messages
+		WHERE id = ANY($1)
+	`
+
+	var messages []db.Message
+
+	err := pgxscan.Select(ctx, m.db, &messages, query, messageIDs)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return messages, nil
+}
+
+func (m *messageRepository) GetLastInConversation(ctx context.Context, conversationID int) (*db.Message, error) {
+	query := `
+		SELECT * FROM messages
+		WHERE conversation_id = $1
+		ORDER BY id DESC LIMIT 1
+	`
+
+	var message db.Message
+
+	err := pgxscan.Get(ctx, m.db, &message, query, conversationID)
 
 	if err != nil {
 		return nil, err

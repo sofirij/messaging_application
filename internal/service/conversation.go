@@ -17,7 +17,7 @@ type ConversationService interface {
 	ClearMessages(ctx context.Context, userID, conversationID int) error
 	SoftDelete(ctx context.Context, userID, conversationID int) error
 	GetMembers(ctx context.Context, userID, conversationID int) ([]response.UserResponse, error)
-	AddMember(ctx context.Context, userID, conversationID int, req request.ConversationAddMemberRequest) error
+	AddMembers(ctx context.Context, userID, conversationID int, req request.ConversationAddMemberRequest) ([]response.UserResponse, error)
 	RemoveMember(ctx context.Context, userID, conversationID, memberID int) error
 	GetByUserID(ctx context.Context, userID int) ([]response.ConversationResponse, error)
 	GetByID(ctx context.Context, userID, conversationID int) (*response.ConversationResponse, error)
@@ -28,7 +28,17 @@ type ConversationService interface {
 type conversationService struct {
 	conversationRepo repository.ConversationRepository
 	userRepo         repository.UserRepository
-	hub 			HubService
+	messageRepo 	 repository.MessageRepository
+	hub              HubService
+}
+
+func NewConversationService(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, messageRepo repository.MessageRepository, hub HubService) ConversationService {
+	return &conversationService{
+		conversationRepo: conversationRepo,
+		userRepo:         userRepo,
+		hub:              hub,
+		messageRepo: messageRepo,
+	}
 }
 
 func (c *conversationService) Create(ctx context.Context, userID int, req request.ConversationCreateRequest) (*response.ConversationResponse, error) {
@@ -103,16 +113,28 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 				}
 
 				setRecipientNameAndAvatar(ctx, userID, &conversation, c.conversationRepo, c.userRepo)
+				
+				lastMessageSent, err := getLastMessageSent(ctx, c.messageRepo, conversation.ID)
+
+				if err != nil {
+					return nil, err
+				}
+
+				lastMessageRead, err := getLastMessageRead(ctx, c.conversationRepo, c.messageRepo, userID, conversation.ID)
+
+				if err != nil {
+					return nil, err
+				}
 
 				resp := response.ConversationResponse{
 					ID:              conversation.ID,
 					Name:            *conversation.Name,
 					AvatarURL:       conversation.AvatarURL,
 					Type:            conversation.Type,
-					LastMessageID:   conversation.LastMessageID,
 					CreatedAt:       conversation.CreatedAt,
 					CreatedBy:       conversation.CreatedBy,
-					LastMessageRead: conversation.LastMessageRead,
+					LastMessageRead: lastMessageRead,
+					LastMessageSent: lastMessageSent,
 				}
 
 				return &resp, nil
@@ -133,15 +155,27 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 		setRecipientNameAndAvatar(ctx, userID, conversation, c.conversationRepo, c.userRepo)
 	}
 
+	lastMessageSent, err := getLastMessageSent(ctx, c.messageRepo, conversation.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	lastMessageRead, err := getLastMessageRead(ctx, c.conversationRepo, c.messageRepo, userID, conversation.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
 	resp := response.ConversationResponse{
 		ID:              conversation.ID,
 		Name:            *conversation.Name,
 		AvatarURL:       conversation.AvatarURL,
 		Type:            conversation.Type,
-		LastMessageID:   conversation.LastMessageID,
 		CreatedAt:       conversation.CreatedAt,
 		CreatedBy:       conversation.CreatedBy,
-		LastMessageRead: conversation.LastMessageRead,
+		LastMessageRead: lastMessageRead,
+		LastMessageSent: lastMessageSent,
 	}
 
 	return &resp, nil
@@ -170,12 +204,6 @@ func (c *conversationService) SoftDelete(ctx context.Context, userID, conversati
 		return err
 	}
 
-	err = c.ClearMessages(ctx, userID, conversationID)
-
-	if err != nil {
-		return err
-	}
-
 	err = c.conversationRepo.SoftDeleteMember(ctx, conversationID, userID)
 
 	if err != nil {
@@ -185,27 +213,84 @@ func (c *conversationService) SoftDelete(ctx context.Context, userID, conversati
 	return nil
 }
 
-func (c *conversationService) AddMember(ctx context.Context, userID, conversationID int, req request.ConversationAddMemberRequest) error {
+func (c *conversationService) AddMembers(ctx context.Context, userID, conversationID int, req request.ConversationAddMemberRequest) ([]response.UserResponse, error) {
 	err := userInConversation(ctx, c.conversationRepo, conversationID, userID)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	conversation, err := c.conversationRepo.GetByID(ctx, conversationID)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if conversation.Type == db.DirectConversation {
-		return &Error{
+		return nil, &Error{
 			Code:    ErrCodeBadRequest,
 			Message: "cannot add to direct conversation",
 		}
 	}
 
-	return c.conversationRepo.AddMembers(ctx, conversationID, req.UserIDs)
+	// ignore already existing members
+	members, err := c.conversationRepo.GetMembers(ctx, conversationID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	userSet := make(map[int]bool)
+	for _, id := range req.UserIDs {
+		userSet[id] = true
+	}
+
+	for _, member := range members {
+		if userSet[member.UserID] {
+			delete(userSet, member.UserID)
+		}
+	}
+
+	k := 0
+	toAdd := make([]int, len(userSet))
+	for id := range userSet {
+		toAdd[k] = id
+		k += 1
+	}
+
+	if len(toAdd) == 0 {
+		return nil, &Error{
+			Code:    ErrCodeBadRequest,
+			Message: "no new members to add to this conversation",
+		}
+	}
+
+	err = c.conversationRepo.AddMembers(ctx, conversationID, toAdd)
+
+	if err != nil {
+		return nil, err
+	}
+
+	users, err := c.userRepo.GetByIDs(ctx, toAdd)
+
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]response.UserResponse, len(users))
+
+	for i, user := range users {
+		resp[i] = response.UserResponse{
+			ID:         user.ID,
+			Username:   user.Username,
+			AvatarURL:  user.AvatarURL,
+			IsOnline:   c.hub.IsOnline(user.ID),
+			LastSeenAt: user.LastSeenAt,
+			CreatedAt:  user.CreatedAt,
+		}
+	}
+
+	return resp, nil
 }
 
 func (c *conversationService) RemoveMember(ctx context.Context, userID, conversationID, memberID int) error {
@@ -252,15 +337,27 @@ func (c *conversationService) GetByUserID(ctx context.Context, userID int) ([]re
 			setRecipientNameAndAvatar(ctx, userID, &conversation, c.conversationRepo, c.userRepo)
 		}
 
+		lastMessageSent, err := getLastMessageSent(ctx, c.messageRepo, conversation.ID)
+
+		if err != nil {
+			return nil, err
+		}
+
+		lastMessageRead, err := getLastMessageRead(ctx, c.conversationRepo, c.messageRepo, userID, conversation.ID)
+
+		if err != nil {
+			return nil, err
+		}
+
 		resp[i] = response.ConversationResponse{
 			ID:              conversation.ID,
 			Name:            *conversation.Name,
 			AvatarURL:       conversation.AvatarURL,
 			Type:            conversation.Type,
-			LastMessageID:   conversation.LastMessageID,
 			CreatedAt:       conversation.CreatedAt,
 			CreatedBy:       conversation.CreatedBy,
-			LastMessageRead: conversation.LastMessageRead,
+			LastMessageRead: lastMessageRead,
+			LastMessageSent: lastMessageSent,
 		}
 	}
 
@@ -309,15 +406,27 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 		setRecipientNameAndAvatar(ctx, userID, conversation, c.conversationRepo, c.userRepo)
 	}
 
+	lastMessageSent, err := getLastMessageSent(ctx, c.messageRepo, conversation.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	lastMessageRead, err := getLastMessageRead(ctx, c.conversationRepo, c.messageRepo, userID, conversation.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
 	resp := response.ConversationResponse{
 		ID:              conversation.ID,
 		Name:            *conversation.Name,
 		AvatarURL:       conversation.AvatarURL,
 		Type:            conversation.Type,
-		LastMessageID:   conversation.LastMessageID,
 		CreatedAt:       conversation.CreatedAt,
 		CreatedBy:       conversation.CreatedBy,
-		LastMessageRead: conversation.LastMessageRead,
+		LastMessageRead: lastMessageRead,
+		LastMessageSent: lastMessageSent,
 	}
 
 	return &resp, nil
@@ -373,7 +482,7 @@ func (c *conversationService) UpdateAvatarURL(ctx context.Context, userID, conve
 	return err
 }
 
-func (c *conversationService) GetMembers(ctx context.Context, userID int, conversationID int) ([]response.UserResponse, error){
+func (c *conversationService) GetMembers(ctx context.Context, userID int, conversationID int) ([]response.UserResponse, error) {
 	err := userInConversation(ctx, c.conversationRepo, conversationID, userID)
 
 	if err != nil {
@@ -400,24 +509,16 @@ func (c *conversationService) GetMembers(ctx context.Context, userID int, conver
 	resp := make([]response.UserResponse, len(members))
 	for i, user := range users {
 		resp[i] = response.UserResponse{
-			ID: user.ID,
-			Username: user.Username,
-			AvatarURL: user.AvatarURL,
-			IsOnline: c.hub.IsOnline(user.ID),
+			ID:         user.ID,
+			Username:   user.Username,
+			AvatarURL:  user.AvatarURL,
+			IsOnline:   c.hub.IsOnline(user.ID),
 			LastSeenAt: user.LastSeenAt,
-			CreatedAt: user.CreatedAt,
+			CreatedAt:  user.CreatedAt,
 		}
 	}
 
 	return resp, nil
-}
-
-func NewConversationService(conversationRepo repository.ConversationRepository, userRepo repository.UserRepository, hub HubService) ConversationService {
-	return &conversationService{
-		conversationRepo: conversationRepo,
-		userRepo:         userRepo,
-		hub: hub,
-	}
 }
 
 func userInConversation(ctx context.Context, repo repository.ConversationRepository, conversationID, userID int) error {
@@ -456,4 +557,44 @@ func setRecipientNameAndAvatar(ctx context.Context, userID int, conversation *db
 	}
 
 	return nil
+}
+
+func getLastMessageRead(ctx context.Context, conversationRepo repository.ConversationRepository, messageRepo repository.MessageRepository, userID, conversationID int) (*response.MessageResponse, error) {
+	member, err := conversationRepo.GetMember(ctx, conversationID, userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if member.LastMessageRead == nil {
+		return nil, nil
+	}
+
+	resp, err := getMessageByID(ctx, messageRepo, *member.LastMessageRead)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func getLastMessageSent(ctx context.Context, messageRepo repository.MessageRepository, conversationID int) (*response.MessageResponse, error) {
+	message, err := messageRepo.GetLastInConversation(ctx, conversationID)
+
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := getMessageByID(ctx, messageRepo, message.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

@@ -34,6 +34,13 @@ type messageService struct {
 	conversationRepo repository.ConversationRepository
 }
 
+func NewMessageService(messageRepo repository.MessageRepository, conversationRepo repository.ConversationRepository) MessageService {
+	return &messageService{
+		messageRepo:      messageRepo,
+		conversationRepo: conversationRepo,
+	}
+}
+
 func (m *messageService) Create(ctx context.Context, senderID, conversationID int, req request.MessageCreateRequest) (*response.MessageResponse, error) {
 	// too many attachments
 	if len(req.Attachments) > attachmentLimit {
@@ -57,36 +64,19 @@ func (m *messageService) Create(ctx context.Context, senderID, conversationID in
 		return nil, err
 	}
 
-	message, attachments, err := m.messageRepo.CreateWithAttachments(ctx, conversationID, senderID, req.ReplyToID, req.Body, req.Attachments)
+	message, _, err := m.messageRepo.CreateWithAttachments(ctx, conversationID, senderID, req.ReplyToID, req.Body, req.Attachments)
 
 	if err != nil {
 		return nil, err
 	}
 
-	attachmentResp := make([]response.MessageAttachment, len(attachments))
+	resp, err := getMessageByID(ctx, m.messageRepo, message.ID)
 
-	for i, attachment := range attachments {
-		attachmentResp[i] = response.MessageAttachment{
-			ID:       attachment.ID,
-			Type:     attachment.Type,
-			URL:      attachment.URL,
-			Filename: attachment.Filename,
-			Size:     attachment.Size,
-		}
+	if err != nil {
+		return nil, err
 	}
 
-	resp := response.MessageResponse{
-		ID:             message.ID,
-		ConversationID: message.ConversationID,
-		SenderID:       message.SenderID,
-		ReplyToID:      message.ReplyToID,
-		Body:           message.Body,
-		Deleted:        message.DeletedAt != nil,
-		CreatedAt:      message.CreatedAt,
-		Attachments:    attachmentResp,
-	}
-
-	return &resp, nil
+	return resp, nil
 }
 
 func (m *messageService) UpdateBody(ctx context.Context, senderID int, messageID int, req request.MessageEditRequest) error {
@@ -112,7 +102,7 @@ func (m *messageService) UpdateBody(ctx context.Context, senderID int, messageID
 		}
 	}
 
-	message, err = m.messageRepo.UpdateBody(ctx, messageID, req.Body)
+	_, err = m.messageRepo.UpdateBody(ctx, messageID, req.Body)
 
 	if err != nil {
 		return err
@@ -142,37 +132,30 @@ func (m *messageService) SoftDelete(ctx context.Context, senderID, messageID int
 		return nil, err
 	}
 
-	resp := response.MessageResponse{
-		ID:             message.ID,
-		ConversationID: message.ConversationID,
-		SenderID:       message.SenderID,
-		ReplyToID:      message.ReplyToID,
-		Body:           message.Body,
-		Deleted:        message.DeletedAt != nil,
-		CreatedAt:      message.CreatedAt,
-		Attachments:    make([]response.MessageAttachment, 0),
+	resp, err := getMessageByID(ctx, m.messageRepo, message.ID)
+
+	if err != nil {
+		return nil, err
 	}
 
-	return &resp, nil
+	return resp, nil
 }
 
 /*
 ensure user is in conversation, get messages, get message attachments, generate paginated response
 */
 func (m *messageService) GetByConversationID(ctx context.Context, userID, conversationID int, before *int, limit int) (*response.PaginatedMessageResponse, error) {
+	err := userInConversation(ctx, m.conversationRepo, conversationID, userID)
+
+	if err != nil {
+		return nil, err
+	}
+
 	if limit > messageLimit {
 		limit = messageLimit
 	}
 
 	member, err := m.conversationRepo.GetMember(ctx, conversationID, userID)
-
-	// conversation not found
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, &Error{
-			Code:    ErrCodeNotFound,
-			Message: "conversation not found",
-		}
-	}
 
 	if err != nil {
 		return nil, err
@@ -205,6 +188,28 @@ func (m *messageService) GetByConversationID(ctx context.Context, userID, conver
 		attachmentMap[a.MessageID] = append(attachmentMap[a.MessageID], a)
 	}
 
+	// get reply metadata for messages with replies
+	replyIDs := make([]int, 0)
+	for _, message := range messages {
+		if (message.ReplyToID != nil) {
+			replyIDs = append(replyIDs, *message.ReplyToID)
+		}
+	}
+
+	replies, err := m.messageRepo.GetByIDs(ctx, replyIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	replyMap := make(map[int]*response.ReplyMetadata)
+	for _, reply := range replies {
+		replyMap[reply.ID] = &response.ReplyMetadata{
+			ID: reply.ID,
+			SenderID: reply.SenderID,
+			Body: reply.Body,
+		}
+	}
+
 	messageResp := make([]response.MessageResponse, len(messages))
 
 	for i, message := range messages {
@@ -220,11 +225,16 @@ func (m *messageService) GetByConversationID(ctx context.Context, userID, conver
 			}
 		}
 
+		var replyMetadata *response.ReplyMetadata
+		if message.ReplyToID != nil {
+			replyMetadata = replyMap[*message.ReplyToID]
+		}
+
 		messageResp[i] = response.MessageResponse{
 			ID:             message.ID,
 			ConversationID: message.ConversationID,
 			SenderID:       message.SenderID,
-			ReplyToID:      message.ReplyToID,
+			Reply:      	replyMetadata,
 			Body:           message.Body,
 			Deleted:        message.DeletedAt != nil,
 			CreatedAt:      message.CreatedAt,
@@ -239,7 +249,7 @@ func (m *messageService) GetByConversationID(ctx context.Context, userID, conver
 	}
 
 	resp := response.PaginatedMessageResponse{
-		Messages:       messageResp,
+		Messages:   messageResp,
 		NextCursor: nextCursor,
 		HasMore:    hasMore,
 	}
@@ -255,19 +265,9 @@ func (m *messageService) MarkAsRead(ctx context.Context, userID, conversationID,
 	}
 
 	conversation, err := m.conversationRepo.GetByID(ctx, conversationID)
-	if err != nil && errors.Is(err, pgx.ErrNoRows) {
-		return &Error{
-			Code:    ErrCodeNotFound,
-			Message: "conversation not found",
-		}
-	}
 
 	if err != nil {
 		return err
-	}
-
-	if conversation.LastMessageID != nil && *conversation.LastMessageID > messageID {
-		return nil
 	}
 
 	message, err := getMessageByID(ctx, m.messageRepo, messageID)
@@ -283,7 +283,14 @@ func (m *messageService) MarkAsRead(ctx context.Context, userID, conversationID,
 		}
 	}
 
-	_, err = m.conversationRepo.UpdateLastMessageRead(ctx, conversationID, messageID)
+	if _, err := userOwnsMessage(ctx, m.messageRepo, messageID, userID); err == nil {
+		return &Error{
+			Code: ErrCodeBadRequest,
+			Message: "Cannot read your own message",
+		}
+	}
+
+	err = m.conversationRepo.UpdateLastMessageRead(ctx, userID, conversationID, messageID)
 
 	if err != nil {
 		return err
@@ -307,12 +314,6 @@ func (m *messageService) GetByID(ctx context.Context, userID, messageID int) (*r
 	return message, nil
 }
 
-func NewMessageService(messageRepo repository.MessageRepository, conversationRepo repository.ConversationRepository) MessageService {
-	return &messageService{
-		messageRepo:      messageRepo,
-		conversationRepo: conversationRepo,
-	}
-}
 
 func userOwnsMessage(ctx context.Context, repo repository.MessageRepository, messageID, userID int) (*db.Message, error) {
 	message, err := repo.GetByID(ctx, messageID)
@@ -360,11 +361,25 @@ func getMessageByID(ctx context.Context, messageRepo repository.MessageRepositor
 		}
 	}
 
+	var replyMetadata *response.ReplyMetadata
+	if message.ReplyToID != nil {
+		reply, err := messageRepo.GetByID(ctx, *message.ReplyToID)
+		if err != nil {
+			return nil, err
+		}
+
+		replyMetadata = &response.ReplyMetadata{
+			ID: reply.ID,
+			SenderID: reply.SenderID,
+			Body: reply.Body,
+		}
+	}
+
 	return &response.MessageResponse{
 		ID:             message.ID,
 		ConversationID: message.ConversationID,
 		SenderID:       message.SenderID,
-		ReplyToID:      message.ReplyToID,
+		Reply:      	replyMetadata,
 		Body:           message.Body,
 		Deleted:        message.DeletedAt != nil,
 		CreatedAt:      message.CreatedAt,

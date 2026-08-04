@@ -4,7 +4,5 @@ CREATE TABLE conversations (
     name                    TEXT,
     avatar_url              TEXT,
     created_by              INT NOT NULL REFERENCES users(id),
-    created_at              TIMESTAMPTZ DEFAULT NOW(),
-    last_message_id         INT,
-    last_message_read       INT
+    created_at              TIMESTAMPTZ DEFAULT NOW()
 );

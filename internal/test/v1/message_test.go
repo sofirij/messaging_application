@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"app/internal/model/db"
@@ -13,11 +14,10 @@ import (
 	"app/internal/model/response"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createMessage(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conversationID int, text string) response.Response[response.MessageResponse] {
+func createMessage(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conversationID int, text string) response.MessageResponse {
 	bodyStruct := request.MessageCreateRequest{
 		Body: &text,
 	}
@@ -41,18 +41,111 @@ func createMessage(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conv
 	require.NotNil(t, result.Data.Body)
 	require.Equal(t, text, *result.Data.Body)
 
-	return result
+	return result.Data
 }
 
-func clearMessages(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conversationID int) *http.Response {
-	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/conversations/%d/messages", conversationID), nil)
-	req.AddCookie(accessCookie)
-	req.Header.Set("Content-Type", "application/json")
+func TestMessage_CreateWithAttachmentsAndReply(t *testing.T) {
+	app := setupApp(t)
+	defer truncateTables(t)
+	defer clearUploadFolder(t)
 
-	resp, err := app.Test(req)
+	user1 := request.UserAuthRequest{
+		Username: "testuser1",
+		Password: "password123",
+	}
+
+	user2 := request.UserAuthRequest{
+		Username: "testuser2",
+		Password: "password123",
+	}
+
+	register(t, app, user1)
+	register(t, app, user2)
+
+	_, accessCookie1, _ := login(t, app, user1)
+	_, accessCookie2, _ := login(t, app, user2)
+
+	// get the id for user 2
+	user2ID := getUserID(t, app, accessCookie2)
+
+	// user1 creates a direct conversation with user2
+	bodyStruct := request.ConversationCreateRequest{
+		Type:    db.DirectConversation,
+		UserIDs: []int{user2ID}, // user2's id
+	}
+
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
+
+	replyText := "this is the reply text"
+
+	replyMessage := createMessage(t, app, accessCookie1, conversationID, replyText)
+
+	// upload the file to be used as attachment
+	content, err := os.ReadFile(validFilePath)
+
 	require.NoError(t, err)
 
-	return resp
+	contents := make([][]byte, 1)
+	filenames := make([]string, 1)
+
+	contents[0] = content
+	filenames[0] = validFilename
+
+	req2 := createMultipartRequestMany(t, accessCookie1, "file", filenames, contents)
+
+	resp2, err := app.Test(req2, testCfg)
+
+	require.NoError(t, err)
+
+	// get the uploaded file url
+	var result2 response.Response[[]response.UploadResponse]
+	err = json.NewDecoder(resp2.Body).Decode(&result2)
+
+	require.NoError(t, err)
+
+	fileURL := result2.Data[0].URL
+	require.NotEmpty(t, fileURL)
+
+	text := "this is a message"
+
+	attachment := request.MessageAttachment{
+		URL:      fileURL,
+		Filename: result2.Data[0].Filename,
+		Size:     result2.Data[0].Size,
+		Type:     result2.Data[0].Type,
+	}
+
+	messageBody := request.MessageCreateRequest{
+		ReplyToID:   &replyMessage.ID,
+		Body:        &text,
+		Attachments: []request.MessageAttachment{attachment},
+	}
+
+	bodyBytes, err := json.Marshal(messageBody)
+
+	require.NoError(t, err)
+
+	// send the message with the attachment
+	req3 := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/conversations/%d/messages", conversationID), bytes.NewReader(bodyBytes))
+	req3.Header.Set("Content-Type", "application/json")
+	req3.AddCookie(accessCookie1)
+
+	resp3, err := app.Test(req3)
+
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp3.StatusCode)
+
+	var result3 response.Response[response.MessageResponse]
+	err = json.NewDecoder(resp3.Body).Decode(&result3)
+
+	require.NoError(t, err)
+
+	// assert the message response
+	require.NotNil(t, result3.Data.Body)
+	require.Equal(t, text, *result3.Data.Body)
+	require.Equal(t, fileURL, result3.Data.Attachments[0].URL)
+	require.Equal(t, replyMessage.ID, result3.Data.Reply.ID)
 }
 
 func TestMessage_Create(t *testing.T) {
@@ -84,8 +177,8 @@ func TestMessage_Create(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	text := "this is the original text"
 
@@ -122,8 +215,8 @@ func TestMessage_Edit(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	originalText := "this is the original text"
 	editedText := "this is the edited text"
@@ -178,7 +271,7 @@ func TestMessage_Edit(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotNil(t, result2.Data.Messages[0].Body)
-	assert.Equal(t, editedText, *result2.Data.Messages[0].Body)
+	require.Equal(t, editedText, *result2.Data.Messages[0].Body)
 }
 
 func TestMessage_EditForbidden(t *testing.T) {
@@ -210,8 +303,8 @@ func TestMessage_EditForbidden(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	originalText := "this is the original text"
 	editedText := "this is the edited text"
@@ -285,8 +378,8 @@ func TestMessage_Delete(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	originalText := "this is the original text"
 
@@ -330,7 +423,7 @@ func TestMessage_Delete(t *testing.T) {
 
 	require.NoError(t, err)
 
-	assert.Nil(t, result2.Data.Messages[0].Body)
+	require.Nil(t, result2.Data.Messages[0].Body)
 }
 
 func TestMessage_GetPagination(t *testing.T) {
@@ -362,8 +455,8 @@ func TestMessage_GetPagination(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	text := "this is the original text"
 	nextCycleText := "this it the text after the first cycle of get messages"
@@ -410,5 +503,5 @@ func TestMessage_GetPagination(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotNil(t, result2.Data.Messages[0].Body)
-	assert.Equal(t, nextCycleText, *result2.Data.Messages[0].Body)
+	require.Equal(t, nextCycleText, *result2.Data.Messages[0].Body)
 }

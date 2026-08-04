@@ -2,6 +2,7 @@ package v1
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -11,8 +12,8 @@ import (
 	"testing"
 
 	"app/internal/model/request"
+	"app/internal/model/response"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -86,7 +87,7 @@ func TestUpload_InvalidFile(t *testing.T) {
 	resp, err := app.Test(req, testCfg)
 
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
 func TestUpload_ValidFile(t *testing.T) {
@@ -111,7 +112,15 @@ func TestUpload_ValidFile(t *testing.T) {
 	resp, err := app.Test(req, testCfg)
 
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var result response.Response[response.UploadResponse]
+
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+
+	require.NotEmpty(t, result.Data.URL)
 }
 
 func TestUpload_ManyFiles(t *testing.T) {
@@ -147,7 +156,17 @@ func TestUpload_ManyFiles(t *testing.T) {
 
 	require.NoError(t, err)
 
-	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var result response.Response[[]response.UploadResponse]
+
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+
+	for _, upload := range result.Data {
+		require.NotEmpty(t, upload.URL)
+	}
 }
 
 func TestUpload_TooManyFiles(t *testing.T) {
@@ -183,7 +202,7 @@ func TestUpload_TooManyFiles(t *testing.T) {
 
 	require.NoError(t, err)
 
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
 func TestUpload_ManyFilesOneInvalid(t *testing.T) {
@@ -227,7 +246,7 @@ func TestUpload_ManyFilesOneInvalid(t *testing.T) {
 
 	require.NoError(t, err)
 
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
 func clearUploadFolder(t *testing.T) {

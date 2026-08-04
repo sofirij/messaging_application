@@ -16,7 +16,7 @@ func TestWSOnlineStatus_Online(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	go listen(t, app)
+	listening := listen(t, app)
 	defer app.Shutdown()
 
 	user1 := request.UserAuthRequest{
@@ -48,6 +48,7 @@ func TestWSOnlineStatus_Online(t *testing.T) {
 
 	// both user1 and user2 go online
 	ticket := getTicket(t, app, accessCookie1)
+	<-listening
 	conn1 := connect(t, ticket)
 	defer conn1.Close()
 
@@ -77,7 +78,7 @@ func TestWSOnlineStatus_Offline(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	go listen(t, app)
+	listening := listen(t, app)
 	defer app.Shutdown()
 
 	user1 := request.UserAuthRequest{
@@ -109,6 +110,7 @@ func TestWSOnlineStatus_Offline(t *testing.T) {
 
 	// both user1 and user2 go online
 	ticket := getTicket(t, app, accessCookie1)
+	<-listening
 	conn1 := connect(t, ticket)
 	defer conn1.Close()
 

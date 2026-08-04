@@ -21,7 +21,7 @@ func TestWSConversation_Create(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	go listen(t, app)
+	listening := listen(t, app)
 	defer app.Shutdown()
 
 	user1 := request.UserAuthRequest{
@@ -44,6 +44,7 @@ func TestWSConversation_Create(t *testing.T) {
 	userID := getUserID(t, app, accessCookie2)
 
 	ticket := getTicket(t, app, accessCookie2)
+	<-listening
 	conn := connect(t, ticket)
 	defer conn.Close()
 
@@ -77,7 +78,7 @@ func TestWSConversation_AddMember(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	go listen(t, app)
+	listening := listen(t, app)
 	defer app.Shutdown()
 
 	user1 := request.UserAuthRequest{
@@ -104,6 +105,7 @@ func TestWSConversation_AddMember(t *testing.T) {
 	_, accessCookie3, _ := login(t, app, user3)
 
 	ticket := getTicket(t, app, accessCookie3)
+	<-listening
 	conn := connect(t, ticket)
 	defer conn.Close()
 
@@ -119,8 +121,8 @@ func TestWSConversation_AddMember(t *testing.T) {
 		UserIDs: []int{userID},
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	// user1 adds user3 to conversation
 	addMemberStruct := request.ConversationAddMemberRequest{
@@ -138,7 +140,7 @@ func TestWSConversation_AddMember(t *testing.T) {
 	resp, err := app.Test(req)
 
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
 	// added member should receive a message
 	var event ws.Event
@@ -162,7 +164,7 @@ func TestWSConversation_RemoveMember(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	go listen(t, app)
+	listening := listen(t, app)
 	defer app.Shutdown()
 
 	user1 := request.UserAuthRequest{
@@ -182,6 +184,7 @@ func TestWSConversation_RemoveMember(t *testing.T) {
 	_, accessCookie2, _ := login(t, app, user2)
 
 	ticket := getTicket(t, app, accessCookie2)
+	<-listening
 	conn := connect(t, ticket)
 	defer conn.Close()
 
@@ -197,8 +200,8 @@ func TestWSConversation_RemoveMember(t *testing.T) {
 		UserIDs: []int{userID},
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	// user1 removes user2
 	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/conversations/%d/members/%d", conversationID, userID), nil)
@@ -232,7 +235,7 @@ func TestWSConversation_TypingStart(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	go listen(t, app)
+	listening := listen(t, app)
 	defer app.Shutdown()
 
 	user1 := request.UserAuthRequest{
@@ -255,6 +258,7 @@ func TestWSConversation_TypingStart(t *testing.T) {
 	userID := getUserID(t, app, accessCookie2)
 
 	ticket := getTicket(t, app, accessCookie2)
+	<-listening
 	conn := connect(t, ticket)
 	defer conn.Close()
 
@@ -264,8 +268,8 @@ func TestWSConversation_TypingStart(t *testing.T) {
 		UserIDs: []int{userID}, // user2's id
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	// user2 starts typing
 	reqPayload := ws.TypingPayloadInbound{
@@ -306,7 +310,7 @@ func TestWSConversation_TypingStop(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	go listen(t, app)
+	listening := listen(t, app)
 	defer app.Shutdown()
 
 	user1 := request.UserAuthRequest{
@@ -329,6 +333,7 @@ func TestWSConversation_TypingStop(t *testing.T) {
 	userID := getUserID(t, app, accessCookie2)
 
 	ticket := getTicket(t, app, accessCookie2)
+	<-listening
 	conn := connect(t, ticket)
 	defer conn.Close()
 
@@ -338,8 +343,8 @@ func TestWSConversation_TypingStop(t *testing.T) {
 		UserIDs: []int{userID}, // user2's id
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	// user2 starts typing
 	reqPayload := ws.TypingPayloadInbound{

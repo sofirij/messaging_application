@@ -2,10 +2,10 @@ package v1
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"fmt"
 
 	"app/internal/model/request"
 	"app/internal/model/response"

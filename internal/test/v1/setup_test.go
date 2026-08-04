@@ -64,7 +64,7 @@ func setupApp(t *testing.T) *fiber.App {
 	messageService = service.NewMessageService(messageRepo, conversationRepo)
 	hubService := service.NewHubService(conversationRepo, userRepo, messageService)
 	userService := service.NewUserService(userRepo, hubService, cfg)
-	conversationService := service.NewConversationService(conversationRepo, userRepo, hubService)
+	conversationService := service.NewConversationService(conversationRepo, userRepo, messageRepo, hubService)
 	uploadService := service.NewUploadService(cfg)
 	ticketService := service.NewTicketService(storage)
 

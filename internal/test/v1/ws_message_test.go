@@ -13,13 +13,12 @@ import (
 	"app/internal/model/response"
 	"app/internal/model/ws"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWSMessage_Create(t *testing.T) {
 	app := setupApp(t)
-	go listen(t, app)
+	listening := listen(t, app)
 
 	defer truncateTables(t)
 	defer app.Shutdown()
@@ -41,6 +40,7 @@ func TestWSMessage_Create(t *testing.T) {
 	_, accessCookie2, _ := login(t, app, user2)
 
 	ticket := getTicket(t, app, accessCookie2)
+	<-listening
 	conn := connect(t, ticket)
 	defer conn.Close()
 
@@ -53,8 +53,8 @@ func TestWSMessage_Create(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	text := "this is the original text"
 
@@ -75,12 +75,12 @@ func TestWSMessage_Create(t *testing.T) {
 	err := json.Unmarshal(event.Payload, &payload)
 	require.NoError(t, err)
 
-	assert.NotZero(t, payload.ID)
+	require.NotZero(t, payload.ID)
 }
 
 func TestWSMessage_Delete(t *testing.T) {
 	app := setupApp(t)
-	go listen(t, app)
+	listening := listen(t, app)
 
 	defer truncateTables(t)
 	defer app.Shutdown()
@@ -102,6 +102,7 @@ func TestWSMessage_Delete(t *testing.T) {
 	_, accessCookie2, _ := login(t, app, user2)
 
 	ticket := getTicket(t, app, accessCookie2)
+	<-listening
 	conn := connect(t, ticket)
 	defer conn.Close()
 
@@ -114,8 +115,8 @@ func TestWSMessage_Delete(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	originalText := "this is the original text"
 
@@ -164,15 +165,15 @@ func TestWSMessage_Delete(t *testing.T) {
 	err = json.Unmarshal(event.Payload, &payload)
 	require.NoError(t, err)
 
-	assert.NotZero(t, payload.ConversationID)
-	assert.NotZero(t, payload.MessageID)
+	require.NotZero(t, payload.ConversationID)
+	require.NotZero(t, payload.MessageID)
 }
 
 func TestWSMessage_Edit(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
-	go listen(t, app)
+	listening := listen(t, app)
 	defer app.Shutdown()
 
 	user1 := request.UserAuthRequest{
@@ -192,6 +193,7 @@ func TestWSMessage_Edit(t *testing.T) {
 	_, accessCookie2, _ := login(t, app, user2)
 
 	ticket := getTicket(t, app, accessCookie2)
+	<-listening
 	conn := connect(t, ticket)
 	defer conn.Close()
 
@@ -204,8 +206,8 @@ func TestWSMessage_Edit(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	originalText := "this is the original text"
 	editedText := "this is the edited text"
@@ -264,12 +266,12 @@ func TestWSMessage_Edit(t *testing.T) {
 	err = json.Unmarshal(event.Payload, &payload)
 	require.NoError(t, err)
 
-	assert.NotZero(t, payload.MessageID)
+	require.NotZero(t, payload.MessageID)
 }
 
 func TestWSMessage_Read(t *testing.T) {
 	app := setupApp(t)
-	go listen(t, app)
+	listening := listen(t, app)
 
 	defer truncateTables(t)
 	defer app.Shutdown()
@@ -291,6 +293,7 @@ func TestWSMessage_Read(t *testing.T) {
 	_, accessCookie2, _ := login(t, app, user2)
 
 	ticket := getTicket(t, app, accessCookie2)
+	<-listening
 	conn := connect(t, ticket)
 	defer conn.Close()
 
@@ -303,14 +306,14 @@ func TestWSMessage_Read(t *testing.T) {
 		UserIDs: []int{user2ID}, // user2's id
 	}
 
-	result := createConversation(t, app, accessCookie1, bodyStruct)
-	conversationID := result.Data.ID
+	conversation := createConversation(t, app, accessCookie1, bodyStruct)
+	conversationID := conversation.ID
 
 	text := "this is the original text"
 
 	// user1 sends a message
-	result2 := createMessage(t, app, accessCookie1, conversationID, text)
-	messageID := result2.Data.ID
+	message := createMessage(t, app, accessCookie1, conversationID, text)
+	messageID := message.ID
 
 	// user2 reads message
 	reqPayload := ws.MessageReadPayload{
@@ -337,25 +340,19 @@ func TestWSMessage_Read(t *testing.T) {
 		if event.Type == ws.EventMessageSeen {
 			break
 		}
-		if event.Type == "error" {
-			t.Log(event.Type)
-			var payload ws.ErrorPayload
-			json.Unmarshal(event.Payload, &payload)
-			t.Logf("%v\n", payload)
-		}
 	}
 
 	var respPayload ws.MessageSeenPayload
 	err = json.Unmarshal(event.Payload, &respPayload)
 	require.NoError(t, err)
 
-	assert.NotZero(t, respPayload.ConversationID)
-	assert.NotZero(t, respPayload.MessageID)
-	assert.NotZero(t, respPayload.UserID)
+	require.NotZero(t, respPayload.ConversationID)
+	require.NotZero(t, respPayload.MessageID)
+	require.NotZero(t, respPayload.UserID)
 
 	// user1 sends another message
-	result2 = createMessage(t, app, accessCookie1, conversationID, text)
-	messageID = result2.Data.ID
+	message = createMessage(t, app, accessCookie1, conversationID, text)
+	messageID = message.ID
 
 	// user 2 reads the next message
 	reqPayload = ws.MessageReadPayload{
@@ -383,5 +380,12 @@ func TestWSMessage_Read(t *testing.T) {
 		if event.Type == ws.EventMessageSeen {
 			break
 		}
+		/*
+		if event.Type == "error" {
+			t.Log(event.Type)
+			var payload ws.ErrorPayload
+			json.Unmarshal(event.Payload, &payload)
+			t.Logf("%v\n", payload)
+		}*/
 	}
 }

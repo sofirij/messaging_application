@@ -17,7 +17,7 @@ func RegisterConversationRoutes(r fiber.Router, c *handler.ConversationHandler, 
 	conversations.Get("/:id/messages", m.GetByConversationID)
 	conversations.Post("/:id/messages", m.Create)
 	conversations.Get("/:id/members", c.GetMembers)
-	conversations.Post("/:id/members", c.AddMember)
+	conversations.Post("/:id/members", c.AddMembers)
 	conversations.Put("/:id/name", c.UpdateName)
 	conversations.Put("/:id/avatar", c.UpdateAvatarURL)
 	conversations.Delete("/:id/messages", c.ClearMessages)

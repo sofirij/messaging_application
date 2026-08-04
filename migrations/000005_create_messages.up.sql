@@ -11,6 +11,6 @@ CREATE TABLE messages (
 
 CREATE INDEX idx_messages_conversation_id ON messages (conversation_id, id DESC);
 
-ALTER TABLE conversations
-ADD CONSTRAINT fk_conversations_last_message_id
-FOREIGN KEY (last_message_id) REFERENCES messages(id);
+ALTER TABLE conversation_members
+ADD CONSTRAINT fk_conversation_members_last_message_read
+FOREIGN KEY (last_message_read) REFERENCES messages(id);

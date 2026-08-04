@@ -11,8 +11,6 @@ type Conversation struct {
 	AvatarURL       *string   `db:"avatar_url"`
 	CreatedBy       int       `db:"created_by"`
 	CreatedAt       time.Time `db:"created_at"`
-	LastMessageID   *int      `db:"last_message_id"`
-	LastMessageRead *int      `db:"last_message_read"`
 }
 
 type ConversationMember struct {
@@ -21,6 +19,7 @@ type ConversationMember struct {
 	JoinedAt       time.Time  `db:"joined_at"`
 	DeletedAt      *time.Time `db:"deleted_at"`
 	AfterCursor    *int       `db:"after_cursor"`
+	LastMessageRead *int      `db:"last_message_read"`
 }
 
 var DirectConversation = "direct"

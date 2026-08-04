@@ -135,7 +135,7 @@ func (h *ConversationHandler) UpdateAvatarURL(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h *ConversationHandler) AddMember(c fiber.Ctx) error {
+func (h *ConversationHandler) AddMembers(c fiber.Ctx) error {
 	IDString := c.Params("id", "")
 	conversationID, err := strconv.Atoi(IDString)
 
@@ -154,7 +154,7 @@ func (h *ConversationHandler) AddMember(c fiber.Ctx) error {
 	}
 
 	userID := c.Locals("user_id").(int)
-	err = h.conversationService.AddMember(c.Context(), userID, conversationID, req)
+	resp, err := h.conversationService.AddMembers(c.Context(), userID, conversationID, req)
 
 	if err != nil {
 		return handleServiceError(c, err)
@@ -170,7 +170,9 @@ func (h *ConversationHandler) AddMember(c fiber.Ctx) error {
 		go h.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), userID, ws.EventMemberAdded, conversationID, payload)
 	}
 
-	return c.SendStatus(fiber.StatusNoContent)
+	return c.Status(fiber.StatusCreated).JSON(response.Response[[]response.UserResponse]{
+		Data: resp,
+	})
 }
 
 func (h *ConversationHandler) RemoveMember(c fiber.Ctx) error {

@@ -4,6 +4,7 @@ CREATE TABLE conversation_members (
     joined_at                   TIMESTAMPTZ DEFAULT NOW(),
     after_cursor                INT,
     deleted_at                  TIMESTAMPTZ,
+    last_message_read           INT,
     PRIMARY KEY (conversation_id, user_id)         
 );
 

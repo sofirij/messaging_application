@@ -18,9 +18,19 @@ import (
 
 const readDeadline = 5 * time.Second
 
-func listen(t *testing.T, app *fiber.App) {
-	err := app.Listen(cfg.AppHost+cfg.AppPort, listenCfg)
-	require.NoError(t, err)
+func listen(t *testing.T, app *fiber.App) chan struct{} {
+	listening := make(chan struct{})
+	app.Hooks().OnListen(func(listenData fiber.ListenData) error {
+		listening <- struct{}{}
+		return nil
+	})
+
+	go func() {
+		err := app.Listen(cfg.AppHost+cfg.AppPort, listenCfg)
+		require.NoError(t, err)
+	}()
+
+	return listening
 }
 
 func connect(t *testing.T, ticket string) *websocket.Conn {
@@ -52,7 +62,7 @@ func getTicket(t *testing.T, app *fiber.App, accessCookie *http.Cookie) string {
 
 func TestWS_Connect(t *testing.T) {
 	app := setupApp(t)
-	go listen(t, app)
+	listening := listen(t, app)
 
 	defer truncateTables(t)
 	defer app.Shutdown()
@@ -68,13 +78,14 @@ func TestWS_Connect(t *testing.T) {
 
 	ticket := getTicket(t, app, accessCookie1)
 
+	<-listening
 	conn := connect(t, ticket)
 	conn.Close()
 }
 
 func TestWS_Heartbeat(t *testing.T) {
 	app := setupApp(t)
-	go listen(t, app)
+	listening := listen(t, app)
 
 	defer truncateTables(t)
 	defer app.Shutdown()
@@ -90,6 +101,7 @@ func TestWS_Heartbeat(t *testing.T) {
 
 	ticket := getTicket(t, app, accessCookie1)
 
+	<-listening
 	conn := connect(t, ticket)
 	conn.SetPingHandler(func(appData string) error {
 		return nil
