@@ -18,6 +18,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+
+const (
+	minPasswordLength = 8
+	maxPasswordLength = 72
+	minUsernameLength = 3
+	maxUsernameLength = 15
+	queryLimit        = 100
+)
+
 type UserService interface {
 	Register(ctx context.Context, req request.UserAuthRequest) error
 	Login(ctx context.Context, req request.UserAuthRequest) (*response.UserResponse, string, string, error)
@@ -40,15 +50,16 @@ type userService struct {
 	hub                  HubService
 }
 
-var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-
-const (
-	minPasswordLength = 8
-	maxPasswordLength = 72
-	minUsernameLength = 3
-	maxUsernameLength = 15
-	queryLimit        = 100
-)
+func NewUserService(userRepo repository.UserRepository, hub HubService, cfg *config.Config) UserService {
+	return &userService{
+		userRepo:             userRepo,
+		jwtSecret:            cfg.JWTSecret,
+		accessTokenDuration:  cfg.AccessTokenDuration,
+		refreshTokenDuration: cfg.RefreshTokenDuration,
+		bcryptCost:           cfg.BcryptCost,
+		hub:                  hub,
+	}
+}
 
 func (u *userService) Register(ctx context.Context, req request.UserAuthRequest) error {
 
@@ -320,17 +331,6 @@ func (u *userService) UpdateLastSeenAt(ctx context.Context, userID int) (*respon
 	}
 
 	return &resp, nil
-}
-
-func NewUserService(userRepo repository.UserRepository, hub HubService, cfg *config.Config) UserService {
-	return &userService{
-		userRepo:             userRepo,
-		jwtSecret:            cfg.JWTSecret,
-		accessTokenDuration:  cfg.AccessTokenDuration,
-		refreshTokenDuration: cfg.RefreshTokenDuration,
-		bcryptCost:           cfg.BcryptCost,
-		hub:                  hub,
-	}
 }
 
 func validateUsername(username string) error {

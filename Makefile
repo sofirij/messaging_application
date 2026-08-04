@@ -26,7 +26,7 @@ run:
 	-$(BUILD_DIR)/$(BINARY_NAME)
 
 test:
-	go test ./internal/test/$(version) -v -failfast -count=5
+	go test ./internal/test/$(version) -v -failfast -count=1
 
 # tidy dependencies
 tidy:

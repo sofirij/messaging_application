@@ -22,6 +22,10 @@ type ticketService struct {
 	storage fiber.Storage
 }
 
+func NewTicketService(storage fiber.Storage) TicketService {
+	return &ticketService{storage: storage}
+}
+
 func (t *ticketService) Create(ctx context.Context, userID int) (*response.TicketResponse, error) {
 	ticket := uuid.New().String()
 	err := t.storage.Set(ticket, []byte(strconv.Itoa(userID)), ticketTTL)
@@ -60,8 +64,4 @@ func (t *ticketService) ValidateAndConsume(ticket string) (*int, error) {
 	t.storage.Delete(ticket)
 
 	return &userID, nil
-}
-
-func NewTicketService(storage fiber.Storage) TicketService {
-	return &ticketService{storage: storage}
 }
