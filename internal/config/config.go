@@ -1,6 +1,9 @@
 package config
 
 import (
+	"crypto/ed25519"
+	"crypto/x509"
+	"encoding/base64"
 	"log"
 	"os"
 	"strconv"
@@ -16,7 +19,8 @@ type Config struct {
 	DbURL                string
 	IsDevelopment        bool
 	IsProduction         bool
-	JWTSecret            string
+	JWTPublicKey         ed25519.PublicKey
+	JWTPrivateKey        ed25519.PrivateKey
 	AccessTokenDuration  time.Duration
 	RefreshTokenDuration time.Duration
 	BcryptCost           int
@@ -32,6 +36,35 @@ func Load(envFilePath string) *Config {
 
 	env := getEnv("APP_ENV", "development")
 
+	jwtPublicKey := getEnv("JWT_PUBLIC_KEY", "")
+	jwtPrivateKey := getEnv("JWT_PRIVATE_KEY", "")
+
+	publicKeyBytes, err := base64.StdEncoding.DecodeString(jwtPublicKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	key, err := x509.ParsePKIXPublicKey(publicKeyBytes)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	publicKey := key.(ed25519.PublicKey)
+
+	privateKeyBytes, err := base64.StdEncoding.DecodeString(jwtPrivateKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	key, err = x509.ParsePKCS8PrivateKey(privateKeyBytes)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	privateKey := key.(ed25519.PrivateKey)
+
 	return &Config{
 		AppEnv:               env,
 		AppHost:              getEnv("APP_HOST", "localhost"),
@@ -39,7 +72,8 @@ func Load(envFilePath string) *Config {
 		DbURL:                getEnv("DB_URL", ""),
 		IsDevelopment:        env != "production",
 		IsProduction:         env == "production",
-		JWTSecret:            getEnv("JWT_SECRET", "e4365e8cabd16c1df0f0ce8c0cb6d6095353f0a3d835c57ed1a97b42bc733d84"),
+		JWTPrivateKey:        privateKey,
+		JWTPublicKey:         publicKey,
 		AccessTokenDuration:  getDurationEnv("ACCESS_TOKEN_DURATION", time.Minute*15),
 		RefreshTokenDuration: getDurationEnv("REFRESH_TOKEN_DURATION", time.Hour*24*7),
 		BcryptCost:           getIntEnv("BCRYPT_COST", 12),

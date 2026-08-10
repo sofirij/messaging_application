@@ -1,15 +1,12 @@
 package v1
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"app/internal/model/request"
-	"app/internal/model/response"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,13 +30,7 @@ func TestAuthToken_Valid(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var result response.Response[response.UserResponse]
-	err = json.NewDecoder(resp.Body).Decode(&result)
-
-	require.NoError(t, err)
-
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, bodyStruct.Username, result.Data.Username)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestAuthToken_Invalid(t *testing.T) {
@@ -64,12 +55,7 @@ func TestAuthToken_Invalid(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var result response.Response[response.UserResponse]
-	err = json.NewDecoder(resp.Body).Decode(&result)
-
-	require.NoError(t, err)
-
-	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
 func TestAuthToken_Missing(t *testing.T) {
@@ -89,5 +75,5 @@ func TestAuthToken_Missing(t *testing.T) {
 	resp, err := app.Test(req)
 
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }

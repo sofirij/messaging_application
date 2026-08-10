@@ -27,7 +27,6 @@ const (
 	envFilePath        = ".env"
 	pingInterval       = 15 * time.Second
 	pongTimeout        = pingInterval + 15*time.Second
-	frontendAssetDir   = "./frontend/out"
 )
 
 func main() {
@@ -39,24 +38,9 @@ func main() {
 		AppName:      "MyApp",
 		IdleTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
-		ReadTimeout:  100 * time.Second,
+		ReadTimeout:  5 * time.Second,
 		BodyLimit:    100 * 1024 * 1024,
 	})
-
-	// setup middleware
-	app.Use(middleware.CORS([]string{cfg.FrontendURL}))
-	app.Use(middleware.Compress())
-	app.Use(middleware.Logger())
-
-	// serve static files
-	app.Get("/uploads/*", static.New(cfg.UploadDir, static.Config{
-		Browse:          false,
-		Compress:        true,
-		MaxAge:          int(assetMaxAge.Seconds()),
-		CacheDuration:   assetCacheDuration,
-		NotFoundHandler: notFoundHandler,
-		ByteRange:       true,
-	}))
 
 	// initialize db connection
 	// todo configure db connection
@@ -90,6 +74,11 @@ func main() {
 	uploadService := service.NewUploadService(cfg)
 	ticketService := service.NewTicketService(storage)
 
+	// setup middleware
+	app.Use(middleware.CORS([]string{cfg.FrontendURL}))
+	app.Use(middleware.Compress())
+	app.Use(middleware.Logger())
+
 	// setup handlers
 	userHandler := handler.NewUserHandler(userService, cfg.AccessTokenDuration, cfg.RefreshTokenDuration)
 	conversationHandler := handler.NewConversationHandler(conversationService, hubService)
@@ -99,12 +88,22 @@ func main() {
 
 	// setup routers
 	v1 := app.Group("/api/v1")
-	router.RegisterUserRoutes(v1, userHandler, cfg.JWTSecret)
-	router.RegisterConversationRoutes(v1, conversationHandler, messageHandler, cfg.JWTSecret)
-	router.RegisterMessageRoutes(v1, messageHandler, cfg.JWTSecret)
-	router.RegisterWSRoutes(v1, wsHandler, ticketService, cfg.JWTSecret)
-	router.RegisterUploadRoutes(v1, uploadHandler, cfg.JWTSecret)
+	router.RegisterUserRoutes(v1, userHandler, cfg, userService)
+	router.RegisterConversationRoutes(v1, conversationHandler, messageHandler, cfg, userService)
+	router.RegisterMessageRoutes(v1, messageHandler, cfg, userService)
+	router.RegisterWSRoutes(v1, wsHandler, ticketService, cfg, userService)
+	router.RegisterUploadRoutes(v1, uploadHandler, cfg, userService)
 	router.RegisterAuthRoutes(v1, userHandler)
+
+	// serve static files
+	app.Get("/uploads/*", static.New(cfg.UploadDir, static.Config{
+		Browse:          false,
+		Compress:        true,
+		MaxAge:          int(assetMaxAge.Seconds()),
+		CacheDuration:   assetCacheDuration,
+		NotFoundHandler: notFoundHandler,
+		ByteRange:       true,
+	}))
 
 	// start hubservice
 	go hubService.Run()

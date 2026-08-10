@@ -42,7 +42,7 @@ func (t *WSHandler) CreateTicket(c fiber.Ctx) error {
 	resp, err := t.ticketService.Create(c.Context(), userID)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.JSON(response.Response[*response.TicketResponse]{Data: resp})

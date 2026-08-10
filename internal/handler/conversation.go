@@ -38,7 +38,7 @@ func (h *ConversationHandler) Create(c fiber.Ctx) error {
 	resp, err := h.conversationService.Create(c.Context(), userID, req)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	// server sent event
@@ -53,7 +53,7 @@ func (h *ConversationHandler) GetByUserID(c fiber.Ctx) error {
 	resp, err := h.conversationService.GetByUserID(c.Context(), userID)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.JSON(response.Response[[]response.ConversationResponse]{Data: resp})
@@ -73,7 +73,7 @@ func (h *ConversationHandler) GetByID(c fiber.Ctx) error {
 	resp, err := h.conversationService.GetByID(c.Context(), userID, conversationID)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.JSON(response.Response[*response.ConversationResponse]{Data: resp})
@@ -101,7 +101,7 @@ func (h *ConversationHandler) UpdateName(c fiber.Ctx) error {
 	err = h.conversationService.UpdateName(c.Context(), userID, conversationID, req)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
@@ -129,7 +129,7 @@ func (h *ConversationHandler) UpdateAvatarURL(c fiber.Ctx) error {
 	err = h.conversationService.UpdateAvatarURL(c.Context(), userID, conversationID, req)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
@@ -157,7 +157,7 @@ func (h *ConversationHandler) AddMembers(c fiber.Ctx) error {
 	resp, err := h.conversationService.AddMembers(c.Context(), userID, conversationID, req)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	// server sent event
@@ -198,7 +198,7 @@ func (h *ConversationHandler) RemoveMember(c fiber.Ctx) error {
 	err = h.conversationService.RemoveMember(c.Context(), userID, conversationID, memberID)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	// server sent event
@@ -227,7 +227,7 @@ func (h *ConversationHandler) SoftDelete(c fiber.Ctx) error {
 	err = h.conversationService.SoftDelete(c.Context(), userID, conversationID)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
@@ -247,7 +247,7 @@ func (h *ConversationHandler) ClearMessages(c fiber.Ctx) error {
 	err = h.conversationService.ClearMessages(c.Context(), userID, conversationID)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
@@ -268,7 +268,7 @@ func (h *ConversationHandler) GetMembers(c fiber.Ctx) error {
 	resp, err := h.conversationService.GetMembers(c.Context(), userID, conversationID)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.JSON(response.Response[[]response.UserResponse]{

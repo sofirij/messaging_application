@@ -30,7 +30,7 @@ func (u *UploadHandler) Upload(c fiber.Ctx) error {
 	resp, err := u.uploadService.Upload(file)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(response.Response[*response.UploadResponse]{Data: resp})
@@ -60,7 +60,7 @@ func (u *UploadHandler) UploadMany(c fiber.Ctx) error {
 
 	resp, err := u.uploadService.UploadMany(files)
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(response.Response[[]response.UploadResponse]{Data: resp})

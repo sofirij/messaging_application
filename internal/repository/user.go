@@ -25,6 +25,7 @@ type UserRepository interface {
 	GetRefreshToken(ctx context.Context, tokenHash string) (*db.RefreshToken, error)
 	DeleteRefreshToken(ctx context.Context, tokenHash string) error
 	DeleteAllRefreshTokens(ctx context.Context, userID int) error
+	UpdateRefreshToken(ctx context.Context, userID int, oldTokenHash string, newTokenHash string, expiresAt time.Time) error
 }
 
 type userRepository struct {
@@ -263,6 +264,57 @@ func (u *userRepository) DeleteAllRefreshTokens(ctx context.Context, userID int)
 	_, err := u.db.Exec(ctx, query, userID)
 
 	return err
+}
+
+func (u *userRepository) UpdateRefreshToken(ctx context.Context, userID int, oldTokenHash string, newTokenHash string, expiresAt time.Time) error {
+	tx, err := u.db.Begin(ctx)
+
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	query := `
+		SELECT * FROM refresh_tokens
+		WHERE token_hash = $1
+		AND user_id = $2
+		AND expires_at > NOW()
+		FOR UPDATE
+	`
+
+	var token db.RefreshToken
+
+	err = pgxscan.Get(ctx, tx, &token, query, oldTokenHash, userID)
+	if err != nil {
+		return err
+	}
+
+	query = `
+		DELETE FROM refresh_tokens
+		WHERE token_hash = $1
+	`
+
+	_, err = tx.Exec(ctx, query, oldTokenHash)
+	if err != nil {
+		return err
+	}
+
+	query = `
+		INSERT INTO refresh_tokens
+		(user_id, token_hash, expires_at)
+		VALUES ($1, $2, $3)
+	`
+
+	_, err = tx.Exec(ctx, query, userID, newTokenHash, expiresAt)
+	if err != nil {
+		return err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewUserRepository(db *pgxpool.Pool) UserRepository {

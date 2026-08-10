@@ -4,14 +4,13 @@ import (
 	"app/internal/model/request"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
-	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestRefresh(t *testing.T) {
+func TestRefresh_ServerSideRefresh(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
@@ -21,38 +20,56 @@ func TestRefresh(t *testing.T) {
 	}
 
 	register(t, app, bodyStruct)
-	_, accessCookie, refreshCookie := login(t, app, bodyStruct)
+	_, _, refreshCookie := login(t, app, bodyStruct)
 
-	time.Sleep(1 * time.Second) // tokens generated at the same time will be identical
-
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/refresh", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
 	req.Header.Set("Content-Type", "application/json")
-	req.AddCookie(accessCookie)
 	req.AddCookie(refreshCookie)
 
 	resp, err := app.Test(req)
 
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
-	var newAccessCookie *http.Cookie
-	var newRefreshCookie *http.Cookie
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+}
 
-	for _, cookie := range resp.Cookies() {
-		switch cookie.Name {
-		case accessCookie.Name:
-			newAccessCookie = cookie
-		case refreshCookie.Name:
-			newRefreshCookie = cookie
+func TestRefresh_ConcurrentRefresh(t *testing.T) {
+	app := setupApp(t)
+	defer truncateTables(t)
+
+	bodyStruct := request.UserAuthRequest{
+		Username: "testuser",
+		Password: "password123",
+	}
+
+	register(t, app, bodyStruct)
+	_, _, refreshCookie := login(t, app, bodyStruct)
+
+	var wg sync.WaitGroup
+	results := make([]int, 10)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(refreshCookie)
+
+	for i := range 10 {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			resp, err := app.Test(req)
+			require.NoError(t, err)
+			results[i] = resp.StatusCode
+		}(i)
+	}
+
+	wg.Wait()
+
+	successCount := 0
+	for _, status := range results {
+		if status == http.StatusOK {
+			successCount++
 		}
 	}
 
-	assert.NotNil(t, newAccessCookie)
-	assert.NotNil(t, newRefreshCookie)
-
-	// access authorization protected content with old tokens should fail
-	resp2, err := app.Test(req)
-
-	require.NoError(t, err)
-	assert.Equal(t, http.StatusUnauthorized, resp2.StatusCode)
+	require.Equal(t, 1, successCount)
 }

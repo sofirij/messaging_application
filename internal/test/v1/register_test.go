@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,7 +57,7 @@ func TestRegister_DuplicateUsername(t *testing.T) {
 
 	resp, err := app.Test(req)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusConflict, resp.StatusCode)
+	require.Equal(t, http.StatusConflict, resp.StatusCode)
 }
 
 func TestRegister_InvalidInput(t *testing.T) {
@@ -78,5 +77,5 @@ func TestRegister_InvalidInput(t *testing.T) {
 
 	resp, err := app.Test(req)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }

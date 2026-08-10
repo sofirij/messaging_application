@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func handleServiceError(c fiber.Ctx, err error) error {
+func HandleServiceError(c fiber.Ctx, err error) error {
 	if serviceErr, ok := errors.AsType[*service.Error](err); ok {
 		errorDetail := response.ErrorDetail{
 			Message: serviceErr.Message,

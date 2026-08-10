@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -89,5 +88,5 @@ func TestLogin_WrongCredentials(t *testing.T) {
 	resp, err := app.Test(req)
 
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }

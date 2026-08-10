@@ -24,7 +24,7 @@ func NewUserHandler(userService service.UserService, accessTokenDuration time.Du
 	}
 }
 
-func (u *UserHandler) createCookie(name string, value string, duration time.Duration) *fiber.Cookie {
+func CreateCookie(name string, value string, duration time.Duration) *fiber.Cookie {
 	cookie := new(fiber.Cookie)
 	cookie.Name = name
 	cookie.Value = value
@@ -52,7 +52,7 @@ func (u *UserHandler) Register(c fiber.Ctx) error {
 
 	err = u.userService.Register(c.Context(), req)
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.SendStatus(fiber.StatusCreated)
@@ -70,11 +70,11 @@ func (u *UserHandler) Login(c fiber.Ctx) error {
 	resp, accessToken, refreshToken, err := u.userService.Login(c.Context(), req)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
-	c.Cookie(u.createCookie("access_token", accessToken, u.accessTokenDuration))
-	c.Cookie(u.createCookie("refresh_token", refreshToken, u.refreshTokenDuration))
+	c.Cookie(CreateCookie("access_token", accessToken, u.accessTokenDuration))
+	c.Cookie(CreateCookie("refresh_token", refreshToken, u.refreshTokenDuration))
 
 	return c.JSON(response.Response[*response.UserResponse]{Data: resp})
 }
@@ -85,11 +85,11 @@ func (u *UserHandler) RefreshToken(c fiber.Ctx) error {
 	accessToken, refreshToken, err := u.userService.RefreshToken(c.Context(), refreshToken)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
-	c.Cookie(u.createCookie("access_token", accessToken, u.accessTokenDuration))
-	c.Cookie(u.createCookie("refresh_token", refreshToken, u.refreshTokenDuration))
+	c.Cookie(CreateCookie("access_token", accessToken, u.accessTokenDuration))
+	c.Cookie(CreateCookie("refresh_token", refreshToken, u.refreshTokenDuration))
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
@@ -99,11 +99,11 @@ func (u *UserHandler) Logout(c fiber.Ctx) error {
 
 	err := u.userService.Logout(c.Context(), refreshToken)
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
-	c.Cookie(u.createCookie("access_token", "", -1*time.Second))
-	c.Cookie(u.createCookie("refresh_token", "", -1*time.Second))
+	c.Cookie(CreateCookie("access_token", "", -1*time.Second))
+	c.Cookie(CreateCookie("refresh_token", "", -1*time.Second))
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
@@ -113,11 +113,11 @@ func (u *UserHandler) SoftDelete(c fiber.Ctx) error {
 
 	err := u.userService.SoftDelete(c.Context(), userID)
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
-	c.Cookie(u.createCookie("access_token", "", -1*time.Second))
-	c.Cookie(u.createCookie("refresh_token", "", -1*time.Second))
+	c.Cookie(CreateCookie("access_token", "", -1*time.Second))
+	c.Cookie(CreateCookie("refresh_token", "", -1*time.Second))
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
@@ -135,7 +135,7 @@ func (u *UserHandler) UpdateAvatarURL(c fiber.Ctx) error {
 
 	err = u.userService.UpdateAvatarURL(c.Context(), userID, req)
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
@@ -154,7 +154,7 @@ func (u *UserHandler) UpdateUsername(c fiber.Ctx) error {
 
 	err = u.userService.UpdateUsername(c.Context(), userID, req)
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
@@ -166,7 +166,7 @@ func (u *UserHandler) GetByID(c fiber.Ctx) error {
 	resp, err := u.userService.GetByID(c.Context(), userID)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.JSON(response.Response[*response.UserResponse]{Data: resp})
@@ -179,7 +179,7 @@ func (u *UserHandler) SearchByUsername(c fiber.Ctx) error {
 	resp, err := u.userService.SearchByUsername(c.Context(), userID, query)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.JSON(response.Response[[]response.UserResponse]{Data: resp})

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	"app/internal/repository"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -43,17 +45,17 @@ type UserService interface {
 
 type userService struct {
 	userRepo             repository.UserRepository
-	jwtSecret            string
 	accessTokenDuration  time.Duration
 	refreshTokenDuration time.Duration
 	bcryptCost           int
 	hub                  HubService
+	key                  ed25519.PrivateKey
 }
 
 func NewUserService(userRepo repository.UserRepository, hub HubService, cfg *config.Config) UserService {
 	return &userService{
 		userRepo:             userRepo,
-		jwtSecret:            cfg.JWTSecret,
+		key:                  cfg.JWTPrivateKey,
 		accessTokenDuration:  cfg.AccessTokenDuration,
 		refreshTokenDuration: cfg.RefreshTokenDuration,
 		bcryptCost:           cfg.BcryptCost,
@@ -130,13 +132,13 @@ func (u *userService) Login(ctx context.Context, req request.UserAuthRequest) (*
 		}
 	}
 
-	accessToken, _, err := generateJWT(user.ID, u.jwtSecret, u.accessTokenDuration)
+	accessToken, _, err := generateJWT(user.ID, u.key, u.accessTokenDuration)
 
 	if err != nil {
 		return nil, "", "", err
 	}
 
-	refreshToken, expiresAt, err := generateJWT(user.ID, u.jwtSecret, u.refreshTokenDuration)
+	refreshToken, expiresAt, err := generateJWT(user.ID, u.key, u.refreshTokenDuration)
 
 	if err != nil {
 		return nil, "", "", err
@@ -190,13 +192,13 @@ func (u *userService) RefreshToken(ctx context.Context, token string) (string, s
 		return "", "", err
 	}
 
-	accessTokenString, _, err := generateJWT(refreshToken.UserID, u.jwtSecret, u.accessTokenDuration)
+	accessTokenString, _, err := generateJWT(refreshToken.UserID, u.key, u.accessTokenDuration)
 
 	if err != nil {
 		return "", "", err
 	}
 
-	refreshTokenString, expiresAt, err := generateJWT(refreshToken.UserID, u.jwtSecret, u.refreshTokenDuration)
+	refreshTokenString, expiresAt, err := generateJWT(refreshToken.UserID, u.key, u.refreshTokenDuration)
 
 	if err != nil {
 		return "", "", err
@@ -204,13 +206,14 @@ func (u *userService) RefreshToken(ctx context.Context, token string) (string, s
 
 	newTokenHash := hashToken(refreshTokenString)
 
-	_, err = u.userRepo.CreateRefreshToken(ctx, refreshToken.UserID, newTokenHash, *expiresAt)
+	err = u.userRepo.UpdateRefreshToken(ctx, refreshToken.UserID, refreshToken.TokenHash, newTokenHash, *expiresAt)
 
-	if err != nil {
-		return "", "", err
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return "", "", &Error{
+			Code: ErrCodeUnauthorized,
+			Message: "invalid refresh token",
+		}
 	}
-
-	err = u.userRepo.DeleteRefreshToken(ctx, tokenHash)
 
 	if err != nil {
 		return "", "", err
@@ -379,7 +382,7 @@ func validatePassword(password string) error {
 	return nil
 }
 
-func generateJWT(userID int, secret string, duration time.Duration) (string, *time.Time, error) {
+func generateJWT(userID int, key ed25519.PrivateKey, duration time.Duration) (string, *time.Time, error) {
 	iat := time.Now().Unix()
 	exp := time.Now().Add(duration).Unix()
 
@@ -387,11 +390,12 @@ func generateJWT(userID int, secret string, duration time.Duration) (string, *ti
 		"sub": userID,
 		"exp": exp,
 		"iat": iat,
+		"jti": uuid.New().String(),
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(&jwt.SigningMethodEd25519{}, claims)
 
-	tokenString, err := token.SignedString([]byte(secret))
+	tokenString, err := token.SignedString(key)
 
 	if err != nil {
 		return "", nil, err

@@ -46,7 +46,7 @@ func (m *MessageHandler) Create(c fiber.Ctx) error {
 	resp, err := m.messageService.Create(c.Context(), userID, conversationID, req)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	// server sent event
@@ -76,13 +76,13 @@ func (m *MessageHandler) UpdateBody(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(int)
 	err = m.messageService.UpdateBody(c.Context(), userID, messageID, req)
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	message, err := m.messageService.GetByID(c.Context(), userID, messageID)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	// server sent event
@@ -110,7 +110,7 @@ func (m *MessageHandler) SoftDelete(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(int)
 	message, err := m.messageService.SoftDelete(c.Context(), userID, messageID)
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	// server sent event
@@ -176,7 +176,7 @@ func (m *MessageHandler) GetByConversationID(c fiber.Ctx) error {
 	resp, err := m.messageService.GetByConversationID(c.Context(), userID, conversationID, before, at, limit)
 
 	if err != nil {
-		return handleServiceError(c, err)
+		return HandleServiceError(c, err)
 	}
 
 	return c.JSON(response.Response[*response.PaginatedMessageResponse]{Data: resp})

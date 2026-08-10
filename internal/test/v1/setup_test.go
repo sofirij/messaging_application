@@ -39,10 +39,7 @@ func setupApp(t *testing.T) *fiber.App {
 	t.Helper()
 
 	app := fiber.New(fiber.Config{
-		AppName:      "MyApp",
-		IdleTimeout:  30 * time.Second,
-		WriteTimeout: 5 * time.Second,
-		BodyLimit:    100 * 1024 * 1024,
+		BodyLimit: 100 * 1024 * 1024,
 	})
 
 	// setup middleware
@@ -61,7 +58,7 @@ func setupApp(t *testing.T) *fiber.App {
 	conversationRepo := repository.NewConversationRepository(dbPool)
 
 	// setup services
-	messageService = service.NewMessageService(messageRepo, conversationRepo)
+	messageService := service.NewMessageService(messageRepo, conversationRepo)
 	hubService := service.NewHubService(conversationRepo, userRepo, messageService)
 	userService := service.NewUserService(userRepo, hubService, cfg)
 	conversationService := service.NewConversationService(conversationRepo, userRepo, messageRepo, hubService)
@@ -79,11 +76,11 @@ func setupApp(t *testing.T) *fiber.App {
 
 	// setup routers
 	v1 := app.Group("/api/v1")
-	router.RegisterUserRoutes(v1, userHandler, cfg.JWTSecret)
-	router.RegisterConversationRoutes(v1, conversationHandler, messageHandler, cfg.JWTSecret)
-	router.RegisterMessageRoutes(v1, messageHandler, cfg.JWTSecret)
-	router.RegisterWSRoutes(v1, wsHandler, ticketService, cfg.JWTSecret)
-	router.RegisterUploadRoutes(v1, uploadHandler, cfg.JWTSecret)
+	router.RegisterUserRoutes(v1, userHandler, cfg, userService)
+	router.RegisterConversationRoutes(v1, conversationHandler, messageHandler, cfg, userService)
+	router.RegisterMessageRoutes(v1, messageHandler, cfg, userService)
+	router.RegisterWSRoutes(v1, wsHandler, ticketService, cfg, userService)
+	router.RegisterUploadRoutes(v1, uploadHandler, cfg, userService)
 	router.RegisterAuthRoutes(v1, userHandler)
 
 	return app

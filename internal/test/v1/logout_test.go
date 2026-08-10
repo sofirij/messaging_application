@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,11 +29,11 @@ func TestLogout(t *testing.T) {
 	resp, err := app.Test(req)
 
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	for _, cookie := range resp.Cookies() {
-		assert.NotEqual(t, cookie.Value, accessCookie.Value)
-		assert.NotEqual(t, cookie.Value, refreshCookie.Value)
+		require.NotEqual(t, cookie.Value, accessCookie.Value)
+		require.NotEqual(t, cookie.Value, refreshCookie.Value)
 	}
 
 	// refresh token should be invalid now and fail
@@ -46,5 +45,5 @@ func TestLogout(t *testing.T) {
 	resp2, err := app.Test(req2)
 
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusUnauthorized, resp2.StatusCode)
+	require.Equal(t, http.StatusUnauthorized, resp2.StatusCode)
 }
