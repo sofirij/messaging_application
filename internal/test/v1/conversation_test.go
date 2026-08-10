@@ -645,10 +645,11 @@ func TestConversation_GetByID(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp2.StatusCode)
 
-	// verify the last message sent in the conversation and the last message read by user
+	// verify the last message sent and read in the conversation and the last message read by user
 	require.NotZero(t, result2.Data.ID)
-	require.Equal(t, message.ID, result2.Data.LastMessageSent.ID)
-	require.Equal(t, message.ID, result2.Data.LastMessageRead.ID)
+	require.Equal(t, message.ID, result2.Data.LastMessageSentInConversation.ID)
+	require.Equal(t, message.ID, *result2.Data.LastMessageReadByUser)
+	require.Equal(t, message.ID, *result2.Data.LastMessageReadInConversation)
 }
 
 func TestConversation_GetByUserIDAfterDelete(t *testing.T) {

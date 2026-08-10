@@ -114,13 +114,19 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 
 				setRecipientNameAndAvatar(ctx, userID, &conversation, c.conversationRepo, c.userRepo)
 
-				lastMessageSent, err := getLastMessageSent(ctx, c.messageRepo, conversation.ID)
+				lastMessageReadByUser, err := getLastMessageReadByUser(ctx, c.conversationRepo, userID, conversation.ID)
 
 				if err != nil {
 					return nil, err
 				}
 
-				lastMessageRead, err := getLastMessageRead(ctx, c.conversationRepo, c.messageRepo, userID, conversation.ID)
+				lastMessageSentInConversation, err := getLastMessageSentInConversation(ctx, c.messageRepo, conversation.ID)
+
+				if err != nil {
+					return nil, err
+				}
+
+				lastMessageReadInConversation, err := getLastMessageReadInConversation(ctx, c.conversationRepo, userID, conversation.ID)
 
 				if err != nil {
 					return nil, err
@@ -133,8 +139,9 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 					Type:            conversation.Type,
 					CreatedAt:       conversation.CreatedAt,
 					CreatedBy:       conversation.CreatedBy,
-					LastMessageRead: lastMessageRead,
-					LastMessageSent: lastMessageSent,
+					LastMessageReadByUser: lastMessageReadByUser,
+					LastMessageReadInConversation: lastMessageReadInConversation,
+					LastMessageSentInConversation: lastMessageSentInConversation,
 				}
 
 				return &resp, nil
@@ -155,13 +162,19 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 		setRecipientNameAndAvatar(ctx, userID, conversation, c.conversationRepo, c.userRepo)
 	}
 
-	lastMessageSent, err := getLastMessageSent(ctx, c.messageRepo, conversation.ID)
+	lastMessageReadByUser, err := getLastMessageReadByUser(ctx, c.conversationRepo, userID, conversation.ID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	lastMessageRead, err := getLastMessageRead(ctx, c.conversationRepo, c.messageRepo, userID, conversation.ID)
+	lastMessageSentInConversation, err := getLastMessageSentInConversation(ctx, c.messageRepo, conversation.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	lastMessageReadInConversation, err := getLastMessageReadInConversation(ctx, c.conversationRepo, userID, conversation.ID)
 
 	if err != nil {
 		return nil, err
@@ -174,8 +187,9 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 		Type:            conversation.Type,
 		CreatedAt:       conversation.CreatedAt,
 		CreatedBy:       conversation.CreatedBy,
-		LastMessageRead: lastMessageRead,
-		LastMessageSent: lastMessageSent,
+		LastMessageReadByUser: lastMessageReadByUser,
+		LastMessageReadInConversation: lastMessageReadInConversation,
+		LastMessageSentInConversation: lastMessageSentInConversation,
 	}
 
 	return &resp, nil
@@ -337,13 +351,19 @@ func (c *conversationService) GetByUserID(ctx context.Context, userID int) ([]re
 			setRecipientNameAndAvatar(ctx, userID, &conversation, c.conversationRepo, c.userRepo)
 		}
 
-		lastMessageSent, err := getLastMessageSent(ctx, c.messageRepo, conversation.ID)
+		lastMessageReadByUser, err := getLastMessageReadByUser(ctx, c.conversationRepo, userID, conversation.ID)
 
 		if err != nil {
 			return nil, err
 		}
 
-		lastMessageRead, err := getLastMessageRead(ctx, c.conversationRepo, c.messageRepo, userID, conversation.ID)
+		lastMessageSentInConversation, err := getLastMessageSentInConversation(ctx, c.messageRepo, conversation.ID)
+
+		if err != nil {
+			return nil, err
+		}
+
+		lastMessageReadInConversation, err := getLastMessageReadInConversation(ctx, c.conversationRepo, userID, conversation.ID)
 
 		if err != nil {
 			return nil, err
@@ -356,8 +376,9 @@ func (c *conversationService) GetByUserID(ctx context.Context, userID int) ([]re
 			Type:            conversation.Type,
 			CreatedAt:       conversation.CreatedAt,
 			CreatedBy:       conversation.CreatedBy,
-			LastMessageRead: lastMessageRead,
-			LastMessageSent: lastMessageSent,
+			LastMessageReadByUser: lastMessageReadByUser,
+			LastMessageReadInConversation: lastMessageReadInConversation,
+			LastMessageSentInConversation: lastMessageSentInConversation,
 		}
 	}
 
@@ -406,13 +427,19 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 		setRecipientNameAndAvatar(ctx, userID, conversation, c.conversationRepo, c.userRepo)
 	}
 
-	lastMessageSent, err := getLastMessageSent(ctx, c.messageRepo, conversation.ID)
+	lastMessageReadByUser, err := getLastMessageReadByUser(ctx, c.conversationRepo, userID, conversation.ID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	lastMessageRead, err := getLastMessageRead(ctx, c.conversationRepo, c.messageRepo, userID, conversation.ID)
+	lastMessageSentInConversation, err := getLastMessageSentInConversation(ctx, c.messageRepo, conversation.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	lastMessageReadInConversation, err := getLastMessageReadInConversation(ctx, c.conversationRepo, userID, conversation.ID)
 
 	if err != nil {
 		return nil, err
@@ -425,8 +452,9 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 		Type:            conversation.Type,
 		CreatedAt:       conversation.CreatedAt,
 		CreatedBy:       conversation.CreatedBy,
-		LastMessageRead: lastMessageRead,
-		LastMessageSent: lastMessageSent,
+		LastMessageReadByUser: lastMessageReadByUser,
+		LastMessageReadInConversation: lastMessageReadInConversation,
+		LastMessageSentInConversation: lastMessageSentInConversation,
 	}
 
 	return &resp, nil
@@ -559,27 +587,36 @@ func setRecipientNameAndAvatar(ctx context.Context, userID int, conversation *db
 	return nil
 }
 
-func getLastMessageRead(ctx context.Context, conversationRepo repository.ConversationRepository, messageRepo repository.MessageRepository, userID, conversationID int) (*response.MessageResponse, error) {
+func getLastMessageReadByUser(ctx context.Context, conversationRepo repository.ConversationRepository, userID, conversationID int) (*int, error) {
 	member, err := conversationRepo.GetMember(ctx, conversationID, userID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if member.LastMessageRead == nil {
-		return nil, nil
-	}
+	return member.LastMessageRead, nil
+}
 
-	resp, err := getMessageByID(ctx, messageRepo, *member.LastMessageRead)
+func getLastMessageReadInConversation(ctx context.Context, conversationRepo repository.ConversationRepository, userID, conversationID int) (*int, error) {
+	members, err := conversationRepo.GetMembers(ctx, conversationID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return resp, nil
+	var lastMessageRead *int
+	for _, member := range members {
+		if lastMessageRead == nil {
+			lastMessageRead = member.LastMessageRead
+		} else if member.LastMessageRead != nil && *member.LastMessageRead > *lastMessageRead {
+			lastMessageRead = member.LastMessageRead
+		}
+	}
+
+	return lastMessageRead, nil
 }
 
-func getLastMessageSent(ctx context.Context, messageRepo repository.MessageRepository, conversationID int) (*response.MessageResponse, error) {
+func getLastMessageSentInConversation(ctx context.Context, messageRepo repository.MessageRepository, conversationID int) (*response.MessageResponse, error) {
 	message, err := messageRepo.GetLastInConversation(ctx, conversationID)
 
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
