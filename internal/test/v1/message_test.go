@@ -141,7 +141,7 @@ func TestMessage_CreateWithAttachmentsAndReply(t *testing.T) {
 
 	require.NoError(t, err)
 
-	// assert the message response
+	// require the message response
 	require.NotNil(t, result3.Data.Body)
 	require.Equal(t, text, *result3.Data.Body)
 	require.Equal(t, fileURL, result3.Data.Attachments[0].URL)
@@ -260,7 +260,7 @@ func TestMessage_Edit(t *testing.T) {
 
 	require.Equal(t, http.StatusNoContent, resp3.StatusCode)
 
-	// assert the the message was edited
+	// require the the message was edited
 	resp2, err = app.Test(req2)
 
 	require.NoError(t, err)

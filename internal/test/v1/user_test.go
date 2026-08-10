@@ -11,7 +11,6 @@ import (
 	"app/internal/model/response"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -66,7 +65,7 @@ func TestUser_Search(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
-	assert.Equal(t, 1, len(result.Data))
+	require.Equal(t, 1, len(result.Data))
 
-	assert.Equal(t, "testuser2", result.Data[0].Username)
+	require.Equal(t, "testuser2", result.Data[0].Username)
 }

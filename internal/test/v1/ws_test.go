@@ -12,7 +12,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gorilla/websocket"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -111,5 +110,5 @@ func TestWS_Heartbeat(t *testing.T) {
 	// read until the conn is closed by the server
 	_, _, err := conn.NextReader()
 	require.Error(t, err)
-	assert.True(t, websocket.IsCloseError(err, websocket.CloseAbnormalClosure))
+	require.True(t, websocket.IsCloseError(err, websocket.CloseAbnormalClosure))
 }

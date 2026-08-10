@@ -8,7 +8,6 @@ import (
 	"app/internal/model/request"
 	"app/internal/model/ws"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,7 +70,7 @@ func TestWSOnlineStatus_Online(t *testing.T) {
 	err := json.Unmarshal(event.Payload, &payload)
 	require.NoError(t, err)
 
-	assert.NotZero(t, payload.UserID)
+	require.NotZero(t, payload.UserID)
 }
 
 func TestWSOnlineStatus_Offline(t *testing.T) {
@@ -133,6 +132,6 @@ func TestWSOnlineStatus_Offline(t *testing.T) {
 	err := json.Unmarshal(event.Payload, &payload)
 	require.NoError(t, err)
 
-	assert.NotZero(t, payload.UserID)
-	assert.NotZero(t, payload.LastSeenAt)
+	require.NotZero(t, payload.UserID)
+	require.NotZero(t, payload.LastSeenAt)
 }

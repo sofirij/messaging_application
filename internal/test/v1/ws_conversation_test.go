@@ -13,7 +13,6 @@ import (
 	"app/internal/model/response"
 	"app/internal/model/ws"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,7 +70,7 @@ func TestWSConversation_Create(t *testing.T) {
 	err := json.Unmarshal(event.Payload, &payload)
 	require.NoError(t, err)
 
-	assert.NotZero(t, payload.ID)
+	require.NotZero(t, payload.ID)
 }
 
 func TestWSConversation_AddMember(t *testing.T) {
@@ -140,7 +139,7 @@ func TestWSConversation_AddMember(t *testing.T) {
 	resp, err := app.Test(req)
 
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 	// added member should receive a message
 	var event ws.Event
@@ -157,7 +156,7 @@ func TestWSConversation_AddMember(t *testing.T) {
 	err = json.Unmarshal(event.Payload, &payload)
 	require.NoError(t, err)
 
-	assert.NotZero(t, payload.ConversationID)
+	require.NotZero(t, payload.ConversationID)
 }
 
 func TestWSConversation_RemoveMember(t *testing.T) {
@@ -228,7 +227,7 @@ func TestWSConversation_RemoveMember(t *testing.T) {
 	err = json.Unmarshal(event.Payload, &payload)
 	require.NoError(t, err)
 
-	assert.NotZero(t, payload.ConversationID)
+	require.NotZero(t, payload.ConversationID)
 }
 
 func TestWSConversation_TypingStart(t *testing.T) {
@@ -302,8 +301,8 @@ func TestWSConversation_TypingStart(t *testing.T) {
 	err = json.Unmarshal(event.Payload, &payload)
 	require.NoError(t, err)
 
-	assert.NotZero(t, payload.ConversationID)
-	assert.NotZero(t, payload.UserID)
+	require.NotZero(t, payload.ConversationID)
+	require.NotZero(t, payload.UserID)
 }
 
 func TestWSConversation_TypingStop(t *testing.T) {
@@ -377,6 +376,6 @@ func TestWSConversation_TypingStop(t *testing.T) {
 	err = json.Unmarshal(event.Payload, &payload)
 	require.NoError(t, err)
 
-	assert.NotZero(t, payload.ConversationID)
-	assert.NotZero(t, payload.UserID)
+	require.NotZero(t, payload.ConversationID)
+	require.NotZero(t, payload.UserID)
 }
