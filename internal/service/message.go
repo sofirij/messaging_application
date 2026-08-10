@@ -23,7 +23,7 @@ const (
 type MessageService interface {
 	Create(ctx context.Context, senderID, conversationID int, req request.MessageCreateRequest) (*response.MessageResponse, error)
 	UpdateBody(ctx context.Context, senderID, messageID int, req request.MessageEditRequest) error
-	GetByConversationID(ctx context.Context, userID, conversationID int, before, after *int, limit int) (*response.PaginatedMessageResponse, error)
+	GetByConversationID(ctx context.Context, userID, conversationID int, before, at *int, limit int) (*response.PaginatedMessageResponse, error)
 	SoftDelete(ctx context.Context, senderID, messageID int) (*response.MessageResponse, error)
 	MarkAsRead(ctx context.Context, userID, conversationID, messageID int) error
 	GetByID(ctx context.Context, userID, messageID int) (*response.MessageResponse, error)
