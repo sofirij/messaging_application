@@ -36,10 +36,9 @@ func TestLogout(t *testing.T) {
 		require.NotEqual(t, cookie.Value, refreshCookie.Value)
 	}
 
-	// refresh token should be invalid now and fail
-	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/auth/refresh", nil)
-	req2.Header.Set("Contetn-Type", "application/json")
-	req2.AddCookie(accessCookie)
+	// authenticated request should fail
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
+	req2.Header.Set("Content-Type", "application/json")
 	req2.AddCookie(refreshCookie)
 
 	resp2, err := app.Test(req2)
