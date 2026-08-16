@@ -1,7 +1,9 @@
+"use client"
 import { getConversations, getMembers } from "@/lib/api/conversation";
 import { queryOptions } from "@tanstack/react-query";
-import { ConversationRecord } from "@/types/internal/conversation";
+import { ConversationRecord, MemberRecord } from "@/types/internal/conversation";
 import { Conversation } from "@/types/http/conversation";
+import { User } from "@/types/http/user";
 
 export const conversationQueryOptions = queryOptions({
     queryKey: ["conversations"],
@@ -21,7 +23,16 @@ export const conversationQueryOptions = queryOptions({
 
 export const conversationMemberQueryOptions = (id: number) => queryOptions({
     queryKey: ["conversations", id, "members"],
-    queryFn: async () => await getMembers(id),
+    queryFn: async (): Promise<MemberRecord> => {
+        const members = await getMembers(id)
+        return {
+            data: members.reduce((aggregate: Record<number, User>, member) => {
+                aggregate[member.id] = member
+                return aggregate
+            }, {}),
+            order: members.map(member => member.id)
+        }
+    },
     staleTime: Infinity,
     retry: false,
 })

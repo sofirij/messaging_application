@@ -1,5 +1,6 @@
+"use client"
 import { Upload } from "@/types/http/upload"
-import { fetchWithAuth } from "@/lib/api/fetch"
+import { fetchWithCredentials } from "@/lib/api/fetch"
 
 const apiVersion = "/api/v1"
 const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion
@@ -14,7 +15,7 @@ export async function upload(file: File): Promise<Upload> {
         body: form
     }
 
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     const json = await res.json()
 
@@ -37,7 +38,7 @@ export async function uploadMany(files: File[]): Promise<Upload[]> {
         body: form
     }
 
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     const json = await res.json()
 

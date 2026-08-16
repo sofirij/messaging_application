@@ -1,7 +1,8 @@
-import { Conversation, ConversationAddMemberRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest } from "@/types/http/conversation"
+"use client"
+import { Conversation, ConversationAddMembersRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest } from "@/types/http/conversation"
 import { Message, MessageCreateRequest, PaginatedMessage } from "@/types/http/message"
-import { fetchWithAuth } from "@/lib/api/fetch"
 import { User } from "@/types/http/user"
+import { fetchWithCredentials } from "@/lib/api/fetch"
 
 const apiVersion = "/api/v1"
 const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/conversations"
@@ -11,10 +12,10 @@ export async function getConversations(): Promise<Conversation[]> {
         method: "GET",
         headers: {
             "Content-Type": "application/json"
-        }
+        },
     }
     
-    const res = await fetchWithAuth(apiURL, init)
+    const res = await fetchWithCredentials(apiURL, init)
 
     const json = await res.json()
 
@@ -34,7 +35,7 @@ export async function createConversation(req: ConversationCreateRequest): Promis
         body: JSON.stringify(req)
     }
     
-    const res = await fetchWithAuth(apiURL, init)
+    const res = await fetchWithCredentials(apiURL, init)
 
     const json = await res.json()
 
@@ -55,7 +56,7 @@ export async function getConversation(id: number): Promise<Conversation> {
         }
     }
     
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     const json = await res.json()
 
@@ -75,7 +76,7 @@ export async function deleteConversation(id: number): Promise<void> {
         }
     }
 
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -83,11 +84,21 @@ export async function deleteConversation(id: number): Promise<void> {
     }
 }
 
-export async function getMessages(conversationID: number, before: number | null, limit: number): Promise<PaginatedMessage> {
+export type MessageQueryParams = {
+    limit: number
+    before: number | null
+    at: number | null
+}
+
+export async function getMessages(conversationID: number, params: MessageQueryParams): Promise<PaginatedMessage> {
     const url = new URL(`${apiURL}/${conversationID}/messages`)
-    url.searchParams.set("limit", String(limit))
-    if (before !== null) {
-        url.searchParams.set("before", String(before))
+
+    url.searchParams.set("limit", String(params.limit))
+    if (params.before !== null) {
+        url.searchParams.set("before", String(params.before))
+    }
+    if (params.at !== null) {
+        url.searchParams.set("at", String(params.at))
     }
 
     const init = {
@@ -97,7 +108,7 @@ export async function getMessages(conversationID: number, before: number | null,
         }
     }
 
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     const json = await res.json()
 
@@ -118,7 +129,7 @@ export async function createMessage(conversationID: number, req: MessageCreateRe
         body: JSON.stringify(req)
     }
 
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     const json = await res.json()
 
@@ -129,7 +140,7 @@ export async function createMessage(conversationID: number, req: MessageCreateRe
     return json.data
 }
 
-export async function addMembers(conversationID: number, req: ConversationAddMemberRequest): Promise<void> {
+export async function addMembers(conversationID: number, req: ConversationAddMembersRequest): Promise<void> {
     const url = `${apiURL}/${conversationID}/members`
     const init = {
         method: "POST",
@@ -139,7 +150,7 @@ export async function addMembers(conversationID: number, req: ConversationAddMem
         body: JSON.stringify(req)
     }
 
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -157,7 +168,7 @@ export async function updateConversationName(conversationID: number, req: Conver
         body: JSON.stringify(req)
     }
 
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -175,7 +186,7 @@ export async function updateConversationAvatar(conversationID: number, req: Conv
         body: JSON.stringify(req)
     }
 
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -192,7 +203,7 @@ export async function clearMessages(conversation_id: number): Promise<void> {
         }
     }
     
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -209,7 +220,7 @@ export async function removeMember(conversationID: number, userID: number): Prom
         }
     }
     
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -226,7 +237,7 @@ export async function getMembers(conversationID: number): Promise<User[]> {
         }
     }
     
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     const json = await res.json()
 

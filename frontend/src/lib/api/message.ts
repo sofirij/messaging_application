@@ -1,5 +1,6 @@
-import { fetchWithAuth } from "@/lib/api/fetch"
+"use client"
 import { MessageEditRequest } from "@/types/http/message"
+import { fetchWithCredentials } from "@/lib/api/fetch"
 
 const apiVersion = "/api/v1"
 const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/messages"
@@ -14,7 +15,7 @@ export async function updateMessage(id: number, req: MessageEditRequest): Promis
         body: JSON.stringify(req)
     }
     
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -31,7 +32,7 @@ export async function deleteMessage(id: number): Promise<void> {
         }
     }
     
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     if (!res.ok) {
         const json = await res.json()

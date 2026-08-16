@@ -1,23 +1,22 @@
 "use client"
-import { userSearchQueryOptions } from "@/query/user"
-import { useQuery } from "@tanstack/react-query"
+import { userQueryOptions, userSearchQueryOptions } from "@/query/user"
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import Input from "@/components/ui/input"
 import Image from "next/image"
 import { User } from "@/types/http/user"
 import { toggleSelected } from "@/utils/conversation"
 import { defaultAvatarURL } from "@/constants/defaults"
-import { useUserContext } from "@/context/userContext"
 
 type InputProps = {
-    selected: Set<User>,
+    selected: Set<User>
     setSelected: Dispatch<SetStateAction<Set<User>>>
 }
 
 const queryDelay = 300
 
-export function Search({selected, setSelected}: InputProps) {
-    const me = useUserContext()
+export default function Search({selected, setSelected}: InputProps) {
+    const { data: me } = useSuspenseQuery(userQueryOptions)
     const [query, setQuery] = useState("")
     const [debouncedQuery, setDebouncedQuery] = useState("")
 

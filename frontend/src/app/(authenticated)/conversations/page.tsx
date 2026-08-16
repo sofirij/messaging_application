@@ -1,31 +1,28 @@
 "use client"
 import Input from "@/components/ui/input";
-import { Search } from "@/components/user/search";
+import Search from "@/components/conversations/userSearch";
 import { conversationQueryOptions } from "@/query/conversation";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useCreateConversation } from "@/hooks/conversation";
 import { User } from "@/types/http/user";
 import Image from "next/image";
 import { toggleSelected } from "@/utils/conversation";
 import { ConversationType, conversationGroup, conversationDirect } from "@/types/http/conversation";
-import { ConversationBar } from "@/components/conversations/bar";
+import Toast from "@/components/conversations/toast";
 import { defaultAvatarURL } from "@/constants/defaults";
 
 export default function Conversations() {
-    const { data: conversations, isPending } = useQuery(conversationQueryOptions)
+    const { data: conversations } = useSuspenseQuery(conversationQueryOptions)
     const [creatingConversation, setCreatingConversation] = useState(false)
     const [isGroup, setIsGroup] = useState(false)
     const [groupName, setGroupName] = useState("")
     const [selected, setSelected] = useState(new Set<User>())
     const { handleCreateConversation } = useCreateConversation()
+
     const userIDs = Array.from(selected).map(user => user.id)
     const type : ConversationType = isGroup ? conversationGroup : conversationDirect
     const mustBeGroup = isGroup || selected.size > 1
-
-    if (isPending || !conversations) {
-        return "Loading..."
-    }
 
     function createConversation() {
         handleCreateConversation(type, groupName, userIDs, () => {
@@ -40,7 +37,7 @@ export default function Conversations() {
                 <div>
                     <button onClick={() => setCreatingConversation(true)}>New Conversation</button>
                     {conversations.order.map((id) => (
-                        <ConversationBar key={id} conversation={conversations.data[id]}/>
+                        <Toast key={id} conversation={conversations.data[id]}/>
                     ))}
                 </div>
             ) : (

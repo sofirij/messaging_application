@@ -1,6 +1,7 @@
+"use client"
 import { addMembers, createConversation, deleteConversation, removeMember, updateConversationAvatar, updateConversationName } from "@/lib/api/conversation";
-import { conversationMemberMutationOptions, conversationQueryOptions } from "@/query/conversation";
-import { Conversation, ConversationAddMemberRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest, ConversationType } from "@/types/http/conversation";
+import { conversationMemberMutationOptions, conversationMemberQueryOptions, conversationQueryOptions } from "@/query/conversation";
+import { ConversationAddMembersRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest, ConversationType } from "@/types/http/conversation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
@@ -12,7 +13,7 @@ export function useCreateConversation() {
         mutationFn: async(req: ConversationCreateRequest) => {
             return await createConversation(req)
         },
-        onSuccess: (conversation: Conversation) => {
+        onSuccess: (conversation) => {
             const conversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
             if (!conversations) return
             queryClient.setQueryData(conversationQueryOptions.queryKey, {
@@ -39,7 +40,7 @@ export function useDeleteConversation() {
             await deleteConversation(id)
             return id
         },
-        onSuccess: (id: number) => {
+        onSuccess: (id) => {
             const conversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
             if (!conversations) return
 
@@ -66,10 +67,19 @@ export function useRemoveMember() {
     const mutation = useMutation({
         mutationFn: async({conversationID, userID}: {conversationID: number, userID: number}) => {
             await removeMember(conversationID, userID)
-            return conversationID
+            return {conversationID, userID}
         },
-        onSuccess: (id: number) => {
-            queryClient.refetchQueries(conversationMemberMutationOptions(id))
+        onSuccess: ({conversationID, userID}) => {
+            const old = queryClient.getQueryData(conversationMemberQueryOptions(conversationID).queryKey)
+            if (!old) return
+
+            const remainingData = {...old.data}
+            delete remainingData[userID]
+
+            queryClient.setQueryData(conversationMemberQueryOptions(conversationID).queryKey, {
+                data: remainingData,
+                order: old.order.filter(id => id !== userID)
+            })
         }
     })
 
@@ -84,11 +94,11 @@ export function useAddMember() {
     const queryClient = useQueryClient()
 
     const mutation = useMutation({
-        mutationFn: async ({conversationID, req}: {req: ConversationAddMemberRequest, conversationID: number}) => {
+        mutationFn: async ({conversationID, req}: {req: ConversationAddMembersRequest, conversationID: number}) => {
             await addMembers(conversationID, req)
             return conversationID
         },
-        onSuccess: async (id: number) => {
+        onSuccess: async (id) => {
             await queryClient.refetchQueries(conversationMemberMutationOptions(id))
         }
     })
@@ -109,7 +119,7 @@ export function useLeaveGroup() {
             await removeMember(conversationID, userID)
             return conversationID
         },
-        onSuccess: (id: number) => {
+        onSuccess: (id) => {
             const conversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
             if (!conversations) return
             const remainingData = { ...conversations.data }
@@ -137,7 +147,7 @@ export function useUpdateConversationName() {
             await updateConversationName(conversationID, req)
             return {conversationID, name: req.name}
         },
-        onSuccess: ({name, conversationID}: {name: string, conversationID: number}) => {
+        onSuccess: ({name, conversationID}) => {
             const conversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
             if (!conversations) return
             queryClient.setQueryData(conversationQueryOptions.queryKey, {
@@ -162,7 +172,7 @@ export function useUpdateConversationAvatar() {
             await updateConversationAvatar(conversationID, req)
             return {conversationID, avatarURL: req.avatar_url}
         },
-        onSuccess: ({conversationID, avatarURL}: {conversationID: number, avatarURL: string | null}) => {
+        onSuccess: ({conversationID, avatarURL}) => {
             const conversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
             if (!conversations) return
             queryClient.setQueryData(conversationQueryOptions.queryKey, {
