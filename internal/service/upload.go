@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"app/internal/config"
 	"app/internal/model/response"
@@ -14,19 +15,13 @@ import (
 )
 
 // todo: ensure upload size is within app body limit
-const maxUploadSize = 99 * 1024 * 1024 // 99MB
+const maxUploadSize = 100 * 1024 * 1024
 
 var allowedMIMETypes = map[string]bool{
-	"image/jpeg":      true,
-	"image/png":       true,
-	"image/gif":       true,
-	"image/webp":      true,
-	"video/mp4":       true,
-	"video/webm":      true,
-	"audio/mpeg":      true,
-	"audio/ogg":       true,
-	"audio/wav":       true,
-	"application/pdf": true,
+	"image":      true,
+	"video":       true,
+	"audio":       true,
+	"application":    true,
 }
 
 type uploadService struct {
@@ -65,7 +60,7 @@ func (u *uploadService) Upload(file *multipart.FileHeader) (*response.UploadResp
 		return nil, err
 	}
 
-	mimeType := http.DetectContentType(buffer[:n])
+	mimeType, _, _ := strings.Cut(http.DetectContentType(buffer[:n]), "/")
 
 	// invalid file type
 	if !allowedMIMETypes[mimeType] {

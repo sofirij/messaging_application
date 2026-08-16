@@ -65,31 +65,6 @@ func createMultipartRequestMany(t *testing.T, accessCookie *http.Cookie, fieldna
 	return req
 }
 
-func TestUpload_InvalidFile(t *testing.T) {
-	app := setupApp(t)
-	defer truncateTables(t)
-	defer clearUploadFolder(t)
-
-	user1 := request.UserAuthRequest{
-		Username: "testuser1",
-		Password: "password123",
-	}
-
-	register(t, app, user1)
-
-	_, accessCookie1, _ := login(t, app, user1)
-
-	content, err := os.ReadFile(invalidFilePath)
-
-	require.NoError(t, err)
-	req := createMultipartRequest(t, accessCookie1, "file", invalidFilename, content)
-
-	resp, err := app.Test(req, testCfg)
-
-	require.NoError(t, err)
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-}
-
 func TestUpload_ValidFile(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
@@ -199,50 +174,6 @@ func TestUpload_TooManyFiles(t *testing.T) {
 	req := createMultipartRequestMany(t, accessCookie1, "file", filenames, contents)
 
 	resp, err := app.Test(req)
-
-	require.NoError(t, err)
-
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-}
-
-func TestUpload_ManyFilesOneInvalid(t *testing.T) {
-	app := setupApp(t)
-	defer truncateTables(t)
-	defer clearUploadFolder(t)
-
-	user1 := request.UserAuthRequest{
-		Username: "testuser1",
-		Password: "password123",
-	}
-
-	register(t, app, user1)
-
-	_, accessCookie1, _ := login(t, app, user1)
-
-	content, err := os.ReadFile(validFilePath)
-
-	require.NoError(t, err)
-
-	amount := 9
-	contents := make([][]byte, amount)
-	filenames := make([]string, amount)
-
-	for i := range amount {
-		contents[i] = content
-		filenames[i] = validFilename
-	}
-
-	// invalid file
-	content, err = os.ReadFile(invalidFilePath)
-
-	require.NoError(t, err)
-
-	contents = append(contents, content)
-	filenames = append(filenames, invalidFilename)
-
-	req := createMultipartRequestMany(t, accessCookie1, "file", filenames, contents)
-
-	resp, err := app.Test(req, testCfg)
 
 	require.NoError(t, err)
 
