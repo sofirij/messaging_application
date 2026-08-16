@@ -25,6 +25,7 @@ type ReplyMetadata struct {
 	ID       int     `json:"id"`
 	SenderID int     `json:"sender_id"`
 	Body     *string `json:"body"`
+	Deleted bool `json:"deleted"`
 }
 
 type MessageAttachment struct {

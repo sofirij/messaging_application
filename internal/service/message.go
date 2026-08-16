@@ -214,6 +214,7 @@ func (m *messageService) GetByConversationID(ctx context.Context, userID, conver
 			ID:       reply.ID,
 			SenderID: reply.SenderID,
 			Body:     reply.Body,
+			Deleted:  reply.DeletedAt != nil,
 		}
 	}
 
@@ -372,6 +373,7 @@ func getMessageByID(ctx context.Context, messageRepo repository.MessageRepositor
 			ID:       reply.ID,
 			SenderID: reply.SenderID,
 			Body:     reply.Body,
+			Deleted:  reply.DeletedAt != nil,
 		}
 	}
 
