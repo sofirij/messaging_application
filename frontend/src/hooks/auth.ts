@@ -2,8 +2,8 @@
 import { login, register, logout } from "@/lib/api/auth"
 import { validateUsername, validatePassword } from "@/utils/validation"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { userQueryOptions, userRemoveQueryOptions } from "@/query/user"
-import { User, UserAuthRequest } from "@/types/http/user"
+import { userInvalidateQueryOptions, userQueryOptions } from "@/query/user"
+import { UserAuthRequest } from "@/types/http/user"
 import { useRouter } from "next/navigation"
 
 export function useLogin() {
@@ -15,9 +15,9 @@ export function useLogin() {
             validateLogin(req.username, req.password)
             return await login(req)
         },
-        onSuccess: (user: User) => {
+        onSuccess: (user) => {
             queryClient.setQueryData(userQueryOptions.queryKey, user)
-            router.push("/home")
+            router.replace("/home")
         }
     })
 
@@ -44,9 +44,9 @@ export function useRegister() {
             await register(req)
             return await login(req)
         },
-        onSuccess: (user: User) => {
+        onSuccess: (user) => {
             queryClient.setQueryData(userQueryOptions.queryKey, user)
-            router.push("/home")
+            router.replace("/home")
         }
     })
 
@@ -72,8 +72,8 @@ export function useLogout() {
             await logout()
         },
         onSuccess: () => {
-            queryClient.removeQueries(userRemoveQueryOptions)
-            router.push("/login")
+            queryClient.invalidateQueries(userInvalidateQueryOptions)
+            router.replace("/login")
         }
     })
 

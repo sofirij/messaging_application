@@ -1,10 +1,12 @@
+"use client"
 import { UserAuthRequest, User } from "@/types/http/user"
+import { fetchWithCredentials } from "@/lib/api/fetch"
 
 const apiVersion = "/api/v1"
 const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/auth"
 
 export async function register(req: UserAuthRequest): Promise<void> {
-    const res = await fetch(`${apiURL}/register`, {
+    const res = await fetchWithCredentials(`${apiURL}/register`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -20,7 +22,7 @@ export async function register(req: UserAuthRequest): Promise<void> {
 }
 
 export async function login(req: UserAuthRequest): Promise<User> {
-    const res = await fetch(`${apiURL}/login`, {
+    const res = await fetchWithCredentials(`${apiURL}/login`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -39,7 +41,7 @@ export async function login(req: UserAuthRequest): Promise<User> {
 }
 
 export async function logout(): Promise<void> {
-    const res = await fetch(`${apiURL}/logout`, {
+    const res = await fetchWithCredentials(`${apiURL}/logout`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -54,7 +56,7 @@ export async function logout(): Promise<void> {
 }
 
 export async function refreshToken(): Promise<void> {
-    const res = await fetch(`${apiURL}/refresh`, {
+    const res = await fetchWithCredentials(`${apiURL}/refresh`, {
         method: "POST",
         credentials: "include",
         headers: {

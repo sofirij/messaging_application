@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ErrorProvider } from "@/context/errorContext";
-import ToastContainer from "@/components/ui/toastContainer";
+import ToastContainer from "@/components/ui/errorToast";
 import { QueryProvider } from "@/context/queryProvider";
 import "./globals.css"
 
@@ -15,8 +15,8 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
 		<html lang="en">
 			<body>
 				<ErrorProvider>
+					<ToastContainer />
 					<QueryProvider>
-						<ToastContainer />
 						{children}
 					</QueryProvider>
 				</ErrorProvider>

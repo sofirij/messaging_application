@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation"
 import { disableAccount, updateUserAvatar, updateUsername } from "@/lib/api/user"
 import { validateUsername } from "@/utils/validation"
 import { useQueryClient } from "@tanstack/react-query"
-import { userQueryOptions, userRemoveQueryOptions } from "@/query/user"
+import { userQueryOptions, userInvalidateQueryOptions } from "@/query/user"
 import { useMutation } from "@tanstack/react-query"
 import { upload } from "@/lib/api/upload"
 import { UserUsernameRequest } from "@/types/http/user"
@@ -17,8 +17,8 @@ export function useDisableAccount() {
             await disableAccount()
         },
         onSuccess: () => {
-            queryClient.removeQueries(userRemoveQueryOptions)
-            router.push("/login")
+            queryClient.invalidateQueries(userInvalidateQueryOptions)
+            router.replace("/login")
         }
     })
 
@@ -38,7 +38,7 @@ export function useUpdateUsername() {
             await updateUsername(req)
             return req.username
         },
-        onSuccess: (username: string) => {
+        onSuccess: (username) => {
             const user = queryClient.getQueryData(userQueryOptions.queryKey)
             if (!user) return
             queryClient.setQueryData(userQueryOptions.queryKey, {...user, username})
@@ -62,7 +62,7 @@ export function useUpdateAvatarURL() {
             await updateUserAvatar({avatar_url: data.url})
             return data.url
         },
-        onSuccess: (url: string) => {
+        onSuccess: (url) => {
             const user = queryClient.getQueryData(userQueryOptions.queryKey)
             if (!user) return
             queryClient.setQueryData(userQueryOptions.queryKey, {...user, avatar_url: url})

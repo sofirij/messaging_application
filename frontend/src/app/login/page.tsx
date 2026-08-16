@@ -15,24 +15,22 @@ export default function Page() {
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
-    const { data } = useQuery(userQueryOptions)
+    const { data, isStale } = useQuery(userQueryOptions)
 
     useEffect(() => {
-        if (data) {
+        if (data && !isStale) {
             router.push("/home")
         }
-    }, [data, router])
+    }, [data, isStale, router])
 
     return (
         <main>
-            {/* tab toggle */}
             <div>
                 <button onClick={() => setMode("login")}>LOGIN</button> 
                 {"|"}
                 <button onClick={() => setMode("register")}>REGISTER</button>
             </div>
 
-            {/* conditionally show one or the other */}
             {mode === "login" ? (
                 <Form onSubmit={async () => await handleLogin(username, password)}>
                     <Input label="username" type="text" onChange={(e) => setUsername(e.target.value)}/>

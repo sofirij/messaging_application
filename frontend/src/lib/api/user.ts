@@ -1,5 +1,6 @@
+"use client"
 import { User, UserAvatarRequest, UserUsernameRequest } from "@/types/http/user"
-import { fetchWithAuth } from "@/lib/api/fetch"
+import { fetchWithCredentials } from "@/lib/api/fetch"
 
 const apiVersion = "/api/v1"
 const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/users"
@@ -13,7 +14,7 @@ export async function getUser(): Promise<User> {
         }
     }
 
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     const json = await res.json()
 
@@ -33,7 +34,7 @@ export async function disableAccount(): Promise<void> {
         }
     }
     
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -51,7 +52,7 @@ export async function updateUserAvatar(req: UserAvatarRequest): Promise<void> {
         body: JSON.stringify(req)
     }
 
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -69,7 +70,7 @@ export async function updateUsername(req: UserUsernameRequest): Promise<void> {
         body: JSON.stringify(req)
     }
 
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -88,7 +89,7 @@ export async function searchUsername(query: string): Promise<User[]> {
         }
     }
     
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     const json = await res.json()
 

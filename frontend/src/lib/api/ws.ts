@@ -1,8 +1,9 @@
+"use client"
 import { Ticket } from "@/types/ws/ticket"
 import { OutboundTypingStartPayload, OutboundTypingStopPayload } from "@/types/ws/typing"
 import { MessageReadPayload } from "@/types/ws/message"
 import { Event, EventMessageRead, EventTypingStart, EventTypingStop } from "@/types/ws/event"
-import { fetchWithAuth } from "@/lib/api/fetch"
+import { fetchWithCredentials } from "@/lib/api/fetch"
 
 const apiVersion = "/api/v1"
 const wsURL = "ws://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/ws"
@@ -17,7 +18,7 @@ export async function getWSTicket(): Promise<Ticket> {
         }
     }
     
-    const res = await fetchWithAuth(url, init)
+    const res = await fetchWithCredentials(url, init)
 
     const json = await res.json()
 

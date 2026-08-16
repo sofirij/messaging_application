@@ -1,3 +1,4 @@
+"use client"
 import { getUser, searchUsername } from "@/lib/api/user"
 import { queryOptions } from "@tanstack/react-query"
 
@@ -5,16 +6,16 @@ export const userQueryOptions = queryOptions({
     queryKey: ["user"],
     queryFn: async () => await getUser(),
     staleTime: Infinity,
-    retry: false
 })
 
-export const userRemoveQueryOptions = {
+export const userInvalidateQueryOptions = {
     queryKey: userQueryOptions.queryKey,
-    exact: true
-}
+    exact: true,
+    refetchType: "none"
+} as const
 
 export const userSearchQueryOptions = (query: string) => queryOptions({
     queryKey: ["userSearch", query],
     queryFn: () => searchUsername(query),
-    staleTime: 15000
+    staleTime: 15000,
 })

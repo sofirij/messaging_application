@@ -15,7 +15,6 @@ export default function Input({label, type, labelClassName, inputClassName, plac
                 {label}
                 <input type={type} className={inputClassName} placeholder={placeholder} onChange={onChange} value={value}></input>
             </label>
-            
         </>
     )
 }
