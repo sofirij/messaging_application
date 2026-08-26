@@ -7,6 +7,7 @@ import Input from "@/components/ui/input"
 import { defaultAvatarURL } from "@/constants/defaults"
 import { userQueryOptions } from "@/query/user"
 import { useSuspenseQuery } from "@tanstack/react-query"
+import Popup from "@/components/ui/popup"
 
 
 export default function Page() {
@@ -37,27 +38,21 @@ export default function Page() {
     return (
         <main>
             <Image src={avatarURL} alt="User profile picture" width={40} height={40} onClick={() => setIsExpanded(true)}/>
-            <Form onSubmit={async () => await handleUpdateUsername(newUsername)}>
+            <Form onSubmit={() => handleUpdateUsername(newUsername)}>
                 <Input label="username" type="text" onChange={(e) => setNewUsername(e.target.value)} placeholder={username}/>
                 <button>Update</button>
             </Form>
             <button onClick={handleDisableAccount}>Disable Account</button>
-
-
-            {isExpanded && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setIsExpanded(false)}>
-                    <div className="relative bg-white rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
-                        <Image src={avatarURL} alt="User profile picture" width={100} height={100}/>
-                        <div className="absolute bottom-4 right-4 flex gap-2"> 
-                            <button onClick={handleEditClick}>Edit</button>
-                            {user.avatar_url && (
-                                <button onClick={handleClearAvatarURL}>Reset</button>
-                            )}
-                            <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} style={{display: "none"}}/>
-                        </div>
-                    </div>
+            <Popup popup={isExpanded} setPopup={setIsExpanded}>
+                <Image src={avatarURL} alt="User profile picture" width={100} height={100}/>
+                <div className="absolute bottom-4 right-4 flex gap-2"> 
+                    <button onClick={handleEditClick}>Edit</button>
+                    {user.avatar_url && (
+                        <button onClick={handleClearAvatarURL}>Reset</button>
+                    )}
+                    <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} style={{display: "none"}}/>
                 </div>
-            )}
+            </Popup>
         </main>
     )
 }

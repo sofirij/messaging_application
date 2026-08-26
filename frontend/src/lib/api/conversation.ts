@@ -159,7 +159,7 @@ export async function addMembers(conversationID: number, req: ConversationAddMem
 }
 
 export async function updateConversationName(conversationID: number, req: ConversationRenameRequest): Promise<void> {
-    const url = `${apiURL}/${conversationID}/members`
+    const url = `${apiURL}/${conversationID}/name`
     const init = {
         method: "PUT",
         headers: {

@@ -1,7 +1,9 @@
 "use client"
 import { addMembers, createConversation, deleteConversation, removeMember, updateConversationAvatar, updateConversationName } from "@/lib/api/conversation";
-import { conversationMemberMutationOptions, conversationMemberQueryOptions, conversationQueryOptions } from "@/query/conversation";
+import { upload } from "@/lib/api/upload";
+import { conversationMemberRefetchOptions, conversationMemberQueryOptions, conversationQueryOptions } from "@/query/conversation";
 import { ConversationAddMembersRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest, ConversationType } from "@/types/http/conversation";
+import { Upload } from "@/types/http/upload";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
@@ -18,15 +20,13 @@ export function useCreateConversation() {
             if (!conversations) return
             queryClient.setQueryData(conversationQueryOptions.queryKey, {
                 data: {...conversations.data, [conversation.id]: conversation},
-                order: [conversation.id, ...conversations.order]
+                order: [conversation.id, ...conversations.order.filter(id => id !== conversation.id)]
             })
         }
     })
 
-    function handleCreateConversation(type: ConversationType, name: string | null, user_ids: number[], onSuccess: () => void) {
-        mutation.mutate({type, name, user_ids}, {onSuccess: () => {
-            onSuccess()
-        }})
+    async function handleCreateConversation(type: ConversationType, name: string | null, user_ids: number[], onSuccess: () => void) {
+        mutation.mutate({type, name, user_ids}, {onSuccess})
     }
 
     return { handleCreateConversation, loading: mutation.isPending }
@@ -54,7 +54,7 @@ export function useDeleteConversation() {
         }
     })
 
-    function handleDeleteConversation(id: number) {
+    async function handleDeleteConversation(id: number) {
         mutation.mutate(id)
     }
 
@@ -83,14 +83,14 @@ export function useRemoveMember() {
         }
     })
 
-    function handleRemoveMember(userID: number, conversationID: number) {
+    async function handleRemoveMember(userID: number, conversationID: number) {
         mutation.mutate({conversationID, userID})
     }
 
     return { handleRemoveMember, loading: mutation.isPending }
 }
 
-export function useAddMember() {
+export function useAddMembers() {
     const queryClient = useQueryClient()
 
     const mutation = useMutation({
@@ -99,15 +99,15 @@ export function useAddMember() {
             return conversationID
         },
         onSuccess: async (id) => {
-            await queryClient.refetchQueries(conversationMemberMutationOptions(id))
+            await queryClient.refetchQueries(conversationMemberRefetchOptions(id))
         }
     })
 
-    function handleAddMember(conversationID: number, user_ids: number[]) {
+    async function handleAddMembers(conversationID: number, user_ids: number[]) {
         mutation.mutate({conversationID, req: {user_ids}})
     }
 
-    return { handleAddMember, loading: mutation.isPending}
+    return { handleAddMembers, loading: mutation.isPending}
 }
 
 export function useLeaveGroup() {
@@ -132,7 +132,7 @@ export function useLeaveGroup() {
         }
     })
 
-    function handleLeaveGroup(userID: number, conversationID: number) {
+    async function handleLeaveGroup(userID: number, conversationID: number) {
         mutation.mutate({conversationID, userID})
     }
 
@@ -157,7 +157,7 @@ export function useUpdateConversationName() {
         }
     })
 
-    function handleUpdateConversationName(conversationID: number, name: string) {
+    async function handleUpdateConversationName(conversationID: number, name: string) {
         mutation.mutate({conversationID, req: {name}})
     }
 
@@ -182,8 +182,12 @@ export function useUpdateConversationAvatar() {
         }
     })
 
-    function handleUpdateConversationAvatar(conversationID: number, req: ConversationAvatarRequest) {
-        mutation.mutate({conversationID, req})
+    async function handleUpdateConversationAvatar(conversationID: number, file: File | null) {
+        let uploaded: Upload | null = null
+        if (file) {
+            uploaded = await upload(file)
+        }
+        mutation.mutate({conversationID: conversationID, req: {avatar_url: uploaded ? uploaded.url : null}})
     }
 
     return { handleUpdateConversationAvatar, loading: mutation.isPending }

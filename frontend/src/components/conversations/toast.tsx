@@ -7,6 +7,7 @@ import { defaultAvatarURL } from "@/constants/defaults"
 import { userQueryOptions } from "@/query/user"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
+import Popup from "@/components/ui/popup"
 
 type InputProps = {
     conversation: Conversation
@@ -45,17 +46,13 @@ export default function Toast({conversation}: InputProps) {
                 <p>{conversation.name}</p>
                 <p onClick={() => {router.push(`/conversation/messages?id=${conversation.id}`)}}>{actionMessage}</p>
                 <button onClick={() => setClickedOptions(true)}>Options</button>
-                {clickedOptions && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setClickedOptions(false)}>
-                        <div className="relative bg-white rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
-                            {conversation.type === conversationDirect ? (
-                                <button onClick={() => handleDeleteConversation(conversation.id)}>Delete</button>
-                            ): (
-                                <button onClick={() => handleLeaveGroup(me.id, conversation.id)}>Leave Group</button>
-                            )}
-                        </div>
-                    </div>
-                )}
+                <Popup popup={clickedOptions} setPopup={setClickedOptions}>
+                    {conversation.type === conversationDirect ? (
+                        <button onClick={() => handleDeleteConversation(conversation.id)}>Delete</button>
+                    ): (
+                        <button onClick={() => handleLeaveGroup(me.id, conversation.id)}>Leave Group</button>
+                    )}
+                </Popup>
         </div>
     )
 }
