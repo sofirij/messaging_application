@@ -105,7 +105,7 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 
 		// resume and return the previously created conversation
 		for _, conversation := range memberConversations {
-			if conversationMap[conversation.ID] {
+			if conversationMap[conversation.ID] && conversation.Type == db.DirectConversation {
 				_, err = c.conversationRepo.ResumeMember(ctx, conversation.ID, userID)
 
 				if err != nil {
@@ -133,13 +133,13 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 				}
 
 				resp := response.ConversationResponse{
-					ID:              conversation.ID,
-					Name:            *conversation.Name,
-					AvatarURL:       conversation.AvatarURL,
-					Type:            conversation.Type,
-					CreatedAt:       conversation.CreatedAt,
-					CreatedBy:       conversation.CreatedBy,
-					LastMessageReadByUser: lastMessageReadByUser,
+					ID:                            conversation.ID,
+					Name:                          *conversation.Name,
+					AvatarURL:                     conversation.AvatarURL,
+					Type:                          conversation.Type,
+					CreatedAt:                     conversation.CreatedAt,
+					CreatedBy:                     conversation.CreatedBy,
+					LastMessageReadByUser:         lastMessageReadByUser,
 					LastMessageReadInConversation: lastMessageReadInConversation,
 					LastMessageSentInConversation: lastMessageSentInConversation,
 				}
@@ -181,13 +181,13 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 	}
 
 	resp := response.ConversationResponse{
-		ID:              conversation.ID,
-		Name:            *conversation.Name,
-		AvatarURL:       conversation.AvatarURL,
-		Type:            conversation.Type,
-		CreatedAt:       conversation.CreatedAt,
-		CreatedBy:       conversation.CreatedBy,
-		LastMessageReadByUser: lastMessageReadByUser,
+		ID:                            conversation.ID,
+		Name:                          *conversation.Name,
+		AvatarURL:                     conversation.AvatarURL,
+		Type:                          conversation.Type,
+		CreatedAt:                     conversation.CreatedAt,
+		CreatedBy:                     conversation.CreatedBy,
+		LastMessageReadByUser:         lastMessageReadByUser,
 		LastMessageReadInConversation: lastMessageReadInConversation,
 		LastMessageSentInConversation: lastMessageSentInConversation,
 	}
@@ -370,13 +370,13 @@ func (c *conversationService) GetByUserID(ctx context.Context, userID int) ([]re
 		}
 
 		resp[i] = response.ConversationResponse{
-			ID:              conversation.ID,
-			Name:            *conversation.Name,
-			AvatarURL:       conversation.AvatarURL,
-			Type:            conversation.Type,
-			CreatedAt:       conversation.CreatedAt,
-			CreatedBy:       conversation.CreatedBy,
-			LastMessageReadByUser: lastMessageReadByUser,
+			ID:                            conversation.ID,
+			Name:                          *conversation.Name,
+			AvatarURL:                     conversation.AvatarURL,
+			Type:                          conversation.Type,
+			CreatedAt:                     conversation.CreatedAt,
+			CreatedBy:                     conversation.CreatedBy,
+			LastMessageReadByUser:         lastMessageReadByUser,
 			LastMessageReadInConversation: lastMessageReadInConversation,
 			LastMessageSentInConversation: lastMessageSentInConversation,
 		}
@@ -446,13 +446,13 @@ func (c *conversationService) GetByID(ctx context.Context, userID, conversationI
 	}
 
 	resp := response.ConversationResponse{
-		ID:              conversation.ID,
-		Name:            *conversation.Name,
-		AvatarURL:       conversation.AvatarURL,
-		Type:            conversation.Type,
-		CreatedAt:       conversation.CreatedAt,
-		CreatedBy:       conversation.CreatedBy,
-		LastMessageReadByUser: lastMessageReadByUser,
+		ID:                            conversation.ID,
+		Name:                          *conversation.Name,
+		AvatarURL:                     conversation.AvatarURL,
+		Type:                          conversation.Type,
+		CreatedAt:                     conversation.CreatedAt,
+		CreatedBy:                     conversation.CreatedBy,
+		LastMessageReadByUser:         lastMessageReadByUser,
 		LastMessageReadInConversation: lastMessageReadInConversation,
 		LastMessageSentInConversation: lastMessageSentInConversation,
 	}
