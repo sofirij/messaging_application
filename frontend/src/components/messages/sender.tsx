@@ -22,6 +22,13 @@ export default function Sender({reply, setReply, conversationID}: InputProps) {
         return text
     }
 
+    function onSuccess() {
+        console.log("on success")
+        setAttachments([])
+        setText("")
+        setReply(null)
+    }
+
     return (
         <div>
             {reply && (
@@ -31,9 +38,9 @@ export default function Sender({reply, setReply, conversationID}: InputProps) {
                 </div>
             )}
             <AttachmentSelect setAttachments={setAttachments} attachments={attachments}/>
-            <BodyInput setText={setText}/>
+            <BodyInput setText={setText} text={text}/>
             <div>
-                <button onClick={async () => handleCreateMessage(conversationID, processText(text), reply ? reply.id : null, attachments)}>Send</button>
+                <button onClick={async () => handleCreateMessage(conversationID, processText(text), reply ? reply.id : null, attachments, onSuccess)}>Send</button>
             </div>
         </div>
     )

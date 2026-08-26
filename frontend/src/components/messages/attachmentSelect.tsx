@@ -1,4 +1,5 @@
 import { useErrorContext } from "@/context/errorContext"
+import { getFileCategory } from "@/utils/file"
 import { Dispatch, SetStateAction, useEffect, useRef } from "react"
 
 type InputProps = {
@@ -15,12 +16,7 @@ function RenderPreview({attachments, setAttachments}: InputProps) {
         }
     }, [previews])
 
-    function getFileCategory(type: string) {
-        if (type.startsWith("image/")) return "image";
-        if (type.startsWith("video/")) return "video";
-        if (type.startsWith("audio/")) return "audio";
-        return "application"
-    }
+    
 
     function renderPreview(file: File, index: number) {
         const category = getFileCategory(file.type)
@@ -33,7 +29,7 @@ function RenderPreview({attachments, setAttachments}: InputProps) {
                 return <audio controls src={previews[index]}/>
             case "video":
                 return <video controls src={previews[index]}/>
-            default: 
+            case "application": 
                 return <div>📄 {file.name}</div>
         }
     }

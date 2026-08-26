@@ -36,7 +36,7 @@ export function useUpdateMessage() {
         }
     })
 
-    function handleUpdateMessage(conversationID: number, messageID: number, body: string) {
+    async function handleUpdateMessage(conversationID: number, messageID: number, body: string) {
         mutation.mutate({messageID, conversationID, req: {body}})
     }
 
@@ -72,7 +72,7 @@ export function useDeleteMessage() {
         }
     })
 
-    function handleDeleteMessage(conversationID: number, messageID: number) {
+    async function handleDeleteMessage(conversationID: number, messageID: number) {
         mutation.mutate({messageID, conversationID})
     }
 
@@ -94,8 +94,10 @@ export function useCreateMessage() {
             queryClient.setQueryData(messageQueryOptions(conversationID).queryKey, {
                 ...old,
                 pages: old.pages.map((page, i) => {
-                    if (i === 0) {
-                        return {...page, messages: [...page.messages, message]}
+                    if (i === old.pages.length - 1) {
+                        // sort in the event of network jitter
+                        // ws message can come in before http response
+                        return {...page, messages: [...page.messages.filter(m => m.id !== message.id), message].sort((a, b) => a.id - b.id)}
                     }
                     return page
                 })
@@ -103,7 +105,7 @@ export function useCreateMessage() {
         }
     })
 
-    async function handleCreateMessage(conversationID: number, body: string | null, reply_to_id: number | null, files: File[]) {
+    async function handleCreateMessage(conversationID: number, body: string | null, reply_to_id: number | null, files: File[], onSuccess: () => void) {
         const uploads = files.length > 0 ? await uploadMany(files) : []
         const attachments: AttachmentRequest[] = uploads.map(upload => {
             return {
@@ -113,7 +115,7 @@ export function useCreateMessage() {
                 size: upload.size,
             }
         })
-        mutation.mutate({conversationID, req: {body, reply_to_id, attachments}})
+        mutation.mutate({conversationID, req: {body, reply_to_id, attachments}}, {onSuccess})
     }
 
     return {handleCreateMessage, loading: mutation.isPending}
@@ -132,7 +134,7 @@ export function useClearMessages() {
         }
     })
 
-    function handleClearMessages(conversationID: number) {
+    async function handleClearMessages(conversationID: number) {
         mutation.mutate({conversationID})
     }
 
