@@ -68,7 +68,6 @@ func createMultipartRequestMany(t *testing.T, accessCookie *http.Cookie, fieldna
 func TestUpload_ValidFile(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
-	defer clearUploadFolder(t)
 
 	user1 := request.UserAuthRequest{
 		Username: "testuser1",
@@ -96,12 +95,13 @@ func TestUpload_ValidFile(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotEmpty(t, result.Data.URL)
+
+	clearUploadFolder(t, result.Data.URL)
 }
 
 func TestUpload_ManyFiles(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
-	defer clearUploadFolder(t)
 
 	user1 := request.UserAuthRequest{
 		Username: "testuser1",
@@ -140,6 +140,7 @@ func TestUpload_ManyFiles(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, upload := range result.Data {
+		clearUploadFolder(t, upload.URL)
 		require.NotEmpty(t, upload.URL)
 	}
 }
@@ -147,7 +148,7 @@ func TestUpload_ManyFiles(t *testing.T) {
 func TestUpload_TooManyFiles(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
-	defer clearUploadFolder(t)
+	
 
 	user1 := request.UserAuthRequest{
 		Username: "testuser1",
@@ -180,14 +181,10 @@ func TestUpload_TooManyFiles(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
-func clearUploadFolder(t *testing.T) {
+func clearUploadFolder(t *testing.T, filename string) {
 	t.Helper()
 
 	uploadDir := "../../../uploads"
-	entries, err := os.ReadDir(uploadDir)
 
-	require.NoError(t, err)
-	for _, entry := range entries {
-		os.RemoveAll(filepath.Join(uploadDir, entry.Name()))
-	}
+	os.Remove(filepath.Join(uploadDir, filename))
 }

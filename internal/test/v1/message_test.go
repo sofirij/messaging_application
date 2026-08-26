@@ -47,7 +47,6 @@ func createMessage(t *testing.T, app *fiber.App, accessCookie *http.Cookie, conv
 func TestMessage_CreateWithAttachmentsAndReply(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
-	defer clearUploadFolder(t)
 
 	user1 := request.UserAuthRequest{
 		Username: "testuser1",
@@ -106,6 +105,8 @@ func TestMessage_CreateWithAttachmentsAndReply(t *testing.T) {
 
 	fileURL := result2.Data[0].URL
 	require.NotEmpty(t, fileURL)
+
+	clearUploadFolder(t, fileURL)
 
 	text := "this is a message"
 
