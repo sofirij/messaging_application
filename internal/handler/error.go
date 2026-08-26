@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"log"
 
 	"app/internal/model/response"
 	"app/internal/service"
@@ -10,6 +11,7 @@ import (
 )
 
 func HandleServiceError(c fiber.Ctx, err error) error {
+	log.Println(err)
 	if serviceErr, ok := errors.AsType[*service.Error](err); ok {
 		errorDetail := response.ErrorDetail{
 			Message: serviceErr.Message,
