@@ -18,10 +18,10 @@ import (
 const maxUploadSize = 100 * 1024 * 1024
 
 var allowedMIMETypes = map[string]bool{
-	"image":      true,
+	"image":       true,
 	"video":       true,
 	"audio":       true,
-	"application":    true,
+	"application": true,
 }
 
 type uploadService struct {

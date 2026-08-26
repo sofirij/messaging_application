@@ -11,7 +11,7 @@ type ConversationResponse struct {
 	Type                          string           `json:"type"`
 	CreatedAt                     time.Time        `json:"created_at"`
 	CreatedBy                     int              `json:"created_by"`
-	LastMessageReadByUser         *int              `json:"last_message_read_by_user"`
-	LastMessageReadInConversation *int `json:"last_message_read_in_conversation"`
+	LastMessageReadByUser         *int             `json:"last_message_read_by_user"`
+	LastMessageReadInConversation *int             `json:"last_message_read_in_conversation"`
 	LastMessageSentInConversation *MessageResponse `json:"last_message_sent_in_conversation"`
 }

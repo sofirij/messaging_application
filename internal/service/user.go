@@ -210,7 +210,7 @@ func (u *userService) RefreshToken(ctx context.Context, token string) (string, s
 
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return "", "", &Error{
-			Code: ErrCodeUnauthorized,
+			Code:    ErrCodeUnauthorized,
 			Message: "invalid refresh token",
 		}
 	}

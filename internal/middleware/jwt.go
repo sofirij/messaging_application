@@ -17,7 +17,7 @@ func parseClaims(token string, cfg *config.Config) (jwt.MapClaims, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodEd25519); !ok {
 			return nil, &service.Error{
 				Message: "unexpected signing method",
-				Code: service.ErrCodeUnauthorized,
+				Code:    service.ErrCodeUnauthorized,
 			}
 		}
 
@@ -56,7 +56,7 @@ func verifyAndRefresh(c fiber.Ctx, userService service.UserService, cfg *config.
 
 	if !ok {
 		return 0, &service.Error{
-			Code: service.ErrCodeUnauthorized,
+			Code:    service.ErrCodeUnauthorized,
 			Message: "invalid token",
 		}
 	}
