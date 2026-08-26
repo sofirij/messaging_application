@@ -32,13 +32,13 @@ export default function Page() {
             </div>
 
             {mode === "login" ? (
-                <Form onSubmit={async () => await handleLogin(username, password)}>
+                <Form onSubmit={() => handleLogin(username, password)}>
                     <Input label="username" type="text" onChange={(e) => setUsername(e.target.value)}/>
                     <Input label="password" type="password" onChange={(e) => setPassword(e.target.value)}/>
                     <button>Login</button>
                 </Form>       
             ) : (
-                <Form onSubmit={async () => await handleRegister(username, password, confirmPassword)}>
+                <Form onSubmit={() => handleRegister(username, password, confirmPassword)}>
                     <Input label="username" type="text" onChange={(e) => setUsername(e.target.value)}/>
                     <Input label="password" type="password" onChange={(e) => setPassword(e.target.value)}/>
                     <Input label="confirm password" type="password" onChange={(e) => setConfirmPassword(e.target.value)}/>

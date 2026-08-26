@@ -69,7 +69,7 @@ export function useUpdateAvatarURL() {
         }
     })
 
-    function handleUpdateAvatarURL(file: File) {
+    async function handleUpdateAvatarURL(file: File) {
         mutation.mutate({file})
     }
 
@@ -90,7 +90,7 @@ export function useClearAvatarURL() {
         }
     })
 
-    function handleClearAvatarURL() {
+    async function handleClearAvatarURL() {
         mutation.mutate()
     }
 
