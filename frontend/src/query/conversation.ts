@@ -17,9 +17,15 @@ export const conversationQueryOptions = queryOptions({
             order: conversations.map(conversation => conversation.id)
         }
     },
-    staleTime: Infinity,
-    retry: false
+    staleTime: Infinity
 })
+
+export const conversationRefetchOptions = {
+    queryKey: conversationQueryOptions.queryKey,
+    exact: true,
+    throwOnError: true,
+    type: "all"
+} as const
 
 export const conversationMemberQueryOptions = (id: number) => queryOptions({
     queryKey: ["conversations", id, "members"],
@@ -37,7 +43,7 @@ export const conversationMemberQueryOptions = (id: number) => queryOptions({
     retry: false,
 })
 
-export const conversationMemberMutationOptions = (id: number) => {
+export const conversationMemberRefetchOptions = (id: number) => {
     return {
         queryKey: conversationMemberQueryOptions(id).queryKey,
         exact: true,

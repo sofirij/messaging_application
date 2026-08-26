@@ -10,7 +10,7 @@ const wsURL = "ws://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/ws"
 const ticketURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/ws/ticket"
 
 export async function getWSTicket(): Promise<Ticket> {
-    const url = `${ticketURL}/ticket`
+    const url = `${ticketURL}`
     const init = {
         method: "GET",
         headers: {
@@ -36,20 +36,12 @@ export async function getWSConn(): Promise<WebSocket> {
     const url = new URL(wsURL)
     url.searchParams.set("ticket", ticket.ticket)
 
-    const ws = new WebSocket(url)
-
-    ws.onopen = () => { console.log("opened ws conn") }
-    ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data)
-        console.log(msg.Type)
-    }
-    ws.onclose = () => { console.log("conn closed") }
-    ws.onerror = (error) => { console.log(error) }
-
-    return ws
+    return new WebSocket(url)
 }
 
-export async function readMessage(ws: WebSocket, payload: MessageReadPayload): Promise<void> {
+export async function readMessage(ws: WebSocket, conversation_id: number, message_id: number): Promise<void> {
+    const payload: MessageReadPayload = {conversation_id, message_id}
+
     const req : Event = {
         type: EventMessageRead,
         payload: payload

@@ -5,6 +5,7 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { userQueryOptions } from "@/query/user"
 import Link from "next/link"
 import { defaultAvatarURL } from "@/constants/defaults"
+import { WSProvider } from "@/context/wsProvider"
 
 function NavBar() {
     const { handleLogout } = useLogout()
@@ -18,16 +19,20 @@ function NavBar() {
             <Image src={avatarURL} alt="User profile picture" width={40} height={10} />
             <Link href="/profile">{username}</Link> {"|"}
             <Link href="/conversations">Conversations</Link> {"|"}
-            <button onClick={async () => await handleLogout()}>Logout</button>
+            <button onClick={handleLogout}>Logout</button>
         </nav>
     )
 }
 
 export default function AuthedLayout({children}: {children: React.ReactNode}) {
     return (
-        <>
-            <NavBar />
-            {children}
-        </>
+        <WSProvider>
+            <div className="h-dvh flex flex-col">
+                <NavBar />
+                <div className="flex-1 min-h-0">
+                    {children}
+                </div>
+            </div>
+        </WSProvider>
     )
 }
