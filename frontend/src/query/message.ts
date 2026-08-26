@@ -13,10 +13,10 @@ export const messageQueryOptions = (conversationID: number) => {
         },
         initialPageParam: {before: null, limit: messageLimit, at: null} as MessageQueryParams,
         getNextPageParam: (lastPage) => {
-            return lastPage.previous_cursor ? {limit: messageLimit, before: lastPage.previous_cursor, at: null} : undefined
+            return lastPage.next_cursor ? {limit: messageLimit, before: null, at: lastPage.next_cursor} : undefined
         },
         getPreviousPageParam: (firstPage) => {
-            return firstPage.next_cursor ? {limit: messageLimit, before: null, at: firstPage.next_cursor} : undefined
+            return firstPage.previous_cursor ? {limit: messageLimit, before: firstPage.previous_cursor, at: null} : undefined
         },
         select: (result): Message[] => {
             return result.pages.flatMap(page => page.messages)
