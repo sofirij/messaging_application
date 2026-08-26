@@ -157,6 +157,7 @@ func TestWSConversation_AddMember(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotZero(t, payload.ConversationID)
+	require.NotZero(t, payload.User.ID)
 }
 
 func TestWSConversation_RemoveMember(t *testing.T) {

@@ -161,10 +161,10 @@ func (h *ConversationHandler) AddMembers(c fiber.Ctx) error {
 	}
 
 	// server sent event
-	for _, id := range req.UserIDs {
+	for _, user := range resp {
 		payload := ws.MemberAddedPayload{
 			ConversationID: conversationID,
-			UserID:         id,
+			User:           user,
 		}
 
 		go h.hub.BroadcastToConversation(context.WithoutCancel(c.Context()), userID, ws.EventMemberAdded, conversationID, payload)
