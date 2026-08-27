@@ -3,9 +3,11 @@ import { Conversation, ConversationAddMembersRequest, ConversationAvatarRequest,
 import { Message, MessageCreateRequest, PaginatedMessage } from "@/types/http/message"
 import { User } from "@/types/http/user"
 import { fetchWithCredentials } from "@/lib/api/fetch"
+import { HTTPError, ErrorDetail } from "@/types/http/error"
+import { httpProtocol, serverURL } from "@/constants/defaults"
 
 const apiVersion = "/api/v1"
-const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/conversations"
+const apiURL = httpProtocol+serverURL+apiVersion+"/conversations"
 
 export async function getConversations(): Promise<Conversation[]> {
     const init = {
@@ -20,7 +22,7 @@ export async function getConversations(): Promise<Conversation[]> {
     const json = await res.json()
 
     if (!res.ok) {
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 
     return json.data
@@ -40,7 +42,7 @@ export async function createConversation(req: ConversationCreateRequest): Promis
     const json = await res.json()
 
     if (!res.ok) {
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 
     return json.data
@@ -61,7 +63,7 @@ export async function getConversation(id: number): Promise<Conversation> {
     const json = await res.json()
 
     if (!res.ok) {
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 
     return json.data
@@ -80,7 +82,7 @@ export async function deleteConversation(id: number): Promise<void> {
 
     if (!res.ok) {
         const json = await res.json()
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 }
 
@@ -113,7 +115,7 @@ export async function getMessages(conversationID: number, params: MessageQueryPa
     const json = await res.json()
 
     if (!res.ok) {
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 
     return json.data
@@ -134,7 +136,7 @@ export async function createMessage(conversationID: number, req: MessageCreateRe
     const json = await res.json()
 
     if (!res.ok) {
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 
     return json.data
@@ -154,7 +156,7 @@ export async function addMembers(conversationID: number, req: ConversationAddMem
 
     if (!res.ok) {
         const json = await res.json()
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 }
 
@@ -172,7 +174,7 @@ export async function updateConversationName(conversationID: number, req: Conver
 
     if (!res.ok) {
         const json = await res.json()
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 }
 
@@ -190,7 +192,7 @@ export async function updateConversationAvatar(conversationID: number, req: Conv
 
     if (!res.ok) {
         const json = await res.json()
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 }
 
@@ -207,7 +209,7 @@ export async function clearMessages(conversation_id: number): Promise<void> {
 
     if (!res.ok) {
         const json = await res.json()
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 }
 
@@ -224,7 +226,7 @@ export async function removeMember(conversationID: number, userID: number): Prom
 
     if (!res.ok) {
         const json = await res.json()
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 }
 
@@ -242,7 +244,7 @@ export async function getMembers(conversationID: number): Promise<User[]> {
     const json = await res.json()
 
     if (!res.ok) {
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 
     return json.data

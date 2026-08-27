@@ -4,10 +4,12 @@ import { OutboundTypingStartPayload, OutboundTypingStopPayload } from "@/types/w
 import { MessageReadPayload } from "@/types/ws/message"
 import { Event, EventMessageRead, EventTypingStart, EventTypingStop } from "@/types/ws/event"
 import { fetchWithCredentials } from "@/lib/api/fetch"
+import { HTTPError, ErrorDetail } from "@/types/http/error"
+import { httpProtocol, serverURL, wsProtocol } from "@/constants/defaults"
 
 const apiVersion = "/api/v1"
-const wsURL = "ws://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/ws"
-const ticketURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/ws/ticket"
+const wsURL = wsProtocol+serverURL+apiVersion+"/ws"
+const ticketURL = httpProtocol+serverURL+apiVersion+"/ws/ticket"
 
 export async function getWSTicket(): Promise<Ticket> {
     const url = `${ticketURL}`
@@ -23,7 +25,7 @@ export async function getWSTicket(): Promise<Ticket> {
     const json = await res.json()
 
     if (!res.ok) {
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 
     return json.data

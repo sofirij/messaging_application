@@ -1,9 +1,11 @@
 "use client"
 import { User, UserAvatarRequest, UserUsernameRequest } from "@/types/http/user"
 import { fetchWithCredentials } from "@/lib/api/fetch"
+import { HTTPError, ErrorDetail } from "@/types/http/error"
+import { httpProtocol, serverURL } from "@/constants/defaults"
 
 const apiVersion = "/api/v1"
-const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/users"
+const apiURL = httpProtocol+serverURL+apiVersion+"/users"
 
 export async function getUser(): Promise<User> {
     const url = `${apiURL}/me`
@@ -19,7 +21,7 @@ export async function getUser(): Promise<User> {
     const json = await res.json()
 
     if (!res.ok) {
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 
     return json.data
@@ -38,7 +40,7 @@ export async function disableAccount(): Promise<void> {
 
     if (!res.ok) {
         const json = await res.json()
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 }
 
@@ -56,7 +58,7 @@ export async function updateUserAvatar(req: UserAvatarRequest): Promise<void> {
 
     if (!res.ok) {
         const json = await res.json()
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 }
 
@@ -74,7 +76,7 @@ export async function updateUsername(req: UserUsernameRequest): Promise<void> {
 
     if (!res.ok) {
         const json = await res.json()
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 }
 
@@ -94,7 +96,7 @@ export async function searchUsername(query: string): Promise<User[]> {
     const json = await res.json()
 
     if (!res.ok) {
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 
     return json.data

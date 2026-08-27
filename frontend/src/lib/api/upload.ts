@@ -1,9 +1,11 @@
 "use client"
 import { Upload } from "@/types/http/upload"
 import { fetchWithCredentials } from "@/lib/api/fetch"
+import { HTTPError, ErrorDetail } from "@/types/http/error"
+import { httpProtocol, serverURL } from "@/constants/defaults"
 
 const apiVersion = "/api/v1"
-const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion
+const apiURL = httpProtocol+serverURL+apiVersion
 
 export async function upload(file: File): Promise<Upload> {
     const form = new FormData()
@@ -20,7 +22,7 @@ export async function upload(file: File): Promise<Upload> {
     const json = await res.json()
 
     if (!res.ok) {
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 
     return json.data
@@ -43,7 +45,7 @@ export async function uploadMany(files: File[]): Promise<Upload[]> {
     const json = await res.json()
 
     if (!res.ok) {
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 
     return json.data

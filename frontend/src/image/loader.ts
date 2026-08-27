@@ -1,4 +1,6 @@
-const url = `http://${process.env.NEXT_PUBLIC_API_URL}/uploads`
+import { httpProtocol, serverURL } from "@/constants/defaults"
+
+const url = httpProtocol+serverURL+"/uploads"
 
 type ImageProps = {
     src: string

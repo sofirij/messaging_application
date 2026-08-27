@@ -1,9 +1,11 @@
 "use client"
 import { MessageEditRequest } from "@/types/http/message"
 import { fetchWithCredentials } from "@/lib/api/fetch"
+import { HTTPError, ErrorDetail } from "@/types/http/error"
+import { httpProtocol, serverURL } from "@/constants/defaults"
 
 const apiVersion = "/api/v1"
-const apiURL = "http://"+process.env.NEXT_PUBLIC_API_URL+apiVersion+"/messages"
+const apiURL = httpProtocol+serverURL+apiVersion+"/messages"
 
 export async function updateMessage(id: number, req: MessageEditRequest): Promise<void> {
     const url = `${apiURL}/${id}`
@@ -19,7 +21,7 @@ export async function updateMessage(id: number, req: MessageEditRequest): Promis
 
     if (!res.ok) {
         const json = await res.json()
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 }
 
@@ -36,6 +38,6 @@ export async function deleteMessage(id: number): Promise<void> {
 
     if (!res.ok) {
         const json = await res.json()
-        throw new Error(json.error.message)
+        throw new HTTPError(json.error as ErrorDetail)
     }
 }
