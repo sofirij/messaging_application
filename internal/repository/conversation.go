@@ -152,7 +152,7 @@ func (c *conversationRepository) GetByUserID(ctx context.Context, userID int) ([
 		SELECT c.* FROM conversations AS c
 		JOIN conversation_members AS cm on c.id = cm.conversation_id
 		LEFT JOIN LATERAL (
-			SELECT id FROM messages
+			SELECT id, created_at FROM messages
 			WHERE conversation_id = c.id
 			ORDER BY id DESC LIMIT 1
 		) AS last_msg ON true
@@ -164,7 +164,7 @@ func (c *conversationRepository) GetByUserID(ctx context.Context, userID int) ([
 				AND (cm.after_cursor IS NULL OR last_msg.id > cm.after_cursor)
 			)
 		)
-		ORDER BY last_msg.id DESC NULLS LAST
+		ORDER BY COALESCE(last_msg.created_at, c.created_at) DESC
 	`
 
 	var conversations []db.Conversation
