@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation"
 import { disableAccount, updateUserAvatar, updateUsername } from "@/lib/api/user"
 import { validateUsername } from "@/utils/validation"
 import { useQueryClient } from "@tanstack/react-query"
-import { userQueryOptions, userInvalidateQueryOptions } from "@/query/user"
+import { userQueryOptions } from "@/query/user"
 import { useMutation } from "@tanstack/react-query"
 import { upload } from "@/lib/api/upload"
 import { UserUsernameRequest } from "@/types/http/user"
@@ -17,9 +17,9 @@ export function useDisableAccount() {
             await disableAccount()
         },
         onSuccess: () => {
-            queryClient.invalidateQueries(userInvalidateQueryOptions)
+            queryClient.invalidateQueries({refetchType: 'none'})
             router.replace("/login")
-        }
+        },
     })
 
     async function handleDisableAccount() {

@@ -2,7 +2,7 @@
 import { login, register, logout } from "@/lib/api/auth"
 import { validateUsername, validatePassword } from "@/utils/validation"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { userInvalidateQueryOptions, userQueryOptions } from "@/query/user"
+import { userQueryOptions } from "@/query/user"
 import { UserAuthRequest } from "@/types/http/user"
 import { useRouter } from "next/navigation"
 
@@ -72,7 +72,7 @@ export function useLogout() {
             await logout()
         },
         onSuccess: () => {
-            queryClient.invalidateQueries(userInvalidateQueryOptions)
+            queryClient.invalidateQueries({refetchType: 'none'})
             router.replace("/login")
         }
     })
