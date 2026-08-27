@@ -106,6 +106,19 @@ func (c *conversationService) Create(ctx context.Context, userID int, req reques
 		// resume and return the previously created conversation
 		for _, conversation := range memberConversations {
 			if conversationMap[conversation.ID] && conversation.Type == db.DirectConversation {
+				member, err := c.conversationRepo.GetMember(ctx, conversation.ID, userID)
+				if err != nil {
+					return nil, err
+				}
+
+				// cannot resume a member that is not deleted so this is a conflict
+				if member.DeletedAt == nil {
+					return nil, &Error{
+						Code: ErrCodeConflict,
+						Message: "Duplicate conversation",
+					}
+				}
+
 				_, err = c.conversationRepo.ResumeMember(ctx, conversation.ID, userID)
 
 				if err != nil {
