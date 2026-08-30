@@ -23,7 +23,7 @@ function ConversationContent({conversationID}: {conversationID: number}) {
     const { data: conversations } = useSuspenseQuery(conversationQueryOptions)
     if (!conversations.data[conversationID]) notFound()
 
-    const { data: messages, fetchNextPage, fetchPreviousPage, hasNextPage, hasPreviousPage, isFetchingNextPage, isFetchingPreviousPage } = useSuspenseInfiniteQuery(messageQueryOptions(conversationID))
+    const { data: messages, fetchPreviousPage, hasPreviousPage, isFetchingPreviousPage } = useSuspenseInfiniteQuery(messageQueryOptions(conversationID))
     const { data: members } = useSuspenseQuery(conversationMemberQueryOptions(conversationID))
     const [reply, setReply] = useState<Message|null>(null)
 
@@ -62,7 +62,7 @@ function ConversationContent({conversationID}: {conversationID: number}) {
                 <div style={{outline: "1px solid red"}} ref={bottomRef}/>
             </div>
             <div>
-                <Sender reply={reply} setReply={setReply} conversationID={conversationID}/>
+                <Sender reply={reply} setReply={setReply} conversationID={conversationID} bottomRef={bottomRef}/>
             </div>
         </main> 
     )

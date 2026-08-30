@@ -1,5 +1,5 @@
 import AttachmentSelect from "@/components/messages/attachmentSelect"
-import { useCreateMessage } from "@/hooks/message"
+import { useCreateMessage } from "@/hooks/mutation/message"
 import { Dispatch, SetStateAction, useState } from "react"
 import { Message } from "@/types/http/message"
 import BodyInput from "@/components/messages/bodyInput"
@@ -8,9 +8,10 @@ type InputProps = {
     reply: Message | null
     setReply: Dispatch<SetStateAction<Message | null>>
     conversationID: number
+    bottomRef: React.RefObject<HTMLDivElement | null>
 }
 
-export default function Sender({reply, setReply, conversationID}: InputProps) {
+export default function Sender({reply, setReply, conversationID, bottomRef}: InputProps) {
     const [text, setText] = useState("")
     const [attachments, setAttachments] = useState<File[]>([])
     const { handleCreateMessage } = useCreateMessage()
@@ -27,6 +28,11 @@ export default function Sender({reply, setReply, conversationID}: InputProps) {
         setAttachments([])
         setText("")
         setReply(null)
+        bottomRef.current?.scrollIntoView({block: "end"})
+    }
+
+    function createMessage() {
+        handleCreateMessage(conversationID, processText(text), reply ? reply.id : null, attachments, onSuccess)
     }
 
     return (
@@ -38,9 +44,9 @@ export default function Sender({reply, setReply, conversationID}: InputProps) {
                 </div>
             )}
             <AttachmentSelect setAttachments={setAttachments} attachments={attachments}/>
-            <BodyInput setText={setText} text={text}/>
+            <BodyInput setText={setText} text={text} submitHandler={createMessage}/>
             <div>
-                <button onClick={async () => handleCreateMessage(conversationID, processText(text), reply ? reply.id : null, attachments, onSuccess)}>Send</button>
+                <button onClick={createMessage}>Send</button>
             </div>
         </div>
     )
