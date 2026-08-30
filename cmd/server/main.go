@@ -75,7 +75,7 @@ func main() {
 	ticketService := service.NewTicketService(storage)
 
 	// setup middleware
-	app.Use(middleware.CORS([]string{cfg.FrontendURL}))
+	app.Use(middleware.CORS(cfg.AllowedOrigins))
 	app.Use(middleware.Compress())
 	app.Use(middleware.Logger())
 
