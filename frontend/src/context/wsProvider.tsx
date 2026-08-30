@@ -1,8 +1,8 @@
 "use client"
 
+import { useConversationNew, useMemberAdded, useMemberRemoved } from "@/hooks/query/conversation"
+import { useMessageDeleted, useMessageEdited, useMessageNew } from "@/hooks/query/message"
 import { getWSConn, readMessage, startTyping, stopTyping } from "@/lib/api/ws"
-import { conversationMemberQueryOptions, conversationMemberRefetchOptions, conversationRefetchOptions } from "@/query/conversation"
-import { messageQueryOptions } from "@/query/message"
 import { userQueryOptions } from "@/query/user"
 import { Event, EventConversationNew, EventMemberAdded, EventMemberRemoved, EventMessageDeleted, EventMessageEdited, EventMessageNew } from "@/types/ws/event"
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
@@ -23,6 +23,13 @@ export function WSProvider({children}: {children: React.ReactNode}) {
     const queryClient = useQueryClient()
     const { data: me } = useSuspenseQuery(userQueryOptions)
 
+    const handleMessageNew = useMessageNew()
+    const handleMessageDeleted = useMessageDeleted()
+    const handleMessageEdited = useMessageEdited()
+    const handleMemberAdded = useMemberAdded()
+    const handleMemberRemoved = useMemberRemoved()
+    const handleConversationNew = useConversationNew()
+
     useEffect(() => {
         let cancelled = false
         async function connect() {
@@ -33,116 +40,34 @@ export function WSProvider({children}: {children: React.ReactNode}) {
             conn.onopen = () => { console.log("opened ws conn") }
 
             conn.onmessage = (event) => {
-                console.log("message received")
+            
                 
                 const msg: Event  = JSON.parse(event.data)
+                console.log(msg.type)
 
                 switch (msg.type) {
                     case EventMessageNew: {
-                        const conversationID = msg.payload.conversation_id
-                        const old = queryClient.getQueryData(messageQueryOptions(conversationID).queryKey)
-                        if (!old) return
-            
-                        queryClient.setQueryData(messageQueryOptions(conversationID).queryKey, {
-                            ...old,
-                            pages: old.pages.map((page, i) => {
-                                if (i === old.pages.length - 1) {
-                                    // sort in the event of network jitter
-                                    // ws message can come in before http response
-                                    return {...page, messages: [...page.messages.filter(message => message.id !== msg.payload.id), msg.payload].sort((a, b) => a.id - b.id)}
-                                }
-                                return page
-                            })
-                        })
+                        handleMessageNew(msg.payload)
                         break
                     }
                     case EventMessageDeleted: {
-                        const conversationID = msg.payload.conversation_id
-                        const old = queryClient.getQueryData(messageQueryOptions(conversationID).queryKey)
-                        if (!old) return
-
-                        queryClient.setQueryData(messageQueryOptions(conversationID).queryKey, {
-                            ...old,
-                            pages: old.pages.map(page => {
-                                return {
-                                    ...page,
-                                    messages: page.messages.map(message => {
-                                        if (message.id === msg.payload.message_id) {
-                                            return {...message, body: null, attachments: [], deleted: true}
-                                        }
-                                        return message
-                                    })
-                                }
-                            })
-                        })
+                        handleMessageDeleted(msg.payload.conversation_id, msg.payload.message_id)
                         break
                     }
                     case EventMessageEdited: {
-                        const conversationID = msg.payload.conversation_id
-                        const old = queryClient.getQueryData(messageQueryOptions(conversationID).queryKey)
-                        if (!old) return
-
-                        queryClient.setQueryData(messageQueryOptions(conversationID).queryKey, {
-                            ...old,
-                            pages: old.pages.map(page => {
-                                return {
-                                    ...page,
-                                    messages: page.messages.map(message => {
-                                        if (message.id === msg.payload.message_id) {
-                                            return {...message, body: msg.payload.body}
-                                        }
-                                        return message
-                                    })
-                                }
-                            })
-                        })
+                        handleMessageEdited(msg.payload.conversation_id, msg.payload.message_id, msg.payload.body)
                         break
                     }
                     case EventMemberAdded: {
-                        const conversationID = msg.payload.conversation_id
-                        const userID = msg.payload.user.id
-
-                        if (userID === me.id) {
-                            queryClient.refetchQueries(conversationRefetchOptions)
-                            queryClient.refetchQueries(conversationMemberRefetchOptions(conversationID))
-                        } else {
-                            const old = queryClient.getQueryData(conversationMemberQueryOptions(conversationID).queryKey)
-
-                            if (!old) return
-
-                            queryClient.setQueryData(conversationMemberQueryOptions(conversationID).queryKey, {
-                                data: {...old.data, [userID]: msg.payload.user},
-                                order: [...old.order.filter(id => id !== userID), userID].sort((a, b) => a - b)
-                            })
-                        }
-        
+                        handleMemberAdded(msg.payload.conversation_id, msg.payload.user)
                         break
                     }
                     case EventMemberRemoved: {
-                        const conversationID = msg.payload.conversation_id
-                        const userID = msg.payload.user_id
-
-                        if (userID === me.id) {
-                            queryClient.refetchQueries(conversationRefetchOptions)
-                            queryClient.refetchQueries(conversationMemberRefetchOptions(conversationID))
-                        } else {
-                            const old = queryClient.getQueryData(conversationMemberQueryOptions(conversationID).queryKey)
-
-                            if (!old) return
-
-
-                            const remainingData = {...old.data}
-                            delete remainingData[userID]
-
-                            queryClient.setQueryData(conversationMemberQueryOptions(conversationID).queryKey, {
-                                data: remainingData,
-                                order: old.order.filter(id => id !== userID)
-                            })
-                        }
+                        handleMemberRemoved(msg.payload.conversation_id, msg.payload.user_id)
                         break
                     }
                     case EventConversationNew: {
-                        queryClient.refetchQueries(conversationRefetchOptions)
+                        handleConversationNew()
                         break
                     }
                 }
@@ -161,7 +86,7 @@ export function WSProvider({children}: {children: React.ReactNode}) {
                 ws.current = null
             }
         }
-    }, [me.id, queryClient])
+    }, [handleConversationNew, handleMemberAdded, handleMemberRemoved, handleMessageDeleted, handleMessageEdited, handleMessageNew, me.id, queryClient])
 
     return (
         <WSContext value={{status, readMessage, startTyping, stopTyping}}>

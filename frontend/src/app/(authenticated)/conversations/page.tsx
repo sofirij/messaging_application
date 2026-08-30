@@ -3,7 +3,7 @@ import Input from "@/components/ui/input";
 import { conversationQueryOptions } from "@/query/conversation";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useCreateConversation } from "@/hooks/conversation";
+import { useCreateConversation } from "@/hooks/mutation/conversation";
 import { User } from "@/types/http/user";
 import { ConversationType, conversationGroup, conversationDirect } from "@/types/http/conversation";
 import Toast from "@/components/conversations/toast";

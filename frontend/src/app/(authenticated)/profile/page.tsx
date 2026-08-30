@@ -1,6 +1,6 @@
 "use client"
 import Form from "@/components/ui/form"
-import { useClearAvatarURL, useDisableAccount, useUpdateAvatarURL, useUpdateUsername } from "@/hooks/user"
+import { useClearAvatarURL, useDisableAccount, useUpdateAvatarURL, useUpdateUsername } from "@/hooks/mutation/user"
 import { useRef, useState } from "react"
 import Image from "next/image"
 import Input from "@/components/ui/input"

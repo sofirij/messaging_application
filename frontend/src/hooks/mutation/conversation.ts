@@ -1,27 +1,22 @@
 "use client"
 import { addMembers, createConversation, deleteConversation, removeMember, updateConversationAvatar, updateConversationName } from "@/lib/api/conversation";
 import { upload } from "@/lib/api/upload";
-import { conversationMemberRefetchOptions, conversationMemberQueryOptions, conversationQueryOptions } from "@/query/conversation";
 import { ConversationAddMembersRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest, ConversationType } from "@/types/http/conversation";
 import { Upload } from "@/types/http/upload";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useConversationAvatarUpdated, useConversationDeleted, useConversationNameUpdated, useConversationNew, useGroupLeft, useMemberRemoved, useMembersAdded } from "@/hooks/query/conversation"
 
 
 export function useCreateConversation() {
-    const queryClient = useQueryClient()
+    const handleConversationNew = useConversationNew()
 
     const mutation = useMutation({
         mutationFn: async(req: ConversationCreateRequest) => {
-            return await createConversation(req)
+            await createConversation(req)
         },
-        onSuccess: (conversation) => {
-            const conversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
-            if (!conversations) return
-            queryClient.setQueryData(conversationQueryOptions.queryKey, {
-                data: {...conversations.data, [conversation.id]: conversation},
-                order: [conversation.id, ...conversations.order.filter(id => id !== conversation.id)]
-            })
+        onSuccess: () => {
+            handleConversationNew()
         }
     })
 
@@ -33,7 +28,7 @@ export function useCreateConversation() {
 }
 
 export function useDeleteConversation() {
-    const queryClient = useQueryClient()
+    const handleConversationDeleted = useConversationDeleted()
 
     const mutation = useMutation({
         mutationFn: async(id: number) => {
@@ -41,16 +36,7 @@ export function useDeleteConversation() {
             return id
         },
         onSuccess: (id) => {
-            const conversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
-            if (!conversations) return
-
-            const remainingData = { ...conversations.data }
-            delete remainingData[id]
-
-            queryClient.setQueryData(conversationQueryOptions.queryKey, {
-                data: remainingData,
-                order: conversations.order.filter(orderID => orderID !== id)
-            })
+            handleConversationDeleted(id)
         }
     })
 
@@ -62,7 +48,7 @@ export function useDeleteConversation() {
 }
 
 export function useRemoveMember() {
-    const queryClient = useQueryClient()
+    const handleMemberRemoved = useMemberRemoved()
 
     const mutation = useMutation({
         mutationFn: async({conversationID, userID}: {conversationID: number, userID: number}) => {
@@ -70,16 +56,7 @@ export function useRemoveMember() {
             return {conversationID, userID}
         },
         onSuccess: ({conversationID, userID}) => {
-            const old = queryClient.getQueryData(conversationMemberQueryOptions(conversationID).queryKey)
-            if (!old) return
-
-            const remainingData = {...old.data}
-            delete remainingData[userID]
-
-            queryClient.setQueryData(conversationMemberQueryOptions(conversationID).queryKey, {
-                data: remainingData,
-                order: old.order.filter(id => id !== userID)
-            })
+            handleMemberRemoved(conversationID, userID)
         }
     })
 
@@ -91,7 +68,7 @@ export function useRemoveMember() {
 }
 
 export function useAddMembers() {
-    const queryClient = useQueryClient()
+    const handleMembersAdded = useMembersAdded()
 
     const mutation = useMutation({
         mutationFn: async ({conversationID, req}: {req: ConversationAddMembersRequest, conversationID: number}) => {
@@ -99,7 +76,7 @@ export function useAddMembers() {
             return conversationID
         },
         onSuccess: async (id) => {
-            await queryClient.refetchQueries(conversationMemberRefetchOptions(id))
+            handleMembersAdded(id)
         }
     })
 
@@ -111,7 +88,7 @@ export function useAddMembers() {
 }
 
 export function useLeaveGroup() {
-    const queryClient = useQueryClient()
+    const handleGroupLeft = useGroupLeft()
     const router = useRouter()
 
     const mutation = useMutation({
@@ -120,14 +97,7 @@ export function useLeaveGroup() {
             return conversationID
         },
         onSuccess: (id) => {
-            const conversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
-            if (!conversations) return
-            const remainingData = { ...conversations.data }
-            delete remainingData[id]
-            queryClient.setQueryData(conversationQueryOptions.queryKey, {
-                data: remainingData,
-                order: conversations.order.filter(orderID => orderID !== id)
-            })
+            handleGroupLeft(id)
             router.push("/conversations")
         }
     })
@@ -140,7 +110,7 @@ export function useLeaveGroup() {
 }
 
 export function useUpdateConversationName() {
-    const queryClient = useQueryClient()
+    const handleConversationNameUpdated = useConversationNameUpdated()
 
     const mutation = useMutation({
         mutationFn: async ({req, conversationID} : {conversationID: number, req: ConversationRenameRequest}) => {
@@ -148,12 +118,7 @@ export function useUpdateConversationName() {
             return {conversationID, name: req.name}
         },
         onSuccess: ({name, conversationID}) => {
-            const conversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
-            if (!conversations) return
-            queryClient.setQueryData(conversationQueryOptions.queryKey, {
-                data: {...conversations.data, [conversationID]: {...conversations.data[conversationID], name}},
-                order: conversations.order
-            })
+            handleConversationNameUpdated(conversationID, name)
         }
     })
 
@@ -165,7 +130,7 @@ export function useUpdateConversationName() {
 }
 
 export function useUpdateConversationAvatar() {
-    const queryClient = useQueryClient()
+    const handleConversationAvatarUpdated = useConversationAvatarUpdated()
 
     const mutation = useMutation({
         mutationFn: async ({conversationID, req}: {conversationID: number, req: ConversationAvatarRequest}) => {
@@ -173,12 +138,7 @@ export function useUpdateConversationAvatar() {
             return {conversationID, avatarURL: req.avatar_url}
         },
         onSuccess: ({conversationID, avatarURL}) => {
-            const conversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
-            if (!conversations) return
-            queryClient.setQueryData(conversationQueryOptions.queryKey, {
-                data: {...conversations.data, [conversationID]: {...conversations.data[conversationID], avatar_url: avatarURL}},
-                order: conversations.order
-            })
+            handleConversationAvatarUpdated(conversationID, avatarURL)
         }
     })
 

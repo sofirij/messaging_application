@@ -2,13 +2,13 @@
 import { clearMessages, createMessage } from "@/lib/api/conversation";
 import { deleteMessage, updateMessage } from "@/lib/api/message";
 import { uploadMany } from "@/lib/api/upload";
-import { messageQueryOptions } from "@/query/message";
 import { AttachmentRequest, MessageCreateRequest, MessageEditRequest } from "@/types/http/message";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useMessageDeleted, useMessageEdited, useMessageNew, useMessagesCleared } from "@/hooks/query/message"
 
 
 export function useUpdateMessage() {
-    const queryClient = useQueryClient()
+    const handleMessageEdited = useMessageEdited()
 
     const mutation = useMutation({
         mutationFn: async ({messageID, conversationID, req}: {messageID: number, conversationID: number, req: MessageEditRequest}) => {
@@ -16,23 +16,7 @@ export function useUpdateMessage() {
             return {conversationID, messageID, body: req.body}
         },
         onSuccess: ({conversationID, messageID, body}) => {
-            const old = queryClient.getQueryData(messageQueryOptions(conversationID).queryKey)
-            if (!old) return
-
-            queryClient.setQueryData(messageQueryOptions(conversationID).queryKey, {
-                ...old,
-                pages: old.pages.map(page => {
-                    return {
-                        ...page,
-                        messages: page.messages.map(message => {
-                            if (message.id === messageID) {
-                                return {...message, body}
-                            }
-                            return message
-                        })
-                    }
-                })
-            })
+            handleMessageEdited(conversationID, messageID, body)
         }
     })
 
@@ -44,7 +28,7 @@ export function useUpdateMessage() {
 }
 
 export function useDeleteMessage() {
-    const queryClient = useQueryClient()
+    const handleMessageDeleted = useMessageDeleted()
 
     const mutation = useMutation({
         mutationFn: async ({messageID, conversationID}: {conversationID: number, messageID: number}) => {
@@ -52,23 +36,7 @@ export function useDeleteMessage() {
             return {conversationID, messageID}
         },
         onSuccess: ({conversationID, messageID}) => {
-            const old = queryClient.getQueryData(messageQueryOptions(conversationID).queryKey)
-            if (!old) return
-
-            queryClient.setQueryData(messageQueryOptions(conversationID).queryKey, {
-                ...old,
-                pages: old.pages.map(page => {
-                    return {
-                        ...page,
-                        messages: page.messages.map(message => {
-                            if (message.id === messageID) {
-                                return {...message, body: null, attachments: [], deleted: true}
-                            }
-                            return message
-                        })
-                    }
-                })
-            })
+            handleMessageDeleted(conversationID, messageID)
         }
     })
 
@@ -80,28 +48,15 @@ export function useDeleteMessage() {
 }
 
 export function useCreateMessage() {
-    const queryClient = useQueryClient()
+    const handleMessageNew = useMessageNew()
 
     const mutation = useMutation({
         mutationFn: async ({conversationID, req}: {conversationID: number, req: MessageCreateRequest}) => {
             const message = await createMessage(conversationID, req)
-            return {message, conversationID}
+            return message
         },
-        onSuccess: ({message, conversationID}) => {
-            const old = queryClient.getQueryData(messageQueryOptions(conversationID).queryKey)
-            if (!old) return
-
-            queryClient.setQueryData(messageQueryOptions(conversationID).queryKey, {
-                ...old,
-                pages: old.pages.map((page, i) => {
-                    if (i === old.pages.length - 1) {
-                        // sort in the event of network jitter
-                        // ws message can come in before http response
-                        return {...page, messages: [...page.messages.filter(m => m.id !== message.id), message].sort((a, b) => a.id - b.id)}
-                    }
-                    return page
-                })
-            })
+        onSuccess: (message) => {
+            handleMessageNew(message)
         }
     })
 
@@ -122,7 +77,7 @@ export function useCreateMessage() {
 }
 
 export function useClearMessages() {
-    const queryClient = useQueryClient()
+    const handleMessagesCleared = useMessagesCleared()
 
     const mutation = useMutation({
         mutationFn: async({conversationID}: {conversationID: number}) => {
@@ -130,7 +85,7 @@ export function useClearMessages() {
             return conversationID
         },
         onSuccess: (conversationID: number) => {
-            queryClient.refetchQueries({queryKey: messageQueryOptions(conversationID).queryKey, exact: true})
+            handleMessagesCleared(conversationID)
         }
     })
 

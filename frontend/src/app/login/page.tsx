@@ -1,7 +1,7 @@
 "use client"
 import Input from "@/components/ui/input"
 import Form from "@/components/ui/form"
-import { useLogin, useRegister } from "@/hooks/auth"
+import { useLogin, useRegister } from "@/hooks/mutation/user"
 import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"

@@ -2,7 +2,7 @@
 import { Conversation, conversationDirect } from "@/types/http/conversation"
 import Image from "next/image"
 import { useState } from "react"
-import { useDeleteConversation, useLeaveGroup } from "@/hooks/conversation"
+import { useDeleteConversation, useLeaveGroup } from "@/hooks/mutation/conversation"
 import { defaultAvatarURL } from "@/constants/defaults"
 import { userQueryOptions } from "@/query/user"
 import { useSuspenseQuery } from "@tanstack/react-query"

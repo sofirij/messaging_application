@@ -1,6 +1,6 @@
 "use client"
 import Image from "next/image"
-import { useLogout } from "@/hooks/auth"
+import { useLogout } from "@/hooks/mutation/user"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { userQueryOptions } from "@/query/user"
 import Link from "next/link"

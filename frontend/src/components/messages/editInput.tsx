@@ -1,4 +1,4 @@
-import { useUpdateMessage } from "@/hooks/message"
+import { useUpdateMessage } from "@/hooks/mutation/message"
 import { Dispatch, SetStateAction, useState } from "react"
 
 type InputProps = {
