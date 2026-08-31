@@ -2,12 +2,13 @@
 import { getMessages, MessageQueryParams } from "@/lib/api/conversation"
 import { Message } from "@/types/http/message"
 import { infiniteQueryOptions } from "@tanstack/react-query"
+import { conversationQueryOptions } from "@/query/conversation"
 
 const messageLimit = 20
 
 export const messageQueryOptions = (conversationID: number) => {
     return infiniteQueryOptions({
-        queryKey: ["conversations", [conversationID], "messages"],
+        queryKey: [...conversationQueryOptions.queryKey, [conversationID], "messages"],
         queryFn: async ({pageParam}) => {
             return await getMessages(conversationID, pageParam)  
         },

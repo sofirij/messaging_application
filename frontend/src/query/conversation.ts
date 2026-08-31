@@ -28,7 +28,7 @@ export const conversationRefetchOptions = {
 } as const
 
 export const conversationMemberQueryOptions = (id: number) => queryOptions({
-    queryKey: ["conversations", id, "members"],
+    queryKey: [...conversationQueryOptions.queryKey, id, "members"],
     queryFn: async (): Promise<MemberRecord> => {
         const members = await getMembers(id)
         return {
