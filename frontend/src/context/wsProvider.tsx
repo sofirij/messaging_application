@@ -155,15 +155,17 @@ export function WSProvider({children}: {children: React.ReactNode}) {
                 if (e instanceof HTTPError) {
                     if (e.code === 401 || e.code === 403) {
                         router.replace("/login")
+                        return
                     }
                 } 
-                
+
                 scheduleRetry()
             }
         }
 
         document.addEventListener("visibilitychange", onVisibility)
         window.addEventListener("online", reconnectNow)
+        window.addEventListener("offline", clearRetry)
 
         connect()
 
@@ -172,6 +174,7 @@ export function WSProvider({children}: {children: React.ReactNode}) {
             clearRetry()
             document.removeEventListener("visibilitychange", onVisibility)
             window.removeEventListener("online", reconnectNow)
+            window.removeEventListener("offline", clearRetry)
             if (ws.current) {
                 ws.current.close()
                 ws.current = null
