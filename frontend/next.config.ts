@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
 		loader: "custom",
 		loaderFile: "./src/image/loader.ts"
 	},
-	allowedDevOrigins: ["192.168.0.14"],
+	allowedDevOrigins: [],
 };
 
 export default nextConfig;
