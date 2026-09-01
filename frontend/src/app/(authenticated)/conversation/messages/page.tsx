@@ -6,8 +6,10 @@ import { useSuspenseInfiniteQuery, useSuspenseQuery } from "@tanstack/react-quer
 import { notFound, useSearchParams } from "next/navigation";
 import Toast from "@/components/messages/toast";
 import Sender from "@/components/messages/sender"
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Message } from "@/types/http/message";
+import { userQueryOptions } from "@/query/user";
+import { useWSContext } from "@/context/wsProvider";
 
 export default function Conversation() {
     const searchParams = useSearchParams()
@@ -25,29 +27,56 @@ function ConversationContent({conversationID}: {conversationID: number}) {
 
     const { data: messages, fetchPreviousPage, hasPreviousPage, isFetchingPreviousPage } = useSuspenseInfiniteQuery(messageQueryOptions(conversationID))
     const { data: members } = useSuspenseQuery(conversationMemberQueryOptions(conversationID))
+    const { data: me } = useSuspenseQuery(userQueryOptions)
     const [reply, setReply] = useState<Message|null>(null)
 
     const sentinelRef = useRef<HTMLDivElement>(null)
     const bottomRef = useRef<HTMLDivElement>(null)
     const scrollRef = useRef<HTMLDivElement>(null)
+    const shouldScroll = useRef(true)
+
+    const { readMessage, ws, status } = useWSContext()
 
     useEffect(() => {
         if (sentinelRef.current === null) return
         if (scrollRef.current === null) return
+        if (bottomRef.current === null) return
 
-        const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && hasPreviousPage && !isFetchingPreviousPage) {
+        const fetchPreviousObserver = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting && hasPreviousPage && !isFetchingPreviousPage) {
                 console.log("top div is intersecting")
                 fetchPreviousPage()
             } 
-        }, {rootMargin: "100px", root: scrollRef.current, threshold: 0})
-        observer.observe(sentinelRef.current)
-        return () => observer.disconnect()
+        }, {rootMargin: "100px 0px 0px 0px", root: scrollRef.current, threshold: 0})
+        fetchPreviousObserver.observe(sentinelRef.current)
+
+        const scrollObserver = new IntersectionObserver(([entry]) => {
+            shouldScroll.current = entry.isIntersecting
+            if (entry.isIntersecting) {
+                console.log("bottom ref is intersecting")
+    
+            } else console.log("bottom ref is not intersecting")
+        }, {rootMargin: "0px 0px 100px 0px", root: scrollRef.current, threshold: 0})
+        scrollObserver.observe(bottomRef.current)
+
+        return () => { 
+            fetchPreviousObserver.disconnect()
+            scrollObserver.disconnect()
+        }
     }, [hasPreviousPage, isFetchingPreviousPage, fetchPreviousPage])
 
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ block: "end" })
-    }, [])
+    useLayoutEffect(() => {
+        if (shouldScroll.current) bottomRef.current?.scrollIntoView({block: "end"})
+        if (messages.length === 0) return
+
+        // read the message if it wasn't sent by you and its after the last message you've read
+        const lastMessage = messages[messages.length - 1]
+        const lastReadByUser = conversations.data[conversationID].last_message_read_by_user
+        if (lastMessage.sender_id !== me.id && (!lastReadByUser || lastMessage.id > lastReadByUser)) {
+            if (!ws.current) return
+            readMessage(ws.current, conversationID, lastMessage.id)
+        }
+    }, [conversationID, conversations.data, me.id, messages, readMessage, status, ws])
 
     return (
         <main className="h-full flex flex-col">

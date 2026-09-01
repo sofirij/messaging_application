@@ -1,16 +1,19 @@
 "use client"
 
-import { useConversationNew, useMemberAdded, useMemberRemoved } from "@/hooks/query/conversation"
+import { useConversationNew, useMemberAdded, useMemberRemoved, useMessageRead, useMessageSeen } from "@/hooks/query/conversation"
 import { useMessageDeleted, useMessageEdited, useMessageNew } from "@/hooks/query/message"
 import { useReconnected } from "@/hooks/query/ws"
 import { getWSConn, readMessage, startTyping, stopTyping } from "@/lib/api/ws"
 import { HTTPError } from "@/types/http/error"
-import { Event, EventConversationNew, EventMemberAdded, EventMemberRemoved, EventMessageDeleted, EventMessageEdited, EventMessageNew } from "@/types/ws/event"
+import { Event, EventConversationNew, EventMemberAdded, EventMemberRemoved, EventMessageDeleted, EventMessageEdited, EventMessageNew, EventMessageSeen } from "@/types/ws/event"
 import { useRouter } from "next/navigation"
-import { createContext, useContext, useEffect, useRef, useState } from "react"
+import { createContext, RefObject, useContext, useEffect, useRef, useState } from "react"
 import { useErrorContext } from "@/context/errorContext"
+import { userQueryOptions } from "@/query/user"
+import { useSuspenseQuery } from "@tanstack/react-query"
 
 export type WSContextType = {
+    ws: RefObject<WebSocket|null>
     status: WebSocket["readyState"]
     readMessage: (ws: WebSocket, conversation_id: number, message_id: number) => void
     startTyping: (ws: WebSocket, conversation_id: number) => void
@@ -22,6 +25,7 @@ const WSContext = createContext<WSContextType|null>(null)
 export function WSProvider({children}: {children: React.ReactNode}) {
     const ws = useRef<WebSocket|null>(null)
     const [status, setStatus] = useState<WebSocket["readyState"]>(WebSocket.CONNECTING)
+    const {data: me} = useSuspenseQuery(userQueryOptions)
     const router = useRouter()
 
     const handleMessageNew = useMessageNew()
@@ -31,6 +35,9 @@ export function WSProvider({children}: {children: React.ReactNode}) {
     const handleMemberRemoved = useMemberRemoved()
     const handleConversationNew = useConversationNew()
     const handleReconnected = useReconnected()
+    const handleMessageRead = useMessageRead()
+    const handleMessageSeen = useMessageSeen()
+
     const { addError } = useErrorContext()
 
     const baseDelay = 2000 // 2secs
@@ -139,6 +146,15 @@ export function WSProvider({children}: {children: React.ReactNode}) {
                             handleConversationNew()
                             break
                         }
+                        case EventMessageSeen: {
+                            const userID = msg.payload.user_id
+                            if (userID === me.id) {
+                                handleMessageRead(msg.payload.conversation_id, msg.payload.message_id)
+                            } else {
+                                handleMessageSeen(msg.payload.conversation_id, msg.payload.message_id)
+                            }
+                            break
+                        }
                     }
                 } 
 
@@ -180,10 +196,10 @@ export function WSProvider({children}: {children: React.ReactNode}) {
                 ws.current = null
             }
         }
-    }, [addError, handleConversationNew, handleMemberAdded, handleMemberRemoved, handleMessageDeleted, handleMessageEdited, handleMessageNew, handleReconnected, router])
+    }, [addError, handleConversationNew, handleMemberAdded, handleMemberRemoved, handleMessageDeleted, handleMessageEdited, handleMessageNew, handleMessageRead, handleMessageSeen, handleReconnected, me.id, router])
 
     return (
-        <WSContext value={{status, readMessage, startTyping, stopTyping}}>
+        <WSContext value={{ws, status, readMessage, startTyping, stopTyping}}>
             {children}
         </WSContext>
     )

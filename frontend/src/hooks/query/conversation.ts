@@ -145,3 +145,40 @@ export function useGroupLeft() {
 
     return handleGroupLeft
 } 
+
+export function useMessageRead() {
+    const queryClient = useQueryClient()
+
+    function handleMessageRead(conversationID: number, messageID: number) {
+        const oldConversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
+        if (!oldConversations) return
+
+        const previousLastByUser = oldConversations.data[conversationID].last_message_read_by_user ?? 0
+        const previousLastInConv = oldConversations.data[conversationID].last_message_read_in_conversation ?? 0
+
+        queryClient.setQueryData(conversationQueryOptions.queryKey, {
+            data: {...oldConversations.data, [conversationID]: {...oldConversations.data[conversationID], last_message_read_by_user: Math.max(previousLastByUser, messageID), last_message_read_in_conversation: Math.max(previousLastInConv, messageID)}},
+            order: oldConversations.order
+        })
+    }
+
+    return handleMessageRead
+}
+
+export function useMessageSeen() {
+    const queryClient = useQueryClient()
+
+    function handleMessageSeen(conversationID: number, messageID: number) {
+        const oldConversations = queryClient.getQueryData(conversationQueryOptions.queryKey)
+        if (!oldConversations) return
+
+        const previousLastInConv = oldConversations.data[conversationID].last_message_read_in_conversation ?? 0
+
+        queryClient.setQueryData(conversationQueryOptions.queryKey, {
+            data: {...oldConversations.data, [conversationID]: {...oldConversations.data[conversationID], last_message_read_in_conversation: Math.max(previousLastInConv, messageID)}},
+            order: oldConversations.order
+        })
+    }
+
+    return handleMessageSeen
+}

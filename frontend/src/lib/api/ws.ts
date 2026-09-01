@@ -42,6 +42,7 @@ export async function getWSConn(): Promise<WebSocket> {
 }
 
 export async function readMessage(ws: WebSocket, conversation_id: number, message_id: number): Promise<void> {
+    if (!validWS(ws)) return
     const payload: MessageReadPayload = {conversation_id, message_id}
 
     const req : Event = {
@@ -53,6 +54,7 @@ export async function readMessage(ws: WebSocket, conversation_id: number, messag
 }
 
 export async function startTyping(ws: WebSocket, conversationID: number): Promise<void> {
+    if (!validWS(ws)) return
     const payload : OutboundTypingStartPayload = {
         conversation_id: conversationID,
     }
@@ -66,6 +68,7 @@ export async function startTyping(ws: WebSocket, conversationID: number): Promis
 }
 
 export async function stopTyping(ws: WebSocket, conversationID: number): Promise<void> {
+    if (!validWS(ws)) return
     const payload : OutboundTypingStopPayload = {
         conversation_id: conversationID,
     }
@@ -76,4 +79,8 @@ export async function stopTyping(ws: WebSocket, conversationID: number): Promise
     }
 
     ws.send(JSON.stringify(req))
+}
+
+function validWS(ws: WebSocket) {
+    return ws.readyState === WebSocket.OPEN
 }
