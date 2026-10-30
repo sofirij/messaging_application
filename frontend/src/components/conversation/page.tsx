@@ -1,29 +1,18 @@
 "use client"
+
 import NavBar from "@/components/conversations/navBar";
-import { conversationMemberQueryOptions, conversationQueryOptions } from "@/query/conversation";
-import { messageQueryOptions } from "@/query/message";
+import { conversationMemberQueryOptions, conversationQueryOptions } from "@/query/client/conversation";
+import { messageQueryOptions } from "@/query/client/message";
 import { useSuspenseInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { notFound, useSearchParams } from "next/navigation";
-import Toast from "@/components/messages/toast";
-import Sender from "@/components/messages/sender"
+import Toast from "@/components/conversation/toast";
+import Sender from "@/components/conversation/sender"
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Message } from "@/types/http/message";
-import { userQueryOptions } from "@/query/user";
+import { userQueryOptions } from "@/query/client/user";
 import { useWSContext } from "@/context/wsProvider";
 
-export default function Conversation() {
-    const searchParams = useSearchParams()
-    const id = searchParams.get("id")
-    const conversationID = Number(id)
-
-    if (!Number.isInteger(conversationID)) notFound()
-    
-    return <ConversationContent conversationID={conversationID}/>
-}
-
-function ConversationContent({conversationID}: {conversationID: number}) {
+export default function Conversation({conversationID}: {conversationID: number}) {
     const { data: conversations } = useSuspenseQuery(conversationQueryOptions)
-    if (!conversations.data[conversationID]) notFound()
 
     const { data: messages, fetchPreviousPage, hasPreviousPage, isFetchingPreviousPage } = useSuspenseInfiniteQuery(messageQueryOptions(conversationID))
     const { data: members } = useSuspenseQuery(conversationMemberQueryOptions(conversationID))
@@ -35,7 +24,7 @@ function ConversationContent({conversationID}: {conversationID: number}) {
     const scrollRef = useRef<HTMLDivElement>(null)
     const shouldScroll = useRef(true)
 
-    const { readMessage, ws, status } = useWSContext()
+    const { readMessage, ws } = useWSContext()
 
     useEffect(() => {
         if (sentinelRef.current === null) return
@@ -52,10 +41,6 @@ function ConversationContent({conversationID}: {conversationID: number}) {
 
         const scrollObserver = new IntersectionObserver(([entry]) => {
             shouldScroll.current = entry.isIntersecting
-            if (entry.isIntersecting) {
-                console.log("bottom ref is intersecting")
-    
-            } else console.log("bottom ref is not intersecting")
         }, {rootMargin: "0px 0px 100px 0px", root: scrollRef.current, threshold: 0})
         scrollObserver.observe(bottomRef.current)
 
@@ -76,12 +61,12 @@ function ConversationContent({conversationID}: {conversationID: number}) {
             if (!ws.current) return
             readMessage(ws.current, conversationID, lastMessage.id)
         }
-    }, [conversationID, conversations.data, me.id, messages, readMessage, status, ws])
+    }, [conversationID, conversations.data, me.id, messages, readMessage, ws])
 
     return (
         <main className="h-full flex flex-col">
             <NavBar conversation={conversations.data[conversationID]}></NavBar>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto">
+            <div ref={scrollRef} className="flex flex-1 overflow-y-auto flex-col">
                 <div style={{outline: "1px solid red"}} ref={sentinelRef} />
                 {messages.filter(message => !message.deleted).map(message => {
                     return (

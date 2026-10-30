@@ -1,6 +1,6 @@
 "use client"
 
-import { userQueryOptions } from "@/query/user"
+import { userQueryOptions } from "@/query/client/user"
 import { User } from "@/types/http/user"
 import { useQueryClient } from "@tanstack/react-query"
 

@@ -1,7 +1,7 @@
 "use client"
-import { clearMessages, createMessage } from "@/lib/api/conversation";
-import { deleteMessage, updateMessage } from "@/lib/api/message";
-import { uploadMany } from "@/lib/api/upload";
+import { clearMessages, createMessage } from "@/lib/api/client/conversation";
+import { deleteMessage, updateMessage } from "@/lib/api/client/message";
+import { uploadMany } from "@/lib/api/client/upload";
 import { AttachmentRequest, MessageCreateRequest, MessageEditRequest } from "@/types/http/message";
 import { useMutation } from "@tanstack/react-query";
 import { useMessageDeleted, useMessageEdited, useMessageNew, useMessagesCleared } from "@/hooks/query/message"

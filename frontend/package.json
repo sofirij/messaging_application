@@ -10,15 +10,17 @@
     "lint:fix": "eslint --fix"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-query": "^5.105.0",
+    "jose": "^6.2.12",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-error-boundary": "^6.1.2"
+    "react-error-boundary": "^6.1.2",
+    "set-cookie-parser": "^3.1.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@tanstack/eslint-plugin-query": "^5.101.2",
+    "@tanstack/eslint-plugin-query": "^5.105.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

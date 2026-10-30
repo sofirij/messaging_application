@@ -1,7 +1,7 @@
 "use client"
 
-import { conversationQueryOptions } from "@/query/conversation"
-import { messageQueryOptions } from "@/query/message"
+import { conversationQueryOptions } from "@/query/client/conversation"
+import { messageQueryOptions } from "@/query/client/message"
 import { Message } from "@/types/http/message"
 import { useQueryClient } from "@tanstack/react-query"
 

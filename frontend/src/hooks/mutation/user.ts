@@ -1,11 +1,11 @@
 "use client"
 import { useRouter } from "next/navigation"
-import { disableAccount, updateUserAvatar, updateUsername } from "@/lib/api/user"
-import { validatePassword, validateUsername } from "@/utils/validation"
+import { disableAccount, updateUserAvatar, updateUsername } from "@/lib/api/client/user"
+import { validatePassword, validateUsername } from "@/lib/utils/validation"
 import { useMutation } from "@tanstack/react-query"
-import { upload } from "@/lib/api/upload"
+import { upload } from "@/lib/api/client/upload"
 import { UserAuthRequest, UserUsernameRequest } from "@/types/http/user"
-import { login, logout, register } from "@/lib/api/auth"
+import { login, logout, register } from "@/lib/api/client/auth"
 import { useAuthenticated, useUnauthenticated, useUserAvatarUpdated, useUsernameUpdated } from "@/hooks/query/user"
 
 export function useLogin() {

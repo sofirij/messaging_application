@@ -4,8 +4,8 @@ import { useClearAvatarURL, useDisableAccount, useUpdateAvatarURL, useUpdateUser
 import { useRef, useState } from "react"
 import Image from "next/image"
 import Input from "@/components/ui/input"
-import { defaultAvatarURL } from "@/constants/defaults"
-import { userQueryOptions } from "@/query/user"
+import { defaultAvatarURL } from "@/config/defaults"
+import { userQueryOptions } from "@/query/client/user"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import Popup from "@/components/ui/popup"
 

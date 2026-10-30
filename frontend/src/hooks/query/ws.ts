@@ -1,6 +1,6 @@
 "use client"
 
-import { conversationQueryOptions } from "@/query/conversation"
+import { conversationQueryOptions } from "@/query/client/conversation"
 import { useQueryClient } from "@tanstack/react-query"
 
 export function useReconnected() {

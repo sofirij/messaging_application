@@ -1,5 +1,5 @@
 import { useErrorContext } from "@/context/errorContext"
-import { getFileCategory } from "@/utils/file"
+import { getFileCategory } from "@/lib/utils/file"
 import { Dispatch, SetStateAction, useEffect, useRef } from "react"
 
 type InputProps = {

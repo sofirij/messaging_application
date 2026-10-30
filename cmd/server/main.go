@@ -93,10 +93,10 @@ func main() {
 	router.RegisterMessageRoutes(v1, messageHandler, cfg, userService)
 	router.RegisterWSRoutes(v1, wsHandler, ticketService, cfg, userService)
 	router.RegisterUploadRoutes(v1, uploadHandler, cfg, userService)
-	router.RegisterAuthRoutes(v1, userHandler)
+	router.RegisterAuthRoutes(v1, userHandler, cfg, userService)
 
 	// serve static files
-	app.Get("/uploads/*", static.New(cfg.UploadDir, static.Config{
+	app.Get("/uploads/*", middleware.JWT(userService, cfg), static.New(cfg.UploadDir, static.Config{
 		Browse:          false,
 		Compress:        true,
 		MaxAge:          int(assetMaxAge.Seconds()),

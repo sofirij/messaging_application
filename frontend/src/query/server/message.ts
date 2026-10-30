@@ -1,8 +1,8 @@
-"use client"
-import { getMessages, MessageQueryParams } from "@/lib/api/conversation"
+import { getMessages } from "@/lib/api/server/conversation"
 import { Message } from "@/types/http/message"
 import { infiniteQueryOptions } from "@tanstack/react-query"
-import { conversationQueryOptions } from "@/query/conversation"
+import { conversationQueryOptions } from "@/query/server/conversation"
+import { MessageQueryParams } from "@/lib/api/client/conversation"
 
 const messageLimit = 20
 

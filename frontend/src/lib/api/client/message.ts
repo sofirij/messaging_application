@@ -1,8 +1,8 @@
 "use client"
 import { MessageEditRequest } from "@/types/http/message"
-import { fetchWithCredentials } from "@/lib/api/fetch"
+import { fetchWithCredentials } from "@/lib/api/client/fetch"
 import { HTTPError, ErrorDetail } from "@/types/http/error"
-import { httpProtocol, serverURL } from "@/constants/defaults"
+import { httpProtocol, serverURL } from "@/config/defaults"
 
 const apiVersion = "/api/v1"
 const apiURL = httpProtocol+serverURL+apiVersion+"/messages"

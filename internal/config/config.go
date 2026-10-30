@@ -3,12 +3,12 @@ package config
 import (
 	"crypto/ed25519"
 	"crypto/x509"
-	"encoding/base64"
+	"encoding/pem"
 	"log"
 	"os"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -36,35 +36,20 @@ func Load(envFilePath string) *Config {
 	}
 
 	env := getEnv("APP_ENV", "development")
-
-	jwtPublicKey := getEnv("JWT_PUBLIC_KEY", "")
-	jwtPrivateKey := getEnv("JWT_PRIVATE_KEY", "")
-
-	publicKeyBytes, err := base64.StdEncoding.DecodeString(jwtPublicKey)
+	
+	publicKeyPath := getEnv("JWT_PUBLIC_KEY_PATH", "")
+	publicKey, err := loadPublicKey(publicKeyPath)
+	
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	key, err := x509.ParsePKIXPublicKey(publicKeyBytes)
+	privateKeyPath := getEnv("JWT_PRIVATE_KEY_PATH", "")
+	privateKey, err := loadPrivateKey(privateKeyPath)
 
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	publicKey := key.(ed25519.PublicKey)
-
-	privateKeyBytes, err := base64.StdEncoding.DecodeString(jwtPrivateKey)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	key, err = x509.ParsePKCS8PrivateKey(privateKeyBytes)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	privateKey := key.(ed25519.PrivateKey)
 
 	return &Config{
 		AppEnv:               env,
@@ -118,4 +103,35 @@ func getIntEnv(key string, fallback int) int {
 	}
 
 	return n
+}
+
+func loadPrivateKey(path string) (ed25519.PrivateKey, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(data)
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	
+	if err != nil {
+		return nil, err
+	}
+
+	return key.(ed25519.PrivateKey), nil
+}
+
+func loadPublicKey(path string) (ed25519.PublicKey, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(data)
+	key, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return key.(ed25519.PublicKey), nil
 }

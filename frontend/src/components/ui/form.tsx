@@ -1,3 +1,4 @@
+"use client"
 type FormProps = {
     onSubmit: () => void
     children?: React.ReactNode

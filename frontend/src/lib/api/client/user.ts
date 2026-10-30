@@ -1,8 +1,8 @@
 "use client"
 import { User, UserAvatarRequest, UserUsernameRequest } from "@/types/http/user"
-import { fetchWithCredentials } from "@/lib/api/fetch"
+import { fetchWithCredentials } from "@/lib/api/client/fetch"
 import { HTTPError, ErrorDetail } from "@/types/http/error"
-import { httpProtocol, serverURL } from "@/constants/defaults"
+import { httpProtocol, serverURL } from "@/config/defaults"
 
 const apiVersion = "/api/v1"
 const apiURL = httpProtocol+serverURL+apiVersion+"/users"
@@ -83,7 +83,9 @@ export async function updateUsername(req: UserUsernameRequest): Promise<void> {
 export async function searchUsername(query: string): Promise<User[]> {
     if (query === "") return []
 
-    const url = `${apiURL}/search?q=${query}`
+    const url = new URL(`${apiURL}/search`)
+    url.searchParams.set("q", query)
+    
     const init = {
         method: "GET",
         headers: {

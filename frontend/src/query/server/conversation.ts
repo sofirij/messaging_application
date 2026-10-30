@@ -1,5 +1,4 @@
-"use client"
-import { getConversations, getMembers } from "@/lib/api/conversation";
+import { getConversations, getMembers } from "@/lib/api/server/conversation";
 import { queryOptions } from "@tanstack/react-query";
 import { ConversationRecord, MemberRecord } from "@/types/internal/conversation";
 import { Conversation } from "@/types/http/conversation";
@@ -20,13 +19,6 @@ export const conversationQueryOptions = queryOptions({
     staleTime: Infinity
 })
 
-export const conversationRefetchOptions = {
-    queryKey: conversationQueryOptions.queryKey,
-    exact: true,
-    throwOnError: true,
-    type: "all"
-} as const
-
 export const conversationMemberQueryOptions = (id: number) => queryOptions({
     queryKey: [...conversationQueryOptions.queryKey, id, "members"],
     queryFn: async (): Promise<MemberRecord> => {
@@ -42,12 +34,3 @@ export const conversationMemberQueryOptions = (id: number) => queryOptions({
     staleTime: Infinity,
     retry: false,
 })
-
-export const conversationMemberRefetchOptions = (id: number) => {
-    return {
-        queryKey: conversationMemberQueryOptions(id).queryKey,
-        exact: true,
-        throwOnError: true,
-        type: "all"
-    } as const
-}

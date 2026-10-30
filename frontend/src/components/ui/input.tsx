@@ -1,3 +1,4 @@
+"use client"
 type InputProps = {
     label: string
     type: "password" | "text"

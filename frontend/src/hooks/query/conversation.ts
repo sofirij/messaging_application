@@ -1,7 +1,7 @@
 "use client"
 
-import { conversationMemberQueryOptions, conversationMemberRefetchOptions, conversationQueryOptions, conversationRefetchOptions } from "@/query/conversation"
-import { userQueryOptions } from "@/query/user"
+import { conversationMemberQueryOptions, conversationMemberRefetchOptions, conversationQueryOptions, conversationRefetchOptions } from "@/query/client/conversation"
+import { userQueryOptions } from "@/query/client/user"
 import { User } from "@/types/http/user"
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 

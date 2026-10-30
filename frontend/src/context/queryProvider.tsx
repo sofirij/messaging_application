@@ -9,7 +9,8 @@ export function QueryProvider({children}: {children: React.ReactNode}) {
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
-                retry: false,
+                retry: 1,
+                staleTime: 60 * 5 * 1000 // 5mins
             },
             mutations: {
                 onError: (error: Error) => {

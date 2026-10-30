@@ -2,9 +2,9 @@
 import { Conversation, ConversationAddMembersRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest } from "@/types/http/conversation"
 import { Message, MessageCreateRequest, PaginatedMessage } from "@/types/http/message"
 import { User } from "@/types/http/user"
-import { fetchWithCredentials } from "@/lib/api/fetch"
+import { fetchWithCredentials } from "@/lib/api/client/fetch"
 import { HTTPError, ErrorDetail } from "@/types/http/error"
-import { httpProtocol, serverURL } from "@/constants/defaults"
+import { httpProtocol, serverURL } from "@/config/defaults"
 
 const apiVersion = "/api/v1"
 const apiURL = httpProtocol+serverURL+apiVersion+"/conversations"

@@ -1,8 +1,8 @@
-import AttachmentSelect from "@/components/messages/attachmentSelect"
+import AttachmentSelect from "@/components/conversation/attachmentSelect"
 import { useCreateMessage } from "@/hooks/mutation/message"
 import { Dispatch, SetStateAction, useState } from "react"
 import { Message } from "@/types/http/message"
-import BodyInput from "@/components/messages/bodyInput"
+import BodyInput from "@/components/conversation/bodyInput"
 
 type InputProps = {
     reply: Message | null

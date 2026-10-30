@@ -3,13 +3,13 @@
 import { useConversationNew, useMemberAdded, useMemberRemoved, useMessageRead, useMessageSeen } from "@/hooks/query/conversation"
 import { useMessageDeleted, useMessageEdited, useMessageNew } from "@/hooks/query/message"
 import { useReconnected } from "@/hooks/query/ws"
-import { getWSConn, readMessage, startTyping, stopTyping } from "@/lib/api/ws"
+import { getWSConn, readMessage, startTyping, stopTyping } from "@/lib/api/client/ws"
 import { HTTPError } from "@/types/http/error"
 import { Event, EventConversationNew, EventMemberAdded, EventMemberRemoved, EventMessageDeleted, EventMessageEdited, EventMessageNew, EventMessageSeen } from "@/types/ws/event"
 import { useRouter } from "next/navigation"
 import { createContext, RefObject, useContext, useEffect, useRef, useState } from "react"
 import { useErrorContext } from "@/context/errorContext"
-import { userQueryOptions } from "@/query/user"
+import { userQueryOptions } from "@/query/client/user"
 import { useSuspenseQuery } from "@tanstack/react-query"
 
 export type WSContextType = {

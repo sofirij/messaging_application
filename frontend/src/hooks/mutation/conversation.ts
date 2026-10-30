@@ -1,6 +1,6 @@
 "use client"
-import { addMembers, createConversation, deleteConversation, removeMember, updateConversationAvatar, updateConversationName } from "@/lib/api/conversation";
-import { upload } from "@/lib/api/upload";
+import { addMembers, createConversation, deleteConversation, removeMember, updateConversationAvatar, updateConversationName } from "@/lib/api/client/conversation";
+import { upload } from "@/lib/api/client/upload";
 import { ConversationAddMembersRequest, ConversationAvatarRequest, ConversationCreateRequest, ConversationRenameRequest, ConversationType } from "@/types/http/conversation";
 import { Upload } from "@/types/http/upload";
 import { useMutation } from "@tanstack/react-query";

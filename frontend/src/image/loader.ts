@@ -1,4 +1,4 @@
-import { httpProtocol, serverURL } from "@/constants/defaults"
+import { httpProtocol, serverURL } from "@/config/defaults"
 
 const url = httpProtocol+serverURL+"/uploads"
 

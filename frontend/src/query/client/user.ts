@@ -1,5 +1,5 @@
 "use client"
-import { getUser, searchUsername } from "@/lib/api/user"
+import { getUser, searchUsername } from "@/lib/api/client/user"
 import { queryOptions } from "@tanstack/react-query"
 
 export const userQueryOptions = queryOptions({
