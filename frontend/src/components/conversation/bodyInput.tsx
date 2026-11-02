@@ -14,8 +14,8 @@ export default function BodyInput({setText, text, submitHandler}: InputProps) {
     }
 
     return (
-        <div>
-            <input type="text" placeholder="send message" onChange={(e) => setText(e.target.value)} value={text} onKeyDown={keyHandler}/>
+        <div className="flex-1">
+            <input type="text" className="w-full rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand" placeholder="Type a message" onChange={(e) => setText(e.target.value)} value={text} onKeyDown={keyHandler}/>
         </div>
     )
 }

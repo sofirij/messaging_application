@@ -11,9 +11,9 @@ type InputProps = {
 export default function Input({label, type, labelClassName, inputClassName, placeholder, onChange}: InputProps) {
     return (
         <>
-            <label className={labelClassName}>
+            <label className={labelClassName ?? "flex flex-col gap-1.5 text-sm font-medium text-gray-700 capitalize"}>
                 {label}
-                <input type={type} className={inputClassName} placeholder={placeholder} onChange={onChange}></input>
+                <input type={type} className={inputClassName ?? "text-field font-normal normal-case"} placeholder={placeholder} onChange={onChange}></input>
             </label>
         </>
     )

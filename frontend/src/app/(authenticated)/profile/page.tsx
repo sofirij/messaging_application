@@ -36,20 +36,38 @@ export default function Page() {
     }
     
     return (
-        <main>
-            <Image src={avatarURL} alt="User profile picture" width={40} height={40} onClick={() => setIsExpanded(true)}/>
-            <Form onSubmit={() => handleUpdateUsername(newUsername)}>
-                <Input label="username" type="text" onChange={(e) => setNewUsername(e.target.value)} placeholder={username}/>
-                <button>Update</button>
-            </Form>
-            <button onClick={handleDisableAccount}>Disable Account</button>
+        <main className="h-full overflow-y-auto p-4">
+            <div className="mx-auto flex max-w-md flex-col gap-4">
+                <section className="flex flex-col items-center gap-3 rounded-2xl bg-white p-6 shadow-sm">
+                    <button onClick={() => setIsExpanded(true)} className="group relative rounded-full" aria-label="View profile picture">
+                        <Image src={avatarURL} alt="User profile picture" width={112} height={112} className="avatar h-28 w-28"/>
+                        <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-sm text-white opacity-0 transition-opacity group-hover:opacity-100">View</span>
+                    </button>
+                    <h1 className="text-xl font-semibold">{username}</h1>
+                </section>
+
+                <section className="rounded-2xl bg-white p-6 shadow-sm">
+                    <h2 className="mb-4 font-semibold">Change username</h2>
+                    <Form onSubmit={() => handleUpdateUsername(newUsername)}>
+                        <Input label="username" type="text" onChange={(e) => setNewUsername(e.target.value)} placeholder={username}/>
+                        <button className="btn-primary self-end">Update</button>
+                    </Form>
+                </section>
+
+                <section className="rounded-2xl bg-white p-6 shadow-sm">
+                    <h2 className="font-semibold text-red-600">Danger zone</h2>
+                    <p className="mt-1 mb-4 text-sm text-gray-500">Disabling your account will log you out.</p>
+                    <button onClick={handleDisableAccount} className="btn-danger">Disable Account</button>
+                </section>
+            </div>
             <Popup popup={isExpanded} setPopup={setIsExpanded}>
-                <Image src={avatarURL} alt="User profile picture" width={100} height={100}/>
-                <div className="absolute bottom-4 right-4 flex gap-2"> 
-                    <button onClick={handleEditClick}>Edit</button>
+                <h2 className="popup-title">Profile picture</h2>
+                <Image src={avatarURL} alt="User profile picture" width={320} height={320} className="mx-auto aspect-square w-full max-w-xs rounded-xl object-cover"/>
+                <div className="mt-4 flex justify-end gap-2">
                     {user.avatar_url && (
-                        <button onClick={handleClearAvatarURL}>Reset</button>
+                        <button onClick={handleClearAvatarURL} className="btn-secondary">Reset</button>
                     )}
+                    <button onClick={handleEditClick} className="btn-primary">Change</button>
                     <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} style={{display: "none"}}/>
                 </div>
             </Popup>

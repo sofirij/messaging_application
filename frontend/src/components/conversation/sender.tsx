@@ -1,4 +1,4 @@
-import AttachmentSelect from "@/components/conversation/attachmentSelect"
+import AttachmentSelect, { AttachmentPreview } from "@/components/conversation/attachmentSelect"
 import { useCreateMessage } from "@/hooks/mutation/message"
 import { Dispatch, SetStateAction, useState } from "react"
 import { Message } from "@/types/http/message"
@@ -36,17 +36,21 @@ export default function Sender({reply, setReply, conversationID, bottomRef}: Inp
     }
 
     return (
-        <div>
+        <div className="flex flex-col">
             {reply && (
-                <div>
-                    <p>{reply.body ? reply.body : "attachment"}</p>
-                    <button onClick={() => setReply(null)}>X</button>
+                <div className="mx-3 mt-3 flex items-center gap-2 rounded-lg border-l-4 border-brand bg-white px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-brand-dark">Replying to</p>
+                        <p className="truncate text-sm text-gray-600">{reply.body ? reply.body : "attachment"}</p>
+                    </div>
+                    <button className="btn-icon h-7 w-7" onClick={() => setReply(null)} aria-label="Cancel reply">✕</button>
                 </div>
             )}
-            <AttachmentSelect setAttachments={setAttachments} attachments={attachments}/>
-            <BodyInput setText={setText} text={text} submitHandler={createMessage}/>
-            <div>
-                <button onClick={createMessage}>Send</button>
+            <AttachmentPreview setAttachments={setAttachments} attachments={attachments}/>
+            <div className="flex items-center gap-2 p-3">
+                <AttachmentSelect setAttachments={setAttachments} attachments={attachments}/>
+                <BodyInput setText={setText} text={text} submitHandler={createMessage}/>
+                <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-dark" onClick={createMessage} aria-label="Send message">➤</button>
             </div>
         </div>
     )

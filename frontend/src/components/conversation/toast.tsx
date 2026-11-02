@@ -23,14 +23,23 @@ export default function Toast({sender, message, setReply} : InputProps) {
     const { handleDeleteMessage } = useDeleteMessage()
     const [editClicked, setEditClicked] = useState(false)
     const {data: me} = useSuspenseQuery(userQueryOptions)
-    const alignment = me.id === message.sender_id ? "justify-end" : "justify-start"
-    const innerAlignment = me.id === message.sender_id ? "ml-auto mr-0" : "ml-0 mr-auto"
+    const isMine = me.id === message.sender_id
+    const alignment = isMine ? "justify-end" : "justify-start"
+    const bubbleColor = isMine ? "bg-bubble-out rounded-tr-none" : "bg-white rounded-tl-none"
+    const time = new Date(message.created_at).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})
 
     return (
-        <div className={`flex ${alignment}`}>
-            <div className={`flex-col ${innerAlignment}`}>
-                <Image src={avatarURL} alt="user avatar" width={20} height={20}/>
-                <p>{sender.username}</p>
+        <div className={`group flex items-end gap-2 ${alignment}`}>
+            {!isMine && (
+                <Image src={avatarURL} alt="user avatar" width={28} height={28} className="avatar h-7 w-7"/>
+            )}
+            <div className={`relative flex max-w-[75%] flex-col gap-1 rounded-lg px-3 py-2 shadow-sm sm:max-w-[60%] ${bubbleColor}`}>
+                <div className="flex items-start gap-2">
+                    {!isMine && (
+                        <p className="text-xs font-semibold text-brand-dark">{sender.username}</p>
+                    )}
+                    <button onClick={() => setOptionsClicked(true)} className="-mt-1 -mr-1 ml-auto rounded px-1 text-gray-400 opacity-60 transition-opacity hover:text-gray-700 group-hover:opacity-100" aria-label="Message options">⌄</button>
+                </div>
                 {message.reply !== null && (
                     <ReplyToast reply={message.reply}/>
                 )}
@@ -39,13 +48,16 @@ export default function Toast({sender, message, setReply} : InputProps) {
                 ): (
                     <></>
                 )}
-                <p>{message.body}</p>
+                {message.body && (
+                    <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
+                )}
                 <AttachmentList attachments={message.attachments}/>
-                <button onClick={() => setOptionsClicked(true)}>Options</button>
+                <span className="self-end text-[10px] text-gray-500" suppressHydrationWarning>{time}</span>
                 <Popup popup={optionsClicked} setPopup={setOptionsClicked}>
-                    <button onClick={() => {setOptionsClicked(false); setEditClicked(true)}}>Edit</button>
-                    <button onClick={() => {setOptionsClicked(false); handleDeleteMessage(message.conversation_id, message.id)}}>Delete</button>
-                    <button onClick={() => {setOptionsClicked(false); setReply(message)}}>Reply</button>
+                    <h2 className="popup-title">Message</h2>
+                    <button className="menu-item" onClick={() => {setOptionsClicked(false); setReply(message)}}>Reply</button>
+                    <button className="menu-item" onClick={() => {setOptionsClicked(false); setEditClicked(true)}}>Edit</button>
+                    <button className="menu-item text-red-600" onClick={() => {setOptionsClicked(false); handleDeleteMessage(message.conversation_id, message.id)}}>Delete</button>
                 </Popup>
             </div>
         </div>

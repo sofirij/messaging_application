@@ -11,7 +11,7 @@ export default function Form({ children, onSubmit }: FormProps) {
     }
 
     return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {children}
         </form>
     )

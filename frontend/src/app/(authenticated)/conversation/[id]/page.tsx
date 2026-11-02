@@ -2,7 +2,7 @@ import Conversation from "@/components/conversation/page"
 import { verifyAndRedirect } from "@/lib/utils/cookies"
 import { conversationQueryOptions, conversationMemberQueryOptions } from "@/query/server/conversation"
 import { messageQueryOptions } from "@/query/server/message"
-import { QueryClient } from "@tanstack/react-query"
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query"
 import { notFound } from "next/navigation"
 
 
@@ -23,7 +23,9 @@ export default async function Page({params} : {params: Promise<{ id: string }>})
 
 
     return (
-        <Conversation conversationID={conversationID}/>
+        <HydrationBoundary state={dehydrate(queryClient)}>
+            <Conversation conversationID={conversationID}/>
+        </HydrationBoundary>
     )
 }
 

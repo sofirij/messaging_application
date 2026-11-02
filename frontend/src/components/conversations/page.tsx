@@ -29,33 +29,43 @@ export function Conversations() {
     }
 
     return (
-        <main>
-            {conversations.order.length > 0 ? (
-                <div>
-                    <button onClick={() => setCreatingConversation(true)}>New Conversation</button>
-                    {conversations.order.map((id) => (
-                        <Toast key={id} conversation={conversations.data[id]}/>
-                    ))}
+        <main className="h-full overflow-y-auto">
+            <div className="mx-auto flex min-h-full max-w-2xl flex-col bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                    <h1 className="text-xl font-semibold">Chats</h1>
+                    <button className="btn-primary" onClick={() => setCreatingConversation(true)}>+ New Conversation</button>
                 </div>
-            ) : (
-                <div>                                                                    
-                    <p>Start your first conversation</p>
-                    <button onClick={() => setCreatingConversation(true)}>New Conversation</button>
-                </div>
-            )}
+                {conversations.order.length > 0 ? (
+                    <div>
+                        {conversations.order.map((id) => (
+                            <Toast key={id} conversation={conversations.data[id]}/>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+                        <div className="text-5xl">💬</div>
+                        <p className="text-lg font-medium">Start your first conversation</p>
+                        <p className="text-sm text-gray-500">Find someone by username and say hello.</p>
+                        <button className="btn-primary mt-2" onClick={() => setCreatingConversation(true)}>New Conversation</button>
+                    </div>
+                )}
+            </div>
             <Popup popup={creatingConversation} setPopup={setCreatingConversation}>
-                <label>
-                    Type
-                    <select value={mustBeGroup ? conversationGroup : type} onChange={(e) => setIsGroup(e.target.value === conversationGroup)}>
-                        <option value={conversationGroup}>Group</option>
-                        <option value={conversationDirect}>Direct</option>
-                    </select>
+                <h2 className="popup-title">New conversation</h2>
+                <div className="flex flex-col gap-4">
+                    <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+                        Type
+                        <select className="text-field font-normal" value={mustBeGroup ? conversationGroup : type} onChange={(e) => setIsGroup(e.target.value === conversationGroup)}>
+                            <option value={conversationGroup}>Group</option>
+                            <option value={conversationDirect}>Direct</option>
+                        </select>
+                    </label>
                     {isGroup && (
                         <Input label="Group Name" type="text" onChange={(e) => setGroupName(e.target.value)}/>
                     )}
                     <UserSearch selected={selected} setSelected={setSelected}/>
-                </label>
-                <button onClick={() => handleCreateConversation(type, groupName, userIDs, onSuccess)}>Create</button>
+                </div>
+                <button className="btn-primary mt-4 w-full" onClick={() => handleCreateConversation(type, groupName, userIDs, onSuccess)}>Create</button>
             </Popup>
         </main>
     )

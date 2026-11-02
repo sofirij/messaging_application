@@ -64,18 +64,26 @@ export default function Conversation({conversationID}: {conversationID: number})
     }, [conversationID, conversations.data, me.id, messages, readMessage, ws])
 
     return (
-        <main className="h-full flex flex-col">
+        <main className="h-full flex flex-col bg-chat">
             <NavBar conversation={conversations.data[conversationID]}></NavBar>
-            <div ref={scrollRef} className="flex flex-1 overflow-y-auto flex-col">
-                <div style={{outline: "1px solid red"}} ref={sentinelRef} />
+            <div ref={scrollRef} className="flex flex-1 overflow-y-auto flex-col gap-1 px-3 py-4 sm:px-8">
+                <div ref={sentinelRef} />
+                {isFetchingPreviousPage && (
+                    <div className="flex justify-center py-2">
+                        <div className="animate-spin h-5 w-5 border-2 border-brand border-t-transparent rounded-full" />
+                    </div>
+                )}
+                {messages.length === 0 && (
+                    <p className="m-auto rounded-lg bg-white/80 px-4 py-2 text-sm text-gray-600 shadow-sm">No messages yet. Say hello 👋</p>
+                )}
                 {messages.filter(message => !message.deleted).map(message => {
                     return (
                         <Toast key={message.id} sender={members.data[message.sender_id]} message={message} setReply={setReply}/>
                     )
                 })}
-                <div style={{outline: "1px solid red"}} ref={bottomRef}/>
+                <div ref={bottomRef}/>
             </div>
-            <div>
+            <div className="border-t border-gray-200 bg-gray-50">
                 <Sender reply={reply} setReply={setReply} conversationID={conversationID} bottomRef={bottomRef}/>
             </div>
         </main> 

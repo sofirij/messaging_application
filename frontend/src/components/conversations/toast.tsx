@@ -39,20 +39,30 @@ export default function Toast({conversation}: InputProps) {
             }
         }
     }
-    
+
+    const isNew = actionMessage === "New Message"
+
     return (
-        <div>
-                <Image src={avatarURL} alt="Conversation avatar" width={20} height={20}/>
-                <p>{conversation.name}</p>
-                <p onClick={() => {router.push(`/conversation/messages?id=${conversation.id}`)}}>{actionMessage}</p>
-                <button onClick={() => setClickedOptions(true)}>Options</button>
-                <Popup popup={clickedOptions} setPopup={setClickedOptions}>
-                    {conversation.type === conversationDirect ? (
-                        <button onClick={() => handleDeleteConversation(conversation.id)}>Delete</button>
-                    ): (
-                        <button onClick={() => handleLeaveGroup(me.id, conversation.id)}>Leave Group</button>
-                    )}
-                </Popup>
+        <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3 transition-colors hover:bg-gray-50">
+            <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => {router.push(`/conversation/${conversation.id}`)}}>
+                <Image src={avatarURL} alt="Conversation avatar" width={48} height={48} className="avatar h-12 w-12"/>
+                <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{conversation.name}</p>
+                    <p className={`truncate text-sm ${isNew ? "font-semibold text-brand" : "text-gray-500"}`}>{actionMessage}</p>
+                </div>
+                {isNew && (
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-brand" />
+                )}
+            </button>
+            <button className="btn-icon" onClick={() => setClickedOptions(true)} aria-label="Conversation options">⋮</button>
+            <Popup popup={clickedOptions} setPopup={setClickedOptions}>
+                <h2 className="popup-title">{conversation.name}</h2>
+                {conversation.type === conversationDirect ? (
+                    <button className="btn-danger w-full" onClick={() => handleDeleteConversation(conversation.id)}>Delete conversation</button>
+                ): (
+                    <button className="btn-danger w-full" onClick={() => handleLeaveGroup(me.id, conversation.id)}>Leave Group</button>
+                )}
+            </Popup>
         </div>
     )
 }
