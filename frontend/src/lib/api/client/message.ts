@@ -27,8 +27,10 @@ export async function updateMessage(id: number, req: MessageEditRequest): Promis
 
 export async function deleteMessage(id: number): Promise<void> {
     const url = `${apiURL}/${id}`
+
+    console.log(url)
     const init = {
-        method: "PATCH",
+        method: "DELETE",
         headers: {
             "Content-Type": "application/json"
         }

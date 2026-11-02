@@ -54,10 +54,20 @@ export default function Toast({sender, message, setReply} : InputProps) {
                 <AttachmentList attachments={message.attachments}/>
                 <span className="self-end text-[10px] text-gray-500" suppressHydrationWarning>{time}</span>
                 <Popup popup={optionsClicked} setPopup={setOptionsClicked}>
-                    <h2 className="popup-title">Message</h2>
-                    <button className="menu-item" onClick={() => {setOptionsClicked(false); setReply(message)}}>Reply</button>
-                    <button className="menu-item" onClick={() => {setOptionsClicked(false); setEditClicked(true)}}>Edit</button>
-                    <button className="menu-item text-red-600" onClick={() => {setOptionsClicked(false); handleDeleteMessage(message.conversation_id, message.id)}}>Delete</button>
+                    { isMine ? (
+                        <>
+                            <h2 className="popup-title">Message</h2>
+                            <button className="menu-item" onClick={() => {setOptionsClicked(false); setReply(message)}}>Reply</button>
+                            <button className="menu-item" onClick={() => {setOptionsClicked(false); setEditClicked(true)}}>Edit</button>
+                            <button className="menu-item text-red-600" onClick={() => {setOptionsClicked(false); handleDeleteMessage(message.conversation_id, message.id)}}>Delete</button>
+                        </>
+                    ) : (
+                        <>
+                            <h2 className="popup-title">Message</h2>
+                            <button className="menu-item" onClick={() => {setOptionsClicked(false); setReply(message)}}>Reply</button>
+                        </>
+                    )}
+                    
                 </Popup>
             </div>
         </div>
