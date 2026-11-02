@@ -1,5 +1,5 @@
 "use client"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { disableAccount, updateUserAvatar, updateUsername } from "@/lib/api/client/user"
 import { validatePassword, validateUsername } from "@/lib/utils/validation"
 import { useMutation } from "@tanstack/react-query"
@@ -10,7 +10,9 @@ import { useAuthenticated, useUnauthenticated, useUserAvatarUpdated, useUsername
 
 export function useLogin() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const handleAuthenticated = useAuthenticated()
+    const nav = searchParams.get("nav") ?? "/home"
     
     const mutation = useMutation({
         mutationFn: async (req: UserAuthRequest) => {
@@ -19,7 +21,7 @@ export function useLogin() {
         },
         onSuccess: (user) => {
             handleAuthenticated(user)
-            router.replace("/home")
+            router.push(nav)
         }
     })
 

@@ -1,6 +1,6 @@
 import { verifySession } from "@/lib/utils/cookies"
-import { redirect } from "next/navigation"
 import LoginForm from "@/components/login/form"
+import { redirect } from "next/navigation"
 
 export default async function LoginPage() {
     const {err} = await verifySession()

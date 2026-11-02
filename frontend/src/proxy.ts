@@ -19,7 +19,7 @@ export const proxy: NextProxy = async (request) => {
             await setCookie(res)
         } catch {
             console.log("jwt refresh failed in proxy")
-            if (request.nextUrl.pathname !== "/login") return NextResponse.redirect(new URL("/login", request.url))
+            if (request.nextUrl.pathname !== "/login") return NextResponse.redirect(new URL(`/login?nav=${request.nextUrl.pathname}`, request.url))
         }
         console.log("jwt refresh in proxy successful")
         return NextResponse.next()
