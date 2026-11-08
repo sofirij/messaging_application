@@ -63,6 +63,6 @@ help:
 	@echo   make run        			- run the compiled executable
 	@echo   make migrate-force          - clear dirty database version
 	@echo   make migrate-up             - apply all pending migrations
-	@echo   make migrate-down           - roll back the most recent migration
+	@echo   make migrate-down           - roll back all migrations
 	@echo   make migrate-version        - show current migration version
 	@echo   make migrate-create name=x  - create a new migration pair
