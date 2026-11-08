@@ -1,6 +1,6 @@
 "use client"
 import { UserAuthRequest, User } from "@/types/http/user"
-import { fetchWithCredentials } from "@/lib/api/client/fetch"
+import { fetchWithRetry } from "@/lib/api/client/fetch"
 import { ErrorDetail, HTTPError } from "@/types/http/error"
 import { httpProtocol, serverURL } from "@/config/defaults"
 
@@ -8,12 +8,13 @@ const apiVersion = "/api/v1"
 const apiURL = httpProtocol+serverURL+apiVersion+"/auth"
 
 export async function register(req: UserAuthRequest): Promise<void> {
-    const res = await fetchWithCredentials(`${apiURL}/register`, {
+    const res = await fetch(`${apiURL}/register`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json", 
         },
         body: JSON.stringify(req),
+        credentials: "include"
     })
 
     if (!res.ok) {
@@ -23,11 +24,12 @@ export async function register(req: UserAuthRequest): Promise<void> {
 }
 
 export async function login(req: UserAuthRequest): Promise<User> {
-    const res = await fetchWithCredentials(`${apiURL}/login`, {
+    const res = await fetch(`${apiURL}/login`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(req)
     })
 
@@ -41,7 +43,7 @@ export async function login(req: UserAuthRequest): Promise<User> {
 }
 
 export async function logout(): Promise<void> {
-    const res = await fetchWithCredentials(`${apiURL}/logout`, {
+    const res = await fetchWithRetry(`${apiURL}/logout`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

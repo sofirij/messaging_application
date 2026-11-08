@@ -1,6 +1,6 @@
 "use client"
 import { Upload } from "@/types/http/upload"
-import { fetchWithCredentials } from "@/lib/api/client/fetch"
+import { fetchWithRetry } from "@/lib/api/client/fetch"
 import { HTTPError, ErrorDetail } from "@/types/http/error"
 import { httpProtocol, serverURL } from "@/config/defaults"
 
@@ -17,7 +17,7 @@ export async function upload(file: File): Promise<Upload> {
         body: form
     }
 
-    const res = await fetchWithCredentials(url, init)
+    const res = await fetchWithRetry(url, init)
 
     const json = await res.json()
 
@@ -40,7 +40,7 @@ export async function uploadMany(files: File[]): Promise<Upload[]> {
         body: form
     }
 
-    const res = await fetchWithCredentials(url, init)
+    const res = await fetchWithRetry(url, init)
 
     const json = await res.json()
 

@@ -3,7 +3,7 @@ import { Ticket } from "@/types/ws/ticket"
 import { OutboundTypingStartPayload, OutboundTypingStopPayload } from "@/types/ws/typing"
 import { MessageReadPayload } from "@/types/ws/message"
 import { Event, EventMessageRead, EventTypingStart, EventTypingStop } from "@/types/ws/event"
-import { fetchWithCredentials } from "@/lib/api/client/fetch"
+import { fetchWithRetry } from "@/lib/api/client/fetch"
 import { HTTPError, ErrorDetail } from "@/types/http/error"
 import { httpProtocol, serverURL, wsProtocol } from "@/config/defaults"
 
@@ -20,7 +20,7 @@ export async function getWSTicket(): Promise<Ticket> {
         }
     }
     
-    const res = await fetchWithCredentials(url, init)
+    const res = await fetchWithRetry(url, init)
 
     const json = await res.json()
 

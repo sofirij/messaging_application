@@ -1,6 +1,6 @@
 "use client"
 import { User, UserAvatarRequest, UserUsernameRequest } from "@/types/http/user"
-import { fetchWithCredentials } from "@/lib/api/client/fetch"
+import { fetchWithRetry } from "@/lib/api/client/fetch"
 import { HTTPError, ErrorDetail } from "@/types/http/error"
 import { httpProtocol, serverURL } from "@/config/defaults"
 
@@ -16,7 +16,7 @@ export async function getUser(): Promise<User> {
         }
     }
 
-    const res = await fetchWithCredentials(url, init)
+    const res = await fetchWithRetry(url, init)
 
     const json = await res.json()
 
@@ -36,7 +36,7 @@ export async function disableAccount(): Promise<void> {
         }
     }
     
-    const res = await fetchWithCredentials(url, init)
+    const res = await fetchWithRetry(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -54,7 +54,7 @@ export async function updateUserAvatar(req: UserAvatarRequest): Promise<void> {
         body: JSON.stringify(req)
     }
 
-    const res = await fetchWithCredentials(url, init)
+    const res = await fetchWithRetry(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -72,7 +72,7 @@ export async function updateUsername(req: UserUsernameRequest): Promise<void> {
         body: JSON.stringify(req)
     }
 
-    const res = await fetchWithCredentials(url, init)
+    const res = await fetchWithRetry(url, init)
 
     if (!res.ok) {
         const json = await res.json()
@@ -93,7 +93,7 @@ export async function searchUsername(query: string): Promise<User[]> {
         }
     }
     
-    const res = await fetchWithCredentials(url, init)
+    const res = await fetchWithRetry(url, init)
 
     const json = await res.json()
 
