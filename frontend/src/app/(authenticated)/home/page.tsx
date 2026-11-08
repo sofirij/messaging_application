@@ -1,6 +1,15 @@
+import { verifySession } from "@/lib/utils/cookies"
 import Link from "next/link"
+import { redirect } from "next/navigation"
 
-export default function Home() {
+export default async function Home() {
+    const {err} = await verifySession()
+    
+    if (err) {
+        console.log("redirect to login from home")
+        redirect("/login")
+    }
+    
     return (
         <main className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
             <div className="text-5xl">💬</div>

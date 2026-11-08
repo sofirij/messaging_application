@@ -3,14 +3,12 @@ import { cookies } from "next/headers"
 import { cache } from "react"
 import { jwtVerify, decodeJwt } from "jose"
 import { jwtPublicKey } from "@/config/auth"
-import { redirect } from "next/navigation"
 
 export const verifySession = cache(async () => {
-    const jwt = (await cookies()).get("access_token")?.value ?? ""
-
+    const accessToken = (await cookies()).get("access_token")?.value ?? ""
     try {
-        await jwtVerify(jwt, jwtPublicKey)
-        const claims = decodeJwt(jwt)
+        await jwtVerify(accessToken, jwtPublicKey)
+        const claims = decodeJwt(accessToken)
         
         if (claims.sub) return { sub: Number(claims.sub), err: null }
         return { sub: null, err: new Error("missing sub from jwt")}
@@ -19,10 +17,12 @@ export const verifySession = cache(async () => {
     }
 })
 
-export async function verifyAndRedirect() {
-    const {err} = await verifySession()
+/*
+export async function setCookie(res: Response) {
+    const cookieStore = await cookies()
+    const setCookies = parseSetCookie(res)
 
-    if (err) {
-        redirect("/login")
+    for (const c of setCookies) {
+        cookieStore.set(config(c))
     }
-}
+}*/
