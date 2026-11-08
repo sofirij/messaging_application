@@ -279,6 +279,7 @@ func (u *userRepository) UpdateRefreshToken(ctx context.Context, userID int, old
 		WHERE token_hash = $1
 		AND user_id = $2
 		AND expires_at > NOW()
+		AND ( rotated_at IS NULL OR rotated_at + INTERVAL '30 seconds' > NOW())
 		FOR UPDATE
 	`
 
@@ -290,11 +291,13 @@ func (u *userRepository) UpdateRefreshToken(ctx context.Context, userID int, old
 	}
 
 	query = `
-		DELETE FROM refresh_tokens
-		WHERE token_hash = $1
+		UPDATE refresh_tokens
+		SET rotated_at = COALESCE(rotated_at, NOW())
+		WHERE id = $1
 	`
 
-	_, err = tx.Exec(ctx, query, oldTokenHash)
+	_, err = tx.Exec(ctx, query, token.ID)
+
 	if err != nil {
 		return err
 	}

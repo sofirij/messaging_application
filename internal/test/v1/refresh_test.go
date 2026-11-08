@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRefresh_ServerSideRefresh(t *testing.T) {
+func TestRefresh(t *testing.T) {
 	app := setupApp(t)
 	defer truncateTables(t)
 
@@ -22,7 +22,7 @@ func TestRefresh_ServerSideRefresh(t *testing.T) {
 	register(t, app, bodyStruct)
 	_, _, refreshCookie := login(t, app, bodyStruct)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/refresh", nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(refreshCookie)
 
@@ -30,7 +30,27 @@ func TestRefresh_ServerSideRefresh(t *testing.T) {
 
 	require.NoError(t, err)
 
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+	var accessCookie *http.Cookie
+
+	for _, c := range resp.Cookies() {
+		if c.Name == "access_token" {
+			accessCookie = c
+		}
+	}
+
+	require.NotNil(t, accessCookie)
+
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
+	req2.Header.Set("Content-Type", "application/json")
+	req2.AddCookie(accessCookie)
+
+	resp2, err := app.Test(req2)
+
+	require.NoError(t, err)
+
+	require.Equal(t, http.StatusOK, resp2.StatusCode)
 }
 
 func TestRefresh_ConcurrentRefresh(t *testing.T) {
@@ -46,9 +66,10 @@ func TestRefresh_ConcurrentRefresh(t *testing.T) {
 	_, _, refreshCookie := login(t, app, bodyStruct)
 
 	var wg sync.WaitGroup
-	results := make([]int, 10)
+	const refreshes = 10
+	results := make([]int, refreshes)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/users/me", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/refresh", nil)
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(refreshCookie)
 
@@ -66,10 +87,10 @@ func TestRefresh_ConcurrentRefresh(t *testing.T) {
 
 	successCount := 0
 	for _, status := range results {
-		if status == http.StatusOK {
+		if status == http.StatusNoContent {
 			successCount++
 		}
 	}
 
-	require.Equal(t, 1, successCount)
+	require.Equal(t, refreshes, successCount)
 }
