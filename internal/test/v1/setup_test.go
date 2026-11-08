@@ -75,12 +75,12 @@ func setupApp(t *testing.T) *fiber.App {
 
 	// setup routers
 	v1 := app.Group("/api/v1")
-	router.RegisterUserRoutes(v1, userHandler, cfg, userService)
-	router.RegisterConversationRoutes(v1, conversationHandler, messageHandler, cfg, userService)
-	router.RegisterMessageRoutes(v1, messageHandler, cfg, userService)
-	router.RegisterWSRoutes(v1, wsHandler, ticketService, cfg, userService)
-	router.RegisterUploadRoutes(v1, uploadHandler, cfg, userService)
-	router.RegisterAuthRoutes(v1, userHandler, cfg, userService)
+	router.RegisterUserRoutes(v1, userHandler, cfg)
+	router.RegisterConversationRoutes(v1, conversationHandler, messageHandler, cfg)
+	router.RegisterMessageRoutes(v1, messageHandler, cfg)
+	router.RegisterWSRoutes(v1, wsHandler, ticketService, cfg)
+	router.RegisterUploadRoutes(v1, uploadHandler, cfg)
+	router.RegisterAuthRoutes(v1, userHandler, cfg)
 
 	return app
 }

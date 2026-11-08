@@ -4,13 +4,12 @@ import (
 	"app/internal/config"
 	"app/internal/handler"
 	"app/internal/middleware"
-	"app/internal/service"
 
 	"github.com/gofiber/fiber/v3"
 )
 
-func RegisterConversationRoutes(r fiber.Router, c *handler.ConversationHandler, m *handler.MessageHandler, cfg *config.Config, userService service.UserService) {
-	conversations := r.Group("/conversations", middleware.JWT(userService, cfg))
+func RegisterConversationRoutes(r fiber.Router, c *handler.ConversationHandler, m *handler.MessageHandler, cfg *config.Config) {
+	conversations := r.Group("/conversations", middleware.JWT(cfg))
 
 	conversations.Get("/", c.GetByUserID)
 	conversations.Post("/", c.Create)

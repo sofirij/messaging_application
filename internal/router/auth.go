@@ -4,15 +4,14 @@ import (
 	"app/internal/config"
 	"app/internal/handler"
 	"app/internal/middleware"
-	"app/internal/service"
 
 	"github.com/gofiber/fiber/v3"
 )
 
-func RegisterAuthRoutes(r fiber.Router, u *handler.UserHandler, cfg *config.Config, userService service.UserService) {
+func RegisterAuthRoutes(r fiber.Router, u *handler.UserHandler, cfg *config.Config) {
 	auth := r.Group("/auth")
 	auth.Post("/register", u.Register)
 	auth.Post("/login", u.Login)
-	auth.Post("/logout", middleware.JWT(userService, cfg), u.Logout)
-	auth.Post("/refresh", middleware.JWT(userService, cfg), u.RefreshToken)
+	auth.Post("/logout", middleware.JWT(cfg), u.Logout)
+	auth.Post("/refresh", u.RefreshToken)
 }

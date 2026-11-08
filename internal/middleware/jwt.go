@@ -31,25 +31,13 @@ func parseClaims(token string, cfg *config.Config) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-func verifyAndRefresh(c fiber.Ctx, userService service.UserService, cfg *config.Config) (int, error) {
+func verify(c fiber.Ctx, cfg *config.Config) (int, error) {
 	token := c.Cookies("access_token")
 
 	claims, err := parseClaims(token, cfg)
 
 	if err != nil {
-		accessToken, refreshToken, err := userService.RefreshToken(c.Context(), c.Cookies("refresh_token"))
-		if err != nil {
-			return 0, err
-		}
-
-		c.Cookie(handler.CreateCookie("access_token", accessToken, cfg.AccessTokenDuration))
-		c.Cookie(handler.CreateCookie("refresh_token", refreshToken, cfg.RefreshTokenDuration))
-
-		claims, err = parseClaims(accessToken, cfg)
-
-		if err != nil {
-			return 0, err
-		}
+		return 0, err
 	}
 
 	sub, ok := claims["sub"].(float64)
@@ -57,34 +45,25 @@ func verifyAndRefresh(c fiber.Ctx, userService service.UserService, cfg *config.
 	if !ok {
 		return 0, &service.Error{
 			Code:    service.ErrCodeUnauthorized,
-			Message: "invalid token",
+			Message: "invalid auth token",
 		}
 	}
 
 	return int(sub), nil
 }
 
-func JWT(userService service.UserService, cfg *config.Config) fiber.Handler {
+func JWT(cfg *config.Config) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		userID, err := verifyAndRefresh(c, userService, cfg)
+		userID, err := verify(c, cfg)
 
 		if err != nil {
-			return handler.HandleServiceError(c, err)
+			return handler.HandleServiceError(c, &service.Error{
+				Message: "invalid auth token",
+				Code: service.ErrCodeUnauthorized,
+			})
 		}
 
 		c.Locals("user_id", userID)
-		return c.Next()
-	}
-}
-
-func JWTPage(userService service.UserService, cfg *config.Config) fiber.Handler {
-	return func(c fiber.Ctx) error {
-		_, err := verifyAndRefresh(c, userService, cfg)
-
-		if err != nil {
-			return c.Redirect().To("/login")
-		}
-
 		return c.Next()
 	}
 }

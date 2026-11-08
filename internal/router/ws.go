@@ -10,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func RegisterWSRoutes(r fiber.Router, h *handler.WSHandler, ticketService service.TicketService, cfg *config.Config, userService service.UserService) {
-	r.Get("/ws/ticket", middleware.JWT(userService, cfg), h.CreateTicket)
+func RegisterWSRoutes(r fiber.Router, h *handler.WSHandler, ticketService service.TicketService, cfg *config.Config) {
+	r.Get("/ws/ticket", middleware.JWT(cfg), h.CreateTicket)
 	r.Get("/ws", middleware.Upgrade(), middleware.TicketAuth(ticketService), websocket.New(h.Connect))
 }

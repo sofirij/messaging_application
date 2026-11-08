@@ -80,6 +80,17 @@ func (u *UserHandler) Login(c fiber.Ctx) error {
 }
 
 func (u *UserHandler) RefreshToken(c fiber.Ctx) error {
+	refreshToken := c.Cookies("refresh_token", "")
+
+	newAccToken, newRefToken, err := u.userService.RefreshToken(c.Context(), refreshToken)
+
+	if err != nil {
+		return HandleServiceError(c, err)
+	}
+
+	c.Cookie(CreateCookie("access_token", newAccToken, u.accessTokenDuration))
+	c.Cookie(CreateCookie("refresh_token", newRefToken, u.refreshTokenDuration))
+
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
