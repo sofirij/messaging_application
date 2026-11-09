@@ -1,5 +1,5 @@
 "use client"
-import { createContext, useContext, useRef, useState } from "react"
+import { createContext, useCallback, useContext, useRef, useState } from "react"
 
 const toastTimeout = 5000
 
@@ -20,17 +20,17 @@ export function ErrorProvider({ children }: { children: React.ReactNode }) {
     const [toasts, setToasts] = useState<Toast[]>([])
     const ref = useRef(0) 
 
-    function addError(message: string) {
+    const removeError = useCallback((id: number) => {
+        setToasts(prev => prev.filter(t => t.id !== id))
+    }, [])
+
+    const addError = useCallback((message: string) => {
         const id = ref.current
         ref.current += 1
 
         setToasts(prev => [...prev, { id: id, message }])
         setTimeout(() => removeError(id), toastTimeout)
-    }
-
-    function removeError(id: number) {
-        setToasts(prev => prev.filter(t => t.id !== id))
-    }
+    }, [removeError])
     
     return (
         <ErrorContext value={{ toasts, addError, removeError }}>

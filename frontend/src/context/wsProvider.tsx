@@ -4,7 +4,6 @@ import { useConversationNew, useMemberAdded, useMemberRemoved, useMessageRead, u
 import { useMessageDeleted, useMessageEdited, useMessageNew } from "@/hooks/query/message"
 import { useReconnected } from "@/hooks/query/ws"
 import { getWSConn, readMessage, startTyping, stopTyping } from "@/lib/api/client/ws"
-import { HTTPError } from "@/types/http/error"
 import { Event, EventConversationNew, EventMemberAdded, EventMemberRemoved, EventMessageDeleted, EventMessageEdited, EventMessageNew, EventMessageSeen } from "@/types/ws/event"
 import { useRouter } from "next/navigation"
 import { createContext, RefObject, useContext, useEffect, useRef, useState } from "react"
@@ -59,7 +58,7 @@ export function WSProvider({children}: {children: React.ReactNode}) {
         function scheduleRetry() {
             clearRetry()
             const d = Math.min(baseDelay * 2 ** attempt.current, maxDelay)
-            const jittered = Math.random() * d
+            const jittered = d / 2 + Math.random() * (d/2)
             attempt.current++
             reconnected.current = true
             retryTimer.current = setTimeout(connect, jittered)
@@ -94,9 +93,14 @@ export function WSProvider({children}: {children: React.ReactNode}) {
             if (rs === WebSocket.OPEN || rs === WebSocket.CONNECTING) return
 
             try {
+                if (cancelled) return
+
                 const conn = await getWSConn()
 
-                if (cancelled) return
+                if (cancelled) {
+                    conn.close()
+                    return
+                }
 
                 conn.onopen = () => {
                     if (ws.current) {
@@ -162,18 +166,12 @@ export function WSProvider({children}: {children: React.ReactNode}) {
                 setStatus(conn.readyState)
                 if (reconnected.current) {
                     handleReconnected()
+                    reconnected.current = false
                 }
             } catch (e) {
                 if (e instanceof Error) {
                     addError(e.message)
                 }
-
-                if (e instanceof HTTPError) {
-                    if (e.code === 401 || e.code === 403) {
-                        router.replace("/login")
-                        return
-                    }
-                } 
 
                 scheduleRetry()
             }
@@ -186,6 +184,7 @@ export function WSProvider({children}: {children: React.ReactNode}) {
         connect()
 
         return () => {
+            console.log("caused by the toast removal")
             cancelled = true
             clearRetry()
             document.removeEventListener("visibilitychange", onVisibility)
