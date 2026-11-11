@@ -177,7 +177,7 @@ export function WSProvider({children}: {children: React.ReactNode}) {
 
                 if (e instanceof HTTPError) {
                     if (e.code === 401 || e.code === 403) {
-                        router.replace("login")
+                        router.replace("/login")
                         return
                     }
                 }
