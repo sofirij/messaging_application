@@ -64,6 +64,22 @@ func (m *messageService) Create(ctx context.Context, senderID, conversationID in
 		return nil, err
 	}
 
+	// ensure replied message is in conversation
+	if req.ReplyToID != nil {
+		message, err := m.messageRepo.GetByID(ctx, *req.ReplyToID)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if message.ConversationID != conversationID {
+			return nil, &Error{
+				Code: ErrCodeBadRequest,
+				Message: "replied message not in conversation",
+			}
+		}
+	}
+
 	message, _, err := m.messageRepo.CreateWithAttachments(ctx, conversationID, senderID, req.ReplyToID, req.Body, req.Attachments)
 
 	if err != nil {
