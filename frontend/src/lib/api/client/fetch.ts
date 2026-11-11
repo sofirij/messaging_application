@@ -1,6 +1,7 @@
 "use client"
 
 import { httpProtocol, serverURL } from "@/config/defaults"
+import { NetworkError } from "@/types/http/error"
 
 const refreshURL = httpProtocol+serverURL+"/api/v1/auth/refresh"
 
@@ -19,7 +20,7 @@ function refresh() {
 }
 
 export async function fetchWithRetry(url: string | URL | Request, init: RequestInit | undefined) {
-    const res = await fetch(url, {...init, credentials: "include"})
+    const res = await fetch(url, {...init, credentials: "include"}).catch(() => { throw new NetworkError() })
 
     if (res.status !== 401) return res
 
@@ -27,5 +28,5 @@ export async function fetchWithRetry(url: string | URL | Request, init: RequestI
 
     if (!ok) return res
 
-    return fetch(url, {...init, credentials: "include"})
+    return fetch(url, {...init, credentials: "include"}).catch(() => { throw new NetworkError() })
 }

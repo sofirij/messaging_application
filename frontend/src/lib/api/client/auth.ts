@@ -1,7 +1,7 @@
 "use client"
 import { UserAuthRequest, User } from "@/types/http/user"
 import { fetchWithRetry } from "@/lib/api/client/fetch"
-import { ErrorDetail, HTTPError } from "@/types/http/error"
+import { ErrorDetail, HTTPError, NetworkError } from "@/types/http/error"
 import { httpProtocol, serverURL } from "@/config/defaults"
 
 const apiVersion = "/api/v1"
@@ -15,7 +15,7 @@ export async function register(req: UserAuthRequest): Promise<void> {
         },
         body: JSON.stringify(req),
         credentials: "include"
-    })
+    }).catch(() => { throw new NetworkError() })
 
     if (!res.ok) {
         const json = await res.json()
@@ -31,7 +31,7 @@ export async function login(req: UserAuthRequest): Promise<User> {
         },
         credentials: "include",
         body: JSON.stringify(req)
-    })
+    }).catch(() => { throw new NetworkError() })
 
     const json = await res.json()
 

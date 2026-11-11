@@ -10,6 +10,7 @@ import { createContext, RefObject, useContext, useEffect, useRef, useState } fro
 import { useErrorContext } from "@/context/errorContext"
 import { userQueryOptions } from "@/query/client/user"
 import { useSuspenseQuery } from "@tanstack/react-query"
+import { HTTPError, NetworkError } from "@/types/http/error"
 
 export type WSContextType = {
     ws: RefObject<WebSocket|null>
@@ -169,8 +170,16 @@ export function WSProvider({children}: {children: React.ReactNode}) {
                     reconnected.current = false
                 }
             } catch (e) {
-                if (e instanceof Error) {
+                if (e instanceof NetworkError) {
                     addError(e.message)
+                    return
+                }
+
+                if (e instanceof HTTPError) {
+                    if (e.code === 401 || e.code === 403) {
+                        router.replace("login")
+                        return
+                    }
                 }
 
                 scheduleRetry()

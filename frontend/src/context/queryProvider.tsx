@@ -10,7 +10,8 @@ export function QueryProvider({children}: {children: React.ReactNode}) {
         defaultOptions: {
             queries: {
                 retry: 1,
-                staleTime: 60 * 5 * 1000 // 5mins
+                staleTime: 60 * 5 * 1000, // 5mins
+                refetchOnReconnect: true
             },
             mutations: {
                 onError: (error: Error) => {

@@ -13,3 +13,9 @@ export class HTTPError extends Error {
         this.message = error.message
     }
 }
+
+export class NetworkError extends Error {
+    constructor() {
+        super("Can't reach the server. Check your connection and try again.")
+    }
+}
