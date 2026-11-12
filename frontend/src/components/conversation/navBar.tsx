@@ -81,7 +81,7 @@ export default function NavBar({conversation}: InputProps) {
             <Popup popup={removeMember} setPopup={setRemoveMember}>
                 <h2 className="popup-title">Remove a member</h2>
                 <div className="divide-y divide-gray-100">
-                    {members.filter(m => m.id != me.id).map(m => {
+                    {members.filter(m => m.id !== me.id).map(m => {
                         return (
                             <Toast key={m.id} member={m}>
                                 <button className="btn-danger px-3 py-1.5" onClick={() => {setRemoveMember(false); handleRemoveMember(m.id, conversation.id)}}>Remove</button>
