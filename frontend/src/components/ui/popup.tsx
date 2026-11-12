@@ -1,8 +1,9 @@
-import { Dispatch, ReactNode, SetStateAction } from "react"
+import { SetState } from "@/types/react"
+import { ReactNode } from "react"
 
 type InputProps = {
     popup: boolean
-    setPopup: Dispatch<SetStateAction<boolean>>
+    setPopup: SetState<boolean>
     children: ReactNode
     wide?: boolean
 }

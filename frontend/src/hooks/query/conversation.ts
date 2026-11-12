@@ -69,6 +69,36 @@ export function useMemberAdded() {
     return handleMemberAdded
 }
 
+export function useMemberIsOnline() {
+    const queryClient = useQueryClient()
+    const { data: me } = useSuspenseQuery(userQueryOptions)
+
+    function handleMemberIsOnline(memberID: number, isOnline: boolean) {
+        if (memberID === me.id) {
+            const oldUser = queryClient.getQueryData(userQueryOptions.queryKey)
+            if (!oldUser) return
+            queryClient.setQueryData(userQueryOptions.queryKey, {...oldUser, is_online: isOnline})
+        }
+
+        const convRecord = queryClient.getQueryData(conversationQueryOptions.queryKey)
+        if (!convRecord) return
+        
+        convRecord.order.forEach(conv => {
+            const oldMembers = queryClient.getQueryData(conversationMemberQueryOptions(conv).queryKey)
+            if (!oldMembers) return
+
+            if (oldMembers.data[memberID]) {
+                queryClient.setQueryData(conversationMemberQueryOptions(conv).queryKey, {
+                    data: {...oldMembers.data, [memberID]: {...oldMembers.data[memberID], is_online: isOnline}},
+                    order: [...oldMembers.order]
+                })
+            }
+        })
+    }
+
+    return handleMemberIsOnline
+}
+
 export function useMemberRemoved() {
     const queryClient = useQueryClient()
     const {data: me} = useSuspenseQuery(userQueryOptions)

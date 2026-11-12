@@ -1,12 +1,13 @@
 import AttachmentSelect, { AttachmentPreview } from "@/components/conversation/attachmentSelect"
 import { useCreateMessage } from "@/hooks/mutation/message"
-import { Dispatch, SetStateAction, useState } from "react"
+import { useState } from "react"
 import { Message } from "@/types/http/message"
 import BodyInput from "@/components/conversation/bodyInput"
+import { SetState } from "@/types/react"
 
 type InputProps = {
     reply: Message | null
-    setReply: Dispatch<SetStateAction<Message | null>>
+    setReply: SetState<Message | null>
     conversationID: number
     bottomRef: React.RefObject<HTMLDivElement | null>
 }

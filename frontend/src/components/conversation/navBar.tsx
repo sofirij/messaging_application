@@ -13,6 +13,7 @@ import { useAddMembers, useRemoveMember, useUpdateConversationAvatar, useUpdateC
 import { userQueryOptions } from "@/query/client/user"
 import Input from "@/components/ui/input"
 import Link from "next/link"
+import Toast from "@/components/conversation/memberToast"
 
 type InputProps = {
     conversation: Conversation
@@ -28,16 +29,18 @@ export default function NavBar({conversation}: InputProps) {
     const [addMember, setAddMember] = useState(false)
     const [removeMember, setRemoveMember] = useState(false)
     const [updateName, setUpdateName] = useState(false)
-    const [members, setMembers] = useState<Set<User>>(new Set())
+    const [listMembers, setListMembers] = useState(false)
+    const [membersToAdd, setMembersToAdd] = useState<Set<User>>(new Set())
     const { handleAddMembers } = useAddMembers()
-    const { handleRemoveMember } = useRemoveMember()
     const [newGroupname, setNewGroupname] = useState("")
     const { handleUpdateConversationName } = useUpdateConversationName()
     const [updatePicture, setUpdatePicture] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const { handleUpdateConversationAvatar } = useUpdateConversationAvatar()
+    const { handleRemoveMember } = useRemoveMember()
 
-    const userIDs = Array.from(members).map(member => member.id)
+    const members = member.order.map(id => member.data[id])
+    const userIDs = Array.from(membersToAdd).map(member => member.id)
 
     function handleProfilePicChange(e: ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]
@@ -51,11 +54,12 @@ export default function NavBar({conversation}: InputProps) {
             <Image src={avatarURL} alt="Conversation profile picture" width={40} height={40} className="avatar h-10 w-10"/>
             <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{conversation.name}</p>
-                <p className="truncate whitespace-nowrap overflow-hidden text-xs text-gray-500">{member.order.map(memberID => member.data[memberID].username).join(", ")}</p>
+                <p className="truncate whitespace-nowrap overflow-hidden text-xs text-gray-500">{members.map(m => m.username).join(", ")}</p>
             </div>
             <button className="btn-icon" onClick={() => setOptionsClicked(true)} aria-label="Conversation options">⋮</button>
             <Popup popup={optionsClicked} setPopup={setOptionsClicked}>
                 <h2 className="popup-title">Options</h2>
+                <button className="menu-item" onClick={() => {setOptionsClicked(false); setListMembers(true)}}>Member list</button>
                 {conversation.type === conversationDirect ? (
                     <>
                         <button className="menu-item text-red-600" onClick={() => {setOptionsClicked(false); handleClearMessages(conversation.id)}}>Clear Messages</button>
@@ -71,19 +75,19 @@ export default function NavBar({conversation}: InputProps) {
             </Popup>
             <Popup popup={addMember} setPopup={setAddMember}>
                 <h2 className="popup-title">Add members</h2>
-                <UserSearch selected={members} setSelected={setMembers}/>
+                <UserSearch selected={membersToAdd} setSelected={setMembersToAdd}/>
                 <button className="btn-primary mt-4 w-full" onClick={() => {setAddMember(false); handleAddMembers(conversation.id, userIDs)}}>Add Members</button>
             </Popup>
             <Popup popup={removeMember} setPopup={setRemoveMember}>
                 <h2 className="popup-title">Remove a member</h2>
                 <div className="divide-y divide-gray-100">
-                    {member.order.filter(id => id !== me.id).map(id => (
-                        <div key={id} className="flex items-center gap-3 py-2">
-                            <Image src={member.data[id].avatar_url ?? defaultAvatarURL} alt="User profile picture" width={32} height={32} className="avatar h-8 w-8"/>
-                            <p className="flex-1 text-sm">{member.data[id].username}</p>
-                            <button className="btn-danger px-3 py-1.5" onClick={() => {setRemoveMember(false); handleRemoveMember(id, conversation.id)}}>Remove</button>
-                        </div>
-                    ))}
+                    {members.filter(m => m.id != me.id).map(m => {
+                        return (
+                            <Toast key={m.id} member={m}>
+                                <button className="btn-danger px-3 py-1.5" onClick={() => {setRemoveMember(false); handleRemoveMember(m.id, conversation.id)}}>Remove</button>
+                            </Toast>
+                        )
+                    })}
                 </div>
             </Popup>
             <Popup popup={updateName} setPopup={setUpdateName}>
@@ -101,6 +105,21 @@ export default function NavBar({conversation}: InputProps) {
                     <button className="btn-primary" onClick={() => fileInputRef.current?.click()}>Select</button>
                 </div>
                 <input type="file" accept="image/*" ref={fileInputRef} onChange={handleProfilePicChange} style={{display: "none"}}/>
+            </Popup>
+            <Popup popup={listMembers} setPopup={setListMembers}>
+                <div>
+                    <h2 className="popup-title">Members</h2>
+                    {members.map(m => {
+                        return (
+                            <Toast key={m.id} member={m}>
+                                <span className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${m.is_online ? "bg-brand/10 text-brand-dark" : "bg-gray-100 text-gray-500"}`}>
+                                    <span className={`h-2 w-2 rounded-full ${m.is_online ? "bg-brand" : "bg-gray-400"}`} />
+                                    {m.is_online ? "Online" : "Offline"}
+                                </span>
+                            </Toast>
+                        )
+                    })}
+                </div>
             </Popup>
         </div>
     )

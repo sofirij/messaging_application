@@ -1,10 +1,11 @@
 import { useUpdateMessage } from "@/hooks/mutation/message"
-import { Dispatch, SetStateAction, useState } from "react"
+import { SetState } from "@/types/react"
+import { useState } from "react"
 
 type InputProps = {
     conversationID: number
     messageID: number
-    setEditClicked: Dispatch<SetStateAction<boolean>>
+    setEditClicked: SetState<boolean>
 }
 
 export default function EditInput({conversationID, messageID, setEditClicked}: InputProps) {

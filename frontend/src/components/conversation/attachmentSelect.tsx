@@ -1,10 +1,11 @@
 import { useErrorContext } from "@/context/errorContext"
 import { getFileCategory } from "@/lib/utils/file"
-import { Dispatch, SetStateAction, useEffect, useRef } from "react"
+import { SetState } from "@/types/react"
+import { useEffect, useRef } from "react"
 
 type InputProps = {
     attachments: File[]
-    setAttachments: Dispatch<SetStateAction<File[]>>
+    setAttachments: SetState<File[]>
 }
 
 export function AttachmentPreview({attachments, setAttachments}: InputProps) {

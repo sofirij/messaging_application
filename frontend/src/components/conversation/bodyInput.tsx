@@ -1,7 +1,7 @@
-import { Dispatch, SetStateAction } from "react"
+import { SetState } from "@/types/react"
 
 type InputProps = {
-    setText: Dispatch<SetStateAction<string>>
+    setText: SetState<string>
     text: string
     submitHandler: () => void
 }

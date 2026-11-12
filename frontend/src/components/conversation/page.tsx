@@ -1,10 +1,10 @@
 "use client"
 
-import NavBar from "@/components/conversations/navBar";
+import NavBar from "@/components/conversation/navBar";
 import { conversationMemberQueryOptions, conversationQueryOptions } from "@/query/client/conversation";
 import { messageQueryOptions } from "@/query/client/message";
 import { useSuspenseInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
-import Toast from "@/components/conversation/toast";
+import Toast from "@/components/conversation/messageToast";
 import Sender from "@/components/conversation/sender"
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Message } from "@/types/http/message";

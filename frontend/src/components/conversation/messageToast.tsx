@@ -3,18 +3,19 @@ import { Message } from "@/types/http/message"
 import { User } from "@/types/http/user"
 import Image from "next/image"
 import AttachmentList from "@/components/conversation/attachment"
-import { Dispatch, SetStateAction, useState } from "react"
+import { useState } from "react"
 import { useDeleteMessage } from "@/hooks/mutation/message"
 import EditInput from "@/components/conversation/editInput"
 import ReplyToast from "@/components/conversation/replyToast"
 import Popup from "@/components/ui/popup"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { userQueryOptions } from "@/query/client/user"
+import { SetState } from "@/types/react"
 
 type InputProps = {
     sender: User,
     message: Message,
-    setReply: Dispatch<SetStateAction<Message | null>>
+    setReply: SetState<Message | null>
 }
 
 export default function Toast({sender, message, setReply} : InputProps) {
