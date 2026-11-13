@@ -7,8 +7,9 @@ import { Message } from "@/types/http/message"
 import BodyInput from "@/components/conversation/bodyInput"
 import { SetState } from "@/types/react"
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { userTypingQueryOptions } from "@/query/client/user"
+import { userTypingQueryOptions } from "@/query/client/conversation"
 import { conversationMemberQueryOptions } from "@/query/client/conversation"
+import { userQueryOptions } from "@/query/client/user"
 
 type InputProps = {
     reply: Message | null
@@ -20,9 +21,10 @@ type InputProps = {
 export default function Sender({reply, setReply, conversationID, bottomRef}: InputProps) {
     const [text, setText] = useState("")
     const [attachments, setAttachments] = useState<File[]>([])
-    const { handleCreateMessage } = useCreateMessage()
+    const { handleCreateMessage, loading: createMessageLoading } = useCreateMessage()
     const { data: typingUser, isStale } = useSuspenseQuery(userTypingQueryOptions(conversationID))
     const { data: members } = useSuspenseQuery(conversationMemberQueryOptions(conversationID))
+    const { data: me } = useSuspenseQuery(userQueryOptions)
 
     function processText(text: string): string | null {
         if (text.trim().length === 0) {
@@ -40,6 +42,7 @@ export default function Sender({reply, setReply, conversationID, bottomRef}: Inp
     }
 
     function createMessage() {
+        if (createMessageLoading) return
         handleCreateMessage(conversationID, processText(text), reply ? reply.id : null, attachments, onSuccess)
     }
 
@@ -47,7 +50,7 @@ export default function Sender({reply, setReply, conversationID, bottomRef}: Inp
 
     return (
         <div className="flex flex-col">
-            {(typingMember && !isStale) && (
+            {(typingMember && !isStale && typingMember.id !== me.id) && (
                 <div className="mx-3 mt-2 flex items-center gap-2 text-xs text-gray-500" aria-live="polite">
                     <span className="flex items-center gap-0.5" aria-hidden="true">
                         {[0, 150, 300].map(delay => (
@@ -76,7 +79,17 @@ export default function Sender({reply, setReply, conversationID, bottomRef}: Inp
             <div className="flex items-center gap-2 p-3">
                 <AttachmentSelect setAttachments={setAttachments} attachments={attachments}/>
                 <BodyInput conversationID={conversationID} setText={setText} text={text} submitHandler={createMessage}/>
-                <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-dark" onClick={createMessage} aria-label="Send message">➤</button>
+                <button
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-brand"
+                    onClick={createMessage}
+                    disabled={createMessageLoading}
+                    aria-busy={createMessageLoading}
+                    aria-label={createMessageLoading ? "Sending message" : "Send message"}
+                >
+                    {createMessageLoading ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" aria-hidden="true"/>
+                    ) : "➤"}
+                </button>
             </div>
         </div>
     )

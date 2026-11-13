@@ -49,6 +49,7 @@ export function useDeleteMessage() {
 
 export function useCreateMessage() {
     const handleMessageNew = useMessageNew()
+    const { handleCreateAttachments, loading: attachmentLoading } = useCreateAttachments()
 
     const mutation = useMutation({
         mutationFn: async ({conversationID, req}: {conversationID: number, req: MessageCreateRequest}) => {
@@ -61,19 +62,36 @@ export function useCreateMessage() {
     })
 
     async function handleCreateMessage(conversationID: number, body: string | null, reply_to_id: number | null, files: File[], onSuccess: () => void) {
-        const uploads = files.length > 0 ? await uploadMany(files) : []
-        const attachments: AttachmentRequest[] = uploads.map(upload => {
-            return {
-                url: upload.url,
-                filename: upload.filename,
-                type: upload.type,
-                size: upload.size,
-            }
-        })
-        mutation.mutate({conversationID, req: {body, reply_to_id, attachments}}, {onSuccess})
+        try {
+            const uploads = await handleCreateAttachments(files)
+
+            const attachments: AttachmentRequest[] = uploads.map(upload => {
+                return {
+                    url: upload.url,
+                    filename: upload.filename,
+                    type: upload.type,
+                    size: upload.size,
+                }
+            })
+            mutation.mutate({conversationID, req: {body, reply_to_id, attachments}}, {onSuccess})
+        } catch {} 
     }
 
-    return {handleCreateMessage, loading: mutation.isPending}
+    return {handleCreateMessage, loading: (mutation.isPending || attachmentLoading)}
+}
+
+function useCreateAttachments() {
+    const mutation = useMutation({
+        mutationFn: async({files}: {files: File[]}) => {
+            return files.length > 0 ? await uploadMany(files): []
+        }
+    })
+
+    async function handleCreateAttachments(files: File[]) {
+        return mutation.mutateAsync({files})
+    }
+
+    return {handleCreateAttachments, loading: mutation.isPending}
 }
 
 export function useClearMessages() {

@@ -27,6 +27,12 @@ export const conversationRefetchOptions = {
     type: "all"
 } as const
 
+export const userTypingQueryOptions = (conversationID: number) => queryOptions({
+    queryKey: ["conversations", conversationID, "userTyping"],
+    queryFn: (): null | number => null,
+    staleTime: 2000,
+}) 
+
 export const conversationMemberQueryOptions = (id: number) => queryOptions({
     queryKey: [...conversationQueryOptions.queryKey, id, "members"],
     queryFn: async (): Promise<MemberRecord> => {
