@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"app/internal/model/db"
@@ -51,7 +52,7 @@ func (m *messageService) Create(ctx context.Context, senderID, conversationID in
 	}
 
 	// missing body and attachments
-	if req.Body == nil && req.Attachments == nil {
+	if (req.Body == nil || strings.TrimSpace(*req.Body) == "") && (len(req.Attachments) == 0) {
 		return nil, &Error{
 			Code:    ErrCodeBadRequest,
 			Message: "missing body",
