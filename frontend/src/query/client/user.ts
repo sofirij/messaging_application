@@ -19,3 +19,9 @@ export const userSearchQueryOptions = (query: string) => queryOptions({
     queryFn: () => searchUsername(query),
     staleTime: 15000,
 })
+
+export const userTypingQueryOptions = (conversationID: number) => queryOptions({
+    queryKey: ["userTyping", conversationID],
+    queryFn: (): null | number => null,
+    staleTime: 2000,
+}) 

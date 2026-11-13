@@ -1,10 +1,10 @@
 "use client"
 
-import { useConversationNew, useMemberAdded, useMemberIsOnline, useMemberRemoved, useMessageRead, useMessageSeen } from "@/hooks/query/conversation"
+import { useConversationNew, useMemberAdded, useMemberIsOnline, useMemberRemoved, useMessageRead, useMessageSeen, useUserTyping } from "@/hooks/query/conversation"
 import { useMessageDeleted, useMessageEdited, useMessageNew } from "@/hooks/query/message"
 import { useReconnected } from "@/hooks/query/ws"
 import { getWSConn, readMessage, startTyping, stopTyping } from "@/lib/api/client/ws"
-import { Event, EventConversationNew, EventMemberAdded, EventMemberRemoved, EventMessageDeleted, EventMessageEdited, EventMessageNew, EventMessageSeen, EventUserOffline, EventUserOnline } from "@/types/ws/event"
+import { Event, EventConversationNew, EventMemberAdded, EventMemberRemoved, EventMessageDeleted, EventMessageEdited, EventMessageNew, EventMessageSeen, EventUserOffline, EventUserOnline, EventUserTypingStart } from "@/types/ws/event"
 import { useRouter } from "next/navigation"
 import { createContext, RefObject, useContext, useEffect, useRef, useState } from "react"
 import { useErrorContext } from "@/context/errorContext"
@@ -38,6 +38,7 @@ export function WSProvider({children}: {children: React.ReactNode}) {
     const handleMessageRead = useMessageRead()
     const handleMessageSeen = useMessageSeen()
     const handleMemberIsOnline = useMemberIsOnline()
+    const handleUserTyping = useUserTyping()
 
     const { addError } = useErrorContext()
 
@@ -132,6 +133,7 @@ export function WSProvider({children}: {children: React.ReactNode}) {
                     switch (msg.type) {
                         case EventMessageNew: {
                             handleMessageNew(msg.payload)
+                            handleUserTyping(msg.payload.conversation_id, null)
                             break
                         }
                         case EventMessageDeleted: {
@@ -169,6 +171,12 @@ export function WSProvider({children}: {children: React.ReactNode}) {
                         }
                         case EventUserOffline: {
                             handleMemberIsOnline(msg.payload.user_id, false)
+                            break
+                        }
+                        case EventUserTypingStart: {
+                            console.log("running")
+                            console.log(`conversation ${msg.payload.conversation_id} user ${msg.payload.user_id}`)
+                            handleUserTyping(msg.payload.conversation_id, msg.payload.user_id)
                             break
                         }
                     }
@@ -215,7 +223,7 @@ export function WSProvider({children}: {children: React.ReactNode}) {
                 ws.current = null
             }
         }
-    }, [addError, handleConversationNew, handleMemberAdded, handleMemberIsOnline, handleMemberRemoved, handleMessageDeleted, handleMessageEdited, handleMessageNew, handleMessageRead, handleMessageSeen, handleReconnected, me.id, router])
+    }, [addError, handleConversationNew, handleMemberAdded, handleMemberIsOnline, handleMemberRemoved, handleMessageDeleted, handleMessageEdited, handleMessageNew, handleMessageRead, handleMessageSeen, handleReconnected, handleUserTyping, me.id, router])
 
     return (
         <WSContext value={{ws, status, readMessage, startTyping, stopTyping}}>

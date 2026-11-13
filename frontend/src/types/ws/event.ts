@@ -35,8 +35,8 @@ export type Event =
     // inbound
     | { type: typeof EventMessageNew, payload: Message }
     | { type: typeof EventMessageDeleted, payload: MessageDeletedPayload }
-    | { type: typeof EventTypingStart, payload: InboundTypingStartPayload }
-    | { type: typeof EventTypingStop, payload: InboundTypingStopPayload }
+    | { type: typeof EventUserTypingStart, payload: InboundTypingStartPayload }
+    | { type: typeof EventUserTypingStop, payload: InboundTypingStopPayload }
     | { type: typeof EventMessageSeen, payload: MessageSeenPayload }
     | { type: typeof EventUserOnline, payload: UserOnlinePayload }
     | { type: typeof EventUserOffline, payload: UserOfflinePayload }

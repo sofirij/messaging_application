@@ -1,7 +1,7 @@
 "use client"
 
 import { conversationMemberQueryOptions, conversationMemberRefetchOptions, conversationQueryOptions, conversationRefetchOptions } from "@/query/client/conversation"
-import { userQueryOptions } from "@/query/client/user"
+import { userQueryOptions, userTypingQueryOptions } from "@/query/client/user"
 import { User } from "@/types/http/user"
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 
@@ -211,4 +211,17 @@ export function useMessageSeen() {
     }
 
     return handleMessageSeen
+}
+
+export function useUserTyping() {
+    const queryClient = useQueryClient()
+
+    function handleUserTyping(conversationID: number, userID: number | null) {
+        const old = queryClient.getQueryData(userTypingQueryOptions(conversationID).queryKey)
+        if (old === undefined) return
+        queryClient.setQueryData(userTypingQueryOptions(conversationID).queryKey, userID)
+        console.log(`${userID} is typing`)
+    }
+
+    return handleUserTyping
 }

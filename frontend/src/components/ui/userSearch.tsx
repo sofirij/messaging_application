@@ -14,12 +14,12 @@ type InputProps = {
     setSelected: SetState<Set<User>>
 }
 
-const queryDelay = 300
-
 export default function UserSearch({selected, setSelected}: InputProps) {
     const { data: me } = useSuspenseQuery(userQueryOptions)
     const [query, setQuery] = useState("")
     const [debouncedQuery, setDebouncedQuery] = useState("")
+
+    const queryDelay = 300
 
     useEffect(() => {
         const timeout = setTimeout(() => setDebouncedQuery(query), queryDelay)
