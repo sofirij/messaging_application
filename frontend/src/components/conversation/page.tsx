@@ -23,6 +23,7 @@ export default function Conversation({conversationID}: {conversationID: number})
     const bottomRef = useRef<HTMLDivElement>(null)
     const scrollRef = useRef<HTMLDivElement>(null)
     const shouldScroll = useRef(true)
+    const [shouldRead, setShouldRead] = useState(false)
 
     const { readMessage, ws } = useWSContext()
 
@@ -41,6 +42,7 @@ export default function Conversation({conversationID}: {conversationID: number})
 
         const scrollObserver = new IntersectionObserver(([entry]) => {
             shouldScroll.current = entry.isIntersecting
+            setShouldRead(entry.isIntersecting)
         }, {rootMargin: "0px 0px 100px 0px", root: scrollRef.current, threshold: 0})
         scrollObserver.observe(bottomRef.current)
 
@@ -52,16 +54,33 @@ export default function Conversation({conversationID}: {conversationID: number})
 
     useLayoutEffect(() => {
         if (shouldScroll.current) bottomRef.current?.scrollIntoView({block: "end"})
-        if (messages.length === 0) return
+    }, [messages.length])
 
-        // read the message if it wasn't sent by you and its after the last message you've read
-        const lastMessage = messages[messages.length - 1]
-        const lastReadByUser = conversations.data[conversationID].last_message_read_by_user
-        if (lastMessage.sender_id !== me.id && (!lastReadByUser || lastMessage.id > lastReadByUser)) {
-            if (!ws.current) return
-            readMessage(ws.current, conversationID, lastMessage.id)
+    useEffect(() => {
+        function read() {
+            if (!shouldRead) return
+            if (messages.length === 0) return
+
+            // read the message if it wasn't sent by you and its after the last message you've read
+            const lastMessage = messages[messages.length - 1]
+            const lastReadByUser = conversations.data[conversationID].last_message_read_by_user
+
+            if (document.visibilityState !== "visible") return
+            if (lastMessage.sender_id === me.id) return
+
+
+            if (!lastReadByUser || lastMessage.id > lastReadByUser) {
+                if (!ws.current) return
+                readMessage(ws.current, conversationID, lastMessage.id)
+            }
         }
-    }, [conversationID, conversations.data, me.id, messages, readMessage, ws])
+
+        read()
+
+        document.addEventListener("visibilitychange", read)
+
+        return () => document.removeEventListener("visibilitychange", read)
+    }, [conversationID, conversations.data, me.id, messages, readMessage, ws, shouldRead])
 
     return (
         <main className="h-full flex flex-col bg-chat">
